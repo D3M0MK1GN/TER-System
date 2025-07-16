@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Clock, CheckCircle, Users, TrendingUp } from "lucide-react";
+import { FileText, Clock, CheckCircle, Users, TrendingUp, Send, X } from "lucide-react";
 
 interface StatsCardsProps {
   stats: {
@@ -44,9 +44,19 @@ export function StatsCards({ stats }: StatsCardsProps) {
       trendColor: "text-green-600",
     },
     {
+      title: "Enviadas",
+      value: stats.enviadas,
+      icon: Send,
+      color: "bg-blue-100",
+      iconColor: "text-blue-600",
+      trend: stats.enviadas > 0 ? "En proceso" : "Ninguna enviada",
+      trendText: "",
+      trendColor: stats.enviadas > 0 ? "text-blue-600" : "text-gray-600",
+    },
+    {
       title: "Rechazadas",
       value: stats.rechazadas,
-      icon: Users,
+      icon: X,
       color: "bg-red-100",
       iconColor: "text-red-600",
       trend: stats.rechazadas > 0 ? "Requieren revisión" : "Sin rechazos",
@@ -56,7 +66,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       {cards.map((card, index) => {
         const Icon = card.icon;
         return (
