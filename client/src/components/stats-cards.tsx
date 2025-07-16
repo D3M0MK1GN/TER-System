@@ -24,26 +24,6 @@ export function StatsCards({ stats }: StatsCardsProps) {
       trendColor: "text-green-600",
     },
     {
-      title: "Pendientes",
-      value: stats.pendientes,
-      icon: Clock,
-      color: "bg-yellow-100",
-      iconColor: "text-yellow-600",
-      trend: "Requieren atención",
-      trendText: "",
-      trendColor: "text-yellow-600",
-    },
-    {
-      title: "Completadas",
-      value: stats.respondidas,
-      icon: CheckCircle,
-      color: "bg-green-100",
-      iconColor: "text-green-600",
-      trend: `${stats.totalSolicitudes > 0 ? Math.round((stats.respondidas / stats.totalSolicitudes) * 100) : 0}%`,
-      trendText: "tasa de éxito",
-      trendColor: "text-green-600",
-    },
-    {
       title: "Enviadas",
       value: stats.enviadas,
       icon: Send,
@@ -52,6 +32,16 @@ export function StatsCards({ stats }: StatsCardsProps) {
       trend: stats.enviadas > 0 ? "En proceso" : "Ninguna enviada",
       trendText: "",
       trendColor: stats.enviadas > 0 ? "text-blue-600" : "text-gray-600",
+    },
+    {
+      title: "Pendientes",
+      value: stats.pendientes,
+      icon: Clock,
+      color: "bg-yellow-100",
+      iconColor: "text-yellow-600",
+      trend: "Requieren atención",
+      trendText: "",
+      trendColor: "text-yellow-600",
     },
     {
       title: "Rechazadas",
@@ -63,15 +53,25 @@ export function StatsCards({ stats }: StatsCardsProps) {
       trendText: "",
       trendColor: stats.rechazadas > 0 ? "text-red-600" : "text-green-600",
     },
+    {
+      title: "Completadas",
+      value: stats.respondidas,
+      icon: CheckCircle,
+      color: "bg-green-100",
+      iconColor: "text-green-600",
+      trend: `${stats.totalSolicitudes > 0 ? Math.round((stats.respondidas / stats.totalSolicitudes) * 100) : 0}%`,
+      trendText: "tasa de éxito",
+      trendColor: "text-green-600",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
       {cards.map((card, index) => {
         const Icon = card.icon;
         return (
           <Card key={index} className="border border-gray-200">
-            <CardContent className="p-6">
+            <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">{card.title}</p>
