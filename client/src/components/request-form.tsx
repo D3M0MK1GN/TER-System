@@ -172,8 +172,8 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
             <div>
               <Label htmlFor="estado">Estado</Label>
               <Select
-                value={form.watch("estado")}
-                onValueChange={(value) => form.setValue("estado", value)}
+                value={form.watch("estado") || "pendiente"}
+                onValueChange={(value) => form.setValue("estado", value as any)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione estado" />

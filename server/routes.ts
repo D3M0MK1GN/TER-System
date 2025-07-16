@@ -263,6 +263,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/plantillas/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const plantillaData = insertPlantillaCorreoSchema.partial().parse(req.body);
+
+      const plantilla = await storage.updatePlantillaCorreo(id, plantillaData);
+      
+      if (!plantilla) {
+        return res.status(404).json({ message: "Plantilla no encontrada" });
+      }
+
+      res.json(plantilla);
+    } catch (error) {
+      console.error("Error actualizando plantilla:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error actualizando plantilla" });
+    }
+  });
+
+  app.delete("/api/plantillas/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deletePlantillaCorreo(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Plantilla no encontrada" });
+      }
+
+      res.json({ message: "Plantilla eliminada exitosamente" });
+    } catch (error) {
+      console.error("Error eliminando plantilla:", error);
+      res.status(500).json({ message: "Error eliminando plantilla" });
+    }
+  });
+
   // Historial Routes
   app.get("/api/solicitudes/:id/historial", authenticateToken, async (req, res) => {
     try {

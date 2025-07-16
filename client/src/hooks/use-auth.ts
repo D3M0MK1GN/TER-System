@@ -36,9 +36,10 @@ export function useAuth() {
       return true;
     } catch (error: any) {
       console.error("Error en login:", error);
+      const errorMessage = error.message || "Credenciales inválidas";
       toast({
         title: "Error de autenticación",
-        description: error.message || "Credenciales inválidas",
+        description: errorMessage.includes("401") ? "Usuario o contraseña incorrectos" : errorMessage,
         variant: "destructive",
       });
       return false;

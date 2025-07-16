@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/use-auth";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Requests from "@/pages/requests";
+import Templates from "@/pages/templates";
+import Reports from "@/pages/reports";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -39,6 +41,16 @@ function Router() {
       <Route path="/solicitudes">
         <ProtectedRoute>
           <Requests />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/plantillas">
+        <ProtectedRoute>
+          <Templates />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/reportes">
+        <ProtectedRoute>
+          <Reports />
         </ProtectedRoute>
       </Route>
       <Route path="/">

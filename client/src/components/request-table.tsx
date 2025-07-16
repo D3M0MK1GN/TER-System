@@ -248,9 +248,9 @@ export function RequestTable({
                       <TableCell>{formatTipoExperticia(solicitud.tipoExperticia)}</TableCell>
                       <TableCell>
                         <Badge
-                          className={statusColors[solicitud.estado] || "bg-gray-100 text-gray-800"}
+                          className={statusColors[solicitud.estado || "pendiente"] || "bg-gray-100 text-gray-800"}
                         >
-                          {formatStatus(solicitud.estado)}
+                          {formatStatus(solicitud.estado || "pendiente")}
                         </Badge>
                       </TableCell>
                       <TableCell>

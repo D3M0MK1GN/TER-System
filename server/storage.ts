@@ -161,7 +161,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSolicitud(id: number): Promise<boolean> {
     const result = await db.delete(solicitudes).where(eq(solicitudes.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getPlantillasCorreo(usuarioId?: number): Promise<PlantillaCorreo[]> {
@@ -190,7 +190,7 @@ export class DatabaseStorage implements IStorage {
 
   async deletePlantillaCorreo(id: number): Promise<boolean> {
     const result = await db.delete(plantillasCorreo).where(eq(plantillasCorreo.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async createHistorial(historial: InsertHistorialSolicitud): Promise<HistorialSolicitud> {

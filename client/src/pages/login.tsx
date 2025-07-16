@@ -20,12 +20,19 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     
-    const success = await login(username, password);
-    if (success) {
-      setLocation("/dashboard");
+    try {
+      const success = await login(username, password);
+      if (success) {
+        // Pequeña espera para que el estado se actualice
+        setTimeout(() => {
+          setLocation("/dashboard");
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Error en login:", error);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -80,7 +87,7 @@ export default function Login() {
                 <Checkbox
                   id="remember"
                   checked={rememberMe}
-                  onCheckedChange={setRememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
                 />
                 <Label htmlFor="remember" className="text-sm text-gray-600">
                   Recordarme

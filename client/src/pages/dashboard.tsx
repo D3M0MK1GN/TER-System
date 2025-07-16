@@ -9,8 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Plus, Edit, Mail, Clock } from "lucide-react";
 
+interface DashboardStats {
+  totalSolicitudes: number;
+  pendientes: number;
+  enviadas: number;
+  respondidas: number;
+  rechazadas: number;
+  solicitudesPorOperador: { operador: string; total: number }[];
+  actividadReciente: any[];
+}
+
 export default function Dashboard() {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
 
@@ -47,7 +57,19 @@ export default function Dashboard() {
         <main className="p-6">
           {/* Stats Cards */}
           <div className="mb-8">
-            <StatsCards stats={stats} />
+            <StatsCards stats={stats ? {
+              totalSolicitudes: stats.totalSolicitudes,
+              pendientes: stats.pendientes,
+              enviadas: stats.enviadas,
+              respondidas: stats.respondidas,
+              rechazadas: stats.rechazadas
+            } : {
+              totalSolicitudes: 0,
+              pendientes: 0,
+              enviadas: 0,
+              respondidas: 0,
+              rechazadas: 0
+            }} />
           </div>
 
           {/* Charts and Recent Activity */}
@@ -71,7 +93,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {stats.solicitudesPorOperador.map((item: any, index: number) => {
+                  {(stats?.solicitudesPorOperador || []).map((item: any, index: number) => {
                     const colors = [
                       "bg-blue-500",
                       "bg-green-500",
@@ -79,8 +101,8 @@ export default function Dashboard() {
                       "bg-purple-500",
                       "bg-yellow-500",
                     ];
-                    const percentage = stats.totalSolicitudes > 0 
-                      ? (item.total / stats.totalSolicitudes) * 100 
+                    const percentage = (stats?.totalSolicitudes || 0) > 0 
+                      ? (item.total / (stats?.totalSolicitudes || 1)) * 100 
                       : 0;
                     
                     return (
@@ -111,12 +133,12 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {stats.actividadReciente.length === 0 ? (
+                  {(stats?.actividadReciente || []).length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       No hay actividad reciente
                     </div>
                   ) : (
-                    stats.actividadReciente.map((activity: any, index: number) => {
+                    (stats?.actividadReciente || []).map((activity: any, index: number) => {
                       const icons = {
                         completado: { icon: CheckCircle, color: "bg-green-100 text-green-600" },
                         pendiente: { icon: Clock, color: "bg-yellow-100 text-yellow-600" },
