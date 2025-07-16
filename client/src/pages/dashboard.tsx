@@ -78,7 +78,7 @@ export default function Dashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg font-semibold">
-                  Solicitudes por Operador
+                  Solicitudes Rechazadas
                 </CardTitle>
                 <Select defaultValue="ultimo-mes">
                   <SelectTrigger className="w-40">
@@ -93,33 +93,34 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(stats?.solicitudesPorOperador || []).map((item: any, index: number) => {
-                    const colors = [
-                      "bg-blue-500",
-                      "bg-green-500",
-                      "bg-red-500",
-                      "bg-purple-500",
-                      "bg-yellow-500",
-                    ];
-                    const percentage = (stats?.totalSolicitudes || 0) > 0 
-                      ? (item.total / (stats?.totalSolicitudes || 1)) * 100 
-                      : 0;
-                    
-                    return (
-                      <div key={item.operador} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-4 h-4 ${colors[index % colors.length]} rounded-full`}></div>
-                          <span className="text-sm text-gray-600 capitalize">
-                            {item.operador}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Progress value={percentage} className="w-32" />
-                          <span className="text-sm font-medium">{item.total}</span>
-                        </div>
+                  {stats?.rechazadas > 0 ? (
+                    <div className="text-center py-8">
+                      <div className="text-4xl font-bold text-red-600 mb-2">
+                        {stats.rechazadas}
                       </div>
-                    );
-                  })}
+                      <div className="text-sm text-gray-600">
+                        Solicitudes rechazadas
+                      </div>
+                      <div className="mt-4">
+                        <Progress 
+                          value={(stats.rechazadas / stats.totalSolicitudes) * 100} 
+                          className="w-full max-w-xs mx-auto"
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        {((stats.rechazadas / stats.totalSolicitudes) * 100).toFixed(1)}% del total
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="text-2xl font-bold text-green-600 mb-2">
+                        ¡Excelente!
+                      </div>
+                      <div className="text-sm">
+                        No hay solicitudes rechazadas
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
