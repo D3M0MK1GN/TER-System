@@ -90,8 +90,19 @@ export function RequestTable({
     search: "",
   });
 
+  const [selectValues, setSelectValues] = useState({
+    operador: "todos",
+    estado: "todos", 
+    tipoExperticia: "todos",
+  });
+
   const handleFilterChange = (key: string, value: string) => {
-    const newFilters = { ...filters, [key]: value };
+    // Actualizar valor del select
+    setSelectValues(prev => ({ ...prev, [key]: value }));
+    
+    // Convertir "todos" a string vacío para el filtro
+    const filterValue = value === "todos" ? "" : value;
+    const newFilters = { ...filters, [key]: filterValue };
     setFilters(newFilters);
     onFiltersChange(newFilters);
   };
@@ -120,14 +131,14 @@ export function RequestTable({
                 Operador
               </label>
               <Select
-                value={filters.operador}
+                value={selectValues.operador}
                 onValueChange={(value) => handleFilterChange("operador", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="movistar">Movistar</SelectItem>
                   <SelectItem value="claro">Claro</SelectItem>
                   <SelectItem value="entel">Entel</SelectItem>
@@ -142,14 +153,14 @@ export function RequestTable({
                 Estado
               </label>
               <Select
-                value={filters.estado}
+                value={selectValues.estado}
                 onValueChange={(value) => handleFilterChange("estado", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="pendiente">Pendiente</SelectItem>
                   <SelectItem value="enviada">Enviada</SelectItem>
                   <SelectItem value="respondida">Respondida</SelectItem>
@@ -163,14 +174,14 @@ export function RequestTable({
                 Tipo Experticia
               </label>
               <Select
-                value={filters.tipoExperticia}
+                value={selectValues.tipoExperticia}
                 onValueChange={(value) => handleFilterChange("tipoExperticia", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="analisis_radioespectro">Análisis de Radioespectro</SelectItem>
                   <SelectItem value="identificacion_bts">Identificación BTS</SelectItem>
                   <SelectItem value="analisis_trafico">Análisis de Tráfico</SelectItem>
