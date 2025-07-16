@@ -75,3 +75,48 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(20, 14.3%, 4.1%);
 }
+
+/* Print styles for modal */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Hide dialog overlay and only show content */
+  [data-radix-dialog-overlay] {
+    display: none !important;
+  }
+  
+  [data-radix-dialog-content] {
+    position: static !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    overflow: visible !important;
+  }
+  
+  /* Better print layout */
+  body {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+  
+  h1, h2, h3 {
+    page-break-after: avoid !important;
+  }
+  
+  .space-y-6 > * {
+    margin-bottom: 15px !important;
+  }
+  
+  .grid {
+    display: block !important;
+  }
+  
+  .grid > * {
+    margin-bottom: 10px !important;
+  }
+}

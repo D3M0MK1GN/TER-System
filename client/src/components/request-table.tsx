@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Edit, Mail, Trash2, Search, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Edit, Mail, Trash2, Search, Plus, ChevronLeft, ChevronRight, Printer, Calendar, User, FileText, Building, ClipboardList } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { type Solicitud } from "@shared/schema";
 
 interface RequestTableProps {
@@ -96,6 +98,8 @@ export function RequestTable({
     tipoExperticia: "todos",
   });
 
+  const [viewingSolicitud, setViewingSolicitud] = useState<Solicitud | null>(null);
+
   const handleFilterChange = (key: string, value: string) => {
     // Actualizar valor del select
     setSelectValues(prev => ({ ...prev, [key]: value }));
@@ -105,6 +109,28 @@ export function RequestTable({
     const newFilters = { ...filters, [key]: filterValue };
     setFilters(newFilters);
     onFiltersChange(newFilters);
+  };
+
+  const handleView = (solicitud: Solicitud) => {
+    setViewingSolicitud(solicitud);
+  };
+
+  const handlePrint = () => {
+    if (viewingSolicitud) {
+      window.print();
+    }
+  };
+
+  const formatExpertiseType = (tipo: string) => {
+    const types = {
+      analisis_radioespectro: "Análisis de Radioespectro",
+      identificacion_bts: "Identificación BTS",
+      analisis_trafico: "Análisis de Tráfico",
+      localizacion_antenas: "Localización de Antenas",
+      analisis_cobertura: "Análisis de Cobertura",
+      otros: "Otros",
+    };
+    return types[tipo as keyof typeof types] || tipo;
   };
 
   const totalPages = Math.ceil(total / pageSize);
@@ -274,7 +300,7 @@ export function RequestTable({
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => onView(solicitud)}
+                            onClick={() => handleView(solicitud)}
                             title="Ver detalles"
                           >
                             <Eye className="h-4 w-4" />
@@ -377,6 +403,148 @@ export function RequestTable({
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Visualización */}
+      <Dialog open={!!viewingSolicitud} onOpenChange={(open) => !open && setViewingSolicitud(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Detalles de la Solicitud</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handlePrint}
+                className="no-print"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir Reporte
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {viewingSolicitud && (
+            <div className="space-y-6">
+              {/* Información General */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Número de Solicitud</p>
+                      <p className="text-lg font-semibold text-gray-900">{viewingSolicitud.numeroSolicitud}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <ClipboardList className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Número de Expediente</p>
+                      <p className="text-lg font-semibold text-gray-900">{viewingSolicitud.numeroExpediente}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="h-5 w-5 text-purple-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Fecha de Creación</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {viewingSolicitud.createdAt ? new Date(viewingSolicitud.createdAt).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        }) : 'No disponible'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <User className="h-5 w-5 text-orange-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Fiscal</p>
+                      <p className="text-lg font-semibold text-gray-900">{viewingSolicitud.fiscal || 'No asignado'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Building className="h-5 w-5 text-indigo-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Operador</p>
+                      <Badge className={operatorColors[viewingSolicitud.operador as keyof typeof operatorColors]}>
+                        {formatOperator(viewingSolicitud.operador)}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <ClipboardList className="h-5 w-5 text-teal-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Estado</p>
+                      <Badge className={statusColors[viewingSolicitud.estado as keyof typeof statusColors]}>
+                        {formatStatus(viewingSolicitud.estado || 'pendiente')}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Detalles Técnicos */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Detalles Técnicos</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Tipo de Experticia</p>
+                    <p className="text-gray-900">{formatExpertiseType(viewingSolicitud.tipoExperticia)}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Coordinación</p>
+                    <p className="text-gray-900">{viewingSolicitud.coordinacionSolicitante}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-2">Descripción</p>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-900 whitespace-pre-wrap">{viewingSolicitud.descripcion || 'Sin descripción'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Información Adicional */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Información Adicional</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Información de Línea</p>
+                    <p className="text-gray-900">{viewingSolicitud.informacionLinea || 'No disponible'}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Fecha de Actualización</p>
+                    <p className="text-gray-900">
+                      {viewingSolicitud.updatedAt ? new Date(viewingSolicitud.updatedAt).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : 'No disponible'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
