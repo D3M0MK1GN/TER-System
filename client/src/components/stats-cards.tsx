@@ -44,14 +44,14 @@ export function StatsCards({ stats }: StatsCardsProps) {
       trendColor: "text-green-600",
     },
     {
-      title: "Operadores",
-      value: 4,
+      title: "Rechazadas",
+      value: stats.rechazadas,
       icon: Users,
-      color: "bg-purple-100",
-      iconColor: "text-purple-600",
-      trend: "Todos activos",
+      color: "bg-red-100",
+      iconColor: "text-red-600",
+      trend: stats.rechazadas > 0 ? "Requieren revisión" : "Sin rechazos",
       trendText: "",
-      trendColor: "text-green-600",
+      trendColor: stats.rechazadas > 0 ? "text-red-600" : "text-green-600",
     },
   ];
 
