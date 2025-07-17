@@ -1,34 +1,43 @@
-import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { authService, type AuthUser } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const initAuth = async () => {
-      if (authService.isAuthenticated()) {
-        try {
-          const userData = await authService.getCurrentUser();
-          setUser(userData);
-        } catch (error) {
-          console.error("Error obteniendo usuario:", error);
-          authService.setToken("");
-        }
+  const { data: user, isLoading: loading } = useQuery({
+    queryKey: ['/api/auth/me'],
+    queryFn: async () => {
+      if (!authService.isAuthenticated()) {
+        return null;
       }
-      setLoading(false);
-    };
-
-    initAuth();
-  }, []);
+      try {
+        return await authService.getCurrentUser();
+      } catch (error) {
+        console.error("Error obteniendo usuario:", error);
+        authService.setToken("");
+        throw error;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401 errors
+      if (error?.status === 401) return false;
+      return failureCount < 3;
+    },
+    enabled: authService.isAuthenticated(),
+  });
 
   const login = async (username: string, password: string) => {
     try {
       const { token, user } = await authService.login(username, password);
       authService.setToken(token);
-      setUser(user);
+      
+      // Update the cache with the user data
+      queryClient.setQueryData(['/api/auth/me'], user);
+      
       toast({
         title: "Inicio de sesión exitoso",
         description: `Bienvenido ${user.nombre}`,
@@ -49,19 +58,19 @@ export function useAuth() {
   const logout = async () => {
     try {
       await authService.logout();
-      setUser(null);
+      queryClient.clear(); // Clear all queries
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión exitosamente",
       });
     } catch (error) {
       console.error("Error en logout:", error);
-      setUser(null);
+      queryClient.clear(); // Clear all queries even on error
     }
   };
 
   return {
-    user,
+    user: user || null,
     loading,
     login,
     logout,

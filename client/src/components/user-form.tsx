@@ -38,27 +38,29 @@ type UserFormData = z.infer<ReturnType<typeof createUserFormSchema>>;
 
 interface UserFormProps {
   onSubmit: (data: UserFormData) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
+  user?: User | null;
   initialData?: Partial<User>;
   isLoading?: boolean;
   isEdit?: boolean;
 }
 
-export function UserForm({ onSubmit, onCancel, initialData, isLoading, isEdit = false }: UserFormProps) {
+export function UserForm({ onSubmit, onCancel, user, initialData, isLoading, isEdit = false }: UserFormProps) {
+  const userData = user || initialData;
   const userFormSchema = createUserFormSchema(isEdit);
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
-      username: initialData?.username || "",
-      nombre: initialData?.nombre || "",
-      email: initialData?.email || "",
-      rol: initialData?.rol || "usuario",
-      status: initialData?.status || "activo",
-      direccionIp: initialData?.direccionIp || "",
+      username: userData?.username || "",
+      nombre: userData?.nombre || "",
+      email: userData?.email || "",
+      rol: userData?.rol || "usuario",
+      status: userData?.status || "activo",
+      direccionIp: userData?.direccionIp || "",
       password: "",
-      tiempoSuspension: initialData?.tiempoSuspension ? new Date(initialData.tiempoSuspension).toISOString().slice(0, 16) : "",
-      motivoSuspension: initialData?.motivoSuspension || "",
-      fechaSuspension: initialData?.fechaSuspension ? new Date(initialData.fechaSuspension).toISOString().slice(0, 16) : "",
+      tiempoSuspension: userData?.tiempoSuspension ? new Date(userData.tiempoSuspension).toISOString().slice(0, 16) : "",
+      motivoSuspension: userData?.motivoSuspension || "",
+      fechaSuspension: userData?.fechaSuspension ? new Date(userData.fechaSuspension).toISOString().slice(0, 16) : "",
     },
   });
 
@@ -258,9 +260,11 @@ export function UserForm({ onSubmit, onCancel, initialData, isLoading, isEdit = 
         />
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+          )}
           <Button type="submit" disabled={isLoading}>
             {isLoading ? (isEdit ? "Actualizando..." : "Creando...") : (isEdit ? "Actualizar" : "Crear Usuario")}
           </Button>

@@ -118,7 +118,10 @@ Preferred communication style: Simple, everyday language.
 - **User Management**: Complete user administration with role-based access control
 
 ## Recent Changes (January 2025)
-- ✓ Successfully migrated from Replit Agent to Replit environment
+- ✓ Successfully migrated from Replit Agent to Replit environment (July 17, 2025)
+- ✓ Removed "Usuarios" tab from sidebar navigation
+- ✓ Integrated user management access into dashboard for administrators only
+- ✓ Added "Panel de Administración" section in dashboard with user management button
 - ✓ Set up PostgreSQL database with proper schema migration
 - ✓ Fixed user form validation schema error with proper Zod schema handling
 - ✓ Resolved date transformation issue for tiempoSuspension field in user management
@@ -146,5 +149,12 @@ Preferred communication style: Simple, everyday language.
   - Enhanced navigation sidebar to display only accessible sections per role
   - Added user-specific database queries for dashboard stats and requests
   - Implemented complete separation of data access based on user roles
+- ✓ **Fixed Navigation Performance and Request Management Issues (July 17, 2025):**
+  - Optimized authentication system with React Query caching (5-minute cache) to eliminate navigation flickering
+  - Fixed JSON parse error in request management by correcting API request format
+  - Implemented role-based request status restrictions: supervisor and usuario roles can ONLY create/edit requests with "enviada" status
+  - Added backend validation to enforce request status restrictions for non-admin users
+  - Updated user creation dialog with proper sizing (max-w-lg, max-h-90vh, scrollable) to prevent screen overflow
+  - Added memoization to components for improved performance and reduced re-renders
 
 The application follows modern web development best practices with a focus on maintainability, performance, and user experience. The architecture supports scalability and future enhancements while maintaining code quality and type safety.

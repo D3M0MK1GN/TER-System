@@ -187,8 +187,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/solicitudes", authenticateToken, async (req: any, res) => {
     try {
+      // Role-based validation: supervisor and usuario can only create requests with "enviada" status
+      if ((req.user.rol === "supervisor" || req.user.rol === "usuario") && req.body.estado && req.body.estado !== "enviada") {
+        return res.status(403).json({ 
+          message: "Los usuarios con rol supervisor y usuario solo pueden crear solicitudes con estado 'enviada'" 
+        });
+      }
+
+      // Force estado to "enviada" for supervisor and usuario roles
+      const requestData = { ...req.body };
+      if (req.user.rol === "supervisor" || req.user.rol === "usuario") {
+        requestData.estado = "enviada";
+      }
+
       const solicitudData = insertSolicitudSchema.parse({
-        ...req.body,
+        ...requestData,
         usuarioId: req.user.id,
       });
 
@@ -215,7 +228,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/solicitudes/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const solicitudData = insertSolicitudSchema.partial().parse(req.body);
+      
+      // Role-based validation: supervisor and usuario can only update to "enviada" status
+      if ((req.user.rol === "supervisor" || req.user.rol === "usuario") && req.body.estado && req.body.estado !== "enviada") {
+        return res.status(403).json({ 
+          message: "Los usuarios con rol supervisor y usuario solo pueden establecer el estado como 'enviada'" 
+        });
+      }
+
+      // Force estado to "enviada" for supervisor and usuario roles if they're trying to change it
+      const requestData = { ...req.body };
+      if ((req.user.rol === "supervisor" || req.user.rol === "usuario") && requestData.estado) {
+        requestData.estado = "enviada";
+      }
+
+      const solicitudData = insertSolicitudSchema.partial().parse(requestData);
 
       const solicitud = await storage.updateSolicitud(id, solicitudData);
       

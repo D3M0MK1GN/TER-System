@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useMemo } from "react";
 import {
   LayoutDashboard,
   FileText,
@@ -39,12 +40,7 @@ const navItems = [
     icon: BarChart3,
     permission: "canViewAllReports" as const,
   },
-  {
-    title: "Usuarios",
-    href: "/usuarios",
-    icon: Users,
-    permission: "canViewUsers" as const,
-  },
+
 ];
 
 export function Sidebar() {
@@ -52,18 +48,20 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const permissions = usePermissions();
 
-  // Filter nav items based on permissions
-  const visibleNavItems = navItems.filter(item => {
-    if (item.permission === "canViewAllRequests" && item.href === "/solicitudes") {
-      // For requests, both admins and supervisors can view all, users can view their own
-      return permissions.canViewAllRequests || permissions.canViewDashboard;
-    }
-    if (item.permission === "canViewAllReports" && item.href === "/reportes") {
-      // For reports, both admins and supervisors can view all, users can view their own
-      return permissions.canViewAllReports || permissions.canViewDashboard;
-    }
-    return permissions[item.permission];
-  });
+  // Memoize nav items to prevent unnecessary re-renders
+  const visibleNavItems = useMemo(() => {
+    return navItems.filter(item => {
+      if (item.permission === "canViewAllRequests" && item.href === "/solicitudes") {
+        // For requests, both admins and supervisors can view all, users can view their own
+        return permissions.canViewAllRequests || permissions.canViewDashboard;
+      }
+      if (item.permission === "canViewAllReports" && item.href === "/reportes") {
+        // For reports, both admins and supervisors can view all, users can view their own
+        return permissions.canViewAllReports || permissions.canViewDashboard;
+      }
+      return permissions[item.permission];
+    });
+  }, [permissions]);
 
   return (
     <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">

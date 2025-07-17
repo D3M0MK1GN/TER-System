@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useMemo } from "react";
 
 export type UserRole = "admin" | "supervisor" | "usuario";
 
@@ -14,51 +15,8 @@ export interface Permission {
 export function usePermissions(): Permission {
   const { user } = useAuth();
   
-  if (!user) {
-    return {
-      canViewUsers: false,
-      canManageUsers: false,
-      canViewAllRequests: false,
-      canManageAllRequests: false,
-      canViewAllReports: false,
-      canViewDashboard: false,
-    };
-  }
-
-  const role = user.rol as UserRole;
-
-  switch (role) {
-    case "admin":
-      return {
-        canViewUsers: true,
-        canManageUsers: true,
-        canViewAllRequests: true,
-        canManageAllRequests: true,
-        canViewAllReports: true,
-        canViewDashboard: true,
-      };
-    
-    case "supervisor":
-      return {
-        canViewUsers: false,
-        canManageUsers: false,
-        canViewAllRequests: true,
-        canManageAllRequests: true,
-        canViewAllReports: true,
-        canViewDashboard: true,
-      };
-    
-    case "usuario":
-      return {
-        canViewUsers: false,
-        canManageUsers: false,
-        canViewAllRequests: false,
-        canManageAllRequests: false,
-        canViewAllReports: false,
-        canViewDashboard: true,
-      };
-    
-    default:
+  return useMemo(() => {
+    if (!user) {
       return {
         canViewUsers: false,
         canManageUsers: false,
@@ -67,7 +25,52 @@ export function usePermissions(): Permission {
         canViewAllReports: false,
         canViewDashboard: false,
       };
-  }
+    }
+
+    const role = user.rol as UserRole;
+
+    switch (role) {
+      case "admin":
+        return {
+          canViewUsers: true,
+          canManageUsers: true,
+          canViewAllRequests: true,
+          canManageAllRequests: true,
+          canViewAllReports: true,
+          canViewDashboard: true,
+        };
+      
+      case "supervisor":
+        return {
+          canViewUsers: false,
+          canManageUsers: false,
+          canViewAllRequests: true,
+          canManageAllRequests: true,
+          canViewAllReports: true,
+          canViewDashboard: true,
+        };
+      
+      case "usuario":
+        return {
+          canViewUsers: false,
+          canManageUsers: false,
+          canViewAllRequests: false,
+          canManageAllRequests: false,
+          canViewAllReports: false,
+          canViewDashboard: true,
+        };
+      
+      default:
+        return {
+          canViewUsers: false,
+          canManageUsers: false,
+          canViewAllRequests: false,
+          canManageAllRequests: false,
+          canViewAllReports: false,
+          canViewDashboard: false,
+        };
+    }
+  }, [user?.rol]);
 }
 
 export function useHasPermission() {

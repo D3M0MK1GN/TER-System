@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Save, X } from "lucide-react";
 import { z } from "zod";
+import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 
 const requestFormSchema = insertSolicitudSchema.extend({
   numeroSolicitud: z.string().min(1, "Número de solicitud es requerido"),
@@ -28,6 +30,17 @@ interface RequestFormProps {
 }
 
 export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: RequestFormProps) {
+  const { user } = useAuth();
+  const permissions = usePermissions();
+  
+  // Determine default status based on user role
+  const getDefaultStatus = () => {
+    if (user?.rol === "supervisor" || user?.rol === "usuario") {
+      return "enviada"; // Force enviada for supervisor and usuario
+    }
+    return initialData?.estado || "pendiente"; // Admin can choose
+  };
+
   const form = useForm<RequestFormData>({
     resolver: zodResolver(requestFormSchema),
     defaultValues: {
@@ -39,7 +52,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
       operador: "",
       informacionLinea: "",
       descripcion: "",
-      estado: "pendiente",
+      estado: getDefaultStatus(),
       oficio: "",
       ...initialData,
     },
@@ -171,20 +184,28 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
 
             <div>
               <Label htmlFor="estado">Estado</Label>
-              <Select
-                value={form.watch("estado") || "pendiente"}
-                onValueChange={(value) => form.setValue("estado", value as any)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="enviada">Enviada</SelectItem>
-                  <SelectItem value="respondida">Respondida</SelectItem>
-                  <SelectItem value="rechazada">Rechazada</SelectItem>
-                </SelectContent>
-              </Select>
+              {user?.rol === "admin" ? (
+                <Select
+                  value={form.watch("estado") || "pendiente"}
+                  onValueChange={(value) => form.setValue("estado", value as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="enviada">Enviada</SelectItem>
+                    <SelectItem value="respondida">Respondida</SelectItem>
+                    <SelectItem value="rechazada">Rechazada</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex items-center p-3 border rounded-md bg-gray-50">
+                  <span className="text-sm text-gray-600">
+                    Enviada (Solo administradores pueden cambiar el estado)
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>

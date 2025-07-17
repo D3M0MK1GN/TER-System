@@ -17,6 +17,7 @@ function ProtectedRoute({ children, requirePermission }: { children: React.React
   const { isAuthenticated, loading } = useAuth();
   const permissions = usePermissions();
 
+  // Always call hooks in the same order
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

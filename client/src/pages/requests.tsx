@@ -53,8 +53,10 @@ export default function Requests() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/solicitudes", data);
-      return response.json();
+      return await apiRequest("/api/solicitudes", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/solicitudes"] });
@@ -76,8 +78,10 @@ export default function Requests() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const response = await apiRequest("PUT", `/api/solicitudes/${id}`, data);
-      return response.json();
+      return await apiRequest(`/api/solicitudes/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/solicitudes"] });
@@ -99,7 +103,9 @@ export default function Requests() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/solicitudes/${id}`);
+      return await apiRequest(`/api/solicitudes/${id}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/solicitudes"] });

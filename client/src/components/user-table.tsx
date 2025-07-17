@@ -155,18 +155,18 @@ export function UserTable({
       </div>
 
       {/* Tabla */}
-      <div className="border rounded-lg">
-        <Table>
+      <div className="border rounded-lg overflow-x-auto">
+        <Table className="min-w-full">
           <TableHeader>
             <TableRow>
-              <TableHead>Usuario</TableHead>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Rol</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Dirección IP</TableHead>
-              <TableHead>Último Acceso</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className="min-w-[120px]">Usuario</TableHead>
+              <TableHead className="min-w-[150px]">Nombre</TableHead>
+              <TableHead className="min-w-[200px]">Email</TableHead>
+              <TableHead className="min-w-[120px]">Rol</TableHead>
+              <TableHead className="min-w-[140px]">Estado</TableHead>
+              <TableHead className="min-w-[140px]">Dirección IP</TableHead>
+              <TableHead className="min-w-[140px]">Último Acceso</TableHead>
+              <TableHead className="min-w-[120px]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -192,21 +192,22 @@ export function UserTable({
                     }
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-1">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => onEdit(user)}
+                        className="p-2"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-3 w-3" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => onDelete(user.id)}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-red-600 hover:text-red-800 p-2"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </TableCell>

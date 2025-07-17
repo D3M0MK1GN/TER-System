@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -10,7 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Plus, Edit, Mail, Clock, LayoutDashboard } from "lucide-react";
+import { CheckCircle, Plus, Edit, Mail, Clock, LayoutDashboard, Users, Settings } from "lucide-react";
+import { Link, useLocation, useSearch } from "wouter";
+import { UserTable } from "@/components/user-table";
+import { UserForm } from "@/components/user-form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { User } from "@shared/schema";
 
 interface DashboardStats {
   totalSolicitudes: number;
@@ -22,9 +30,44 @@ interface DashboardStats {
   actividadReciente: any[];
 }
 
+interface UserFormData {
+  username: string;
+  nombre: string;
+  email?: string;
+  rol: string;
+  status: string;
+  direccionIp?: string;
+  password?: string;
+  tiempoSuspension?: string;
+  motivoSuspension?: string;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const permissions = usePermissions();
+  const [location, navigate] = useLocation();
+  const searchParams = useSearch();
+  
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  
+  // Get the view from URL parameters, default to dashboard
+  const currentView = new URLSearchParams(searchParams).get('view') || 'dashboard';
+  const showUserManagement = currentView === 'users';
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Function to change views with URL update
+  const setView = (view: string) => {
+    const params = new URLSearchParams();
+    if (view !== 'dashboard') {
+      params.set('view', view);
+    }
+    const search = params.toString();
+    navigate(`/dashboard${search ? `?${search}` : ''}`);
+  };
   
   // For users, fetch only their own stats, for admins/supervisors fetch all
   const statsEndpoint = permissions.canViewAllRequests 
@@ -34,6 +77,104 @@ export default function Dashboard() {
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: [statsEndpoint],
   });
+
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ['/api/users'],
+    queryFn: () => apiRequest(`/api/users?page=1&limit=50`),
+    enabled: permissions.canManageUsers && showUserManagement,
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: async (data: UserFormData) => {
+      return apiRequest('/api/users', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      setIsCreateDialogOpen(false);
+      toast({
+        title: "Usuario creado",
+        description: "El usuario ha sido creado exitosamente.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo crear el usuario.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: UserFormData }) => {
+      return apiRequest(`/api/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      toast({
+        title: "Usuario actualizado",
+        description: "El usuario ha sido actualizado exitosamente.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo actualizar el usuario.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/users/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({
+        title: "Usuario eliminado",
+        description: "El usuario ha sido eliminado exitosamente.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo eliminar el usuario.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (id: number) => {
+    if (confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
+      deleteUserMutation.mutate(id);
+    }
+  };
+
+  const handleCreateUser = (data: UserFormData) => {
+    createUserMutation.mutate(data);
+  };
+
+  const handleUpdateUser = (data: UserFormData) => {
+    if (editingUser) {
+      updateUserMutation.mutate({ id: editingUser.id, data });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -64,30 +205,73 @@ export default function Dashboard() {
           <div className="px-6 py-4">
             <h1 className="text-2xl font-bold text-gray-900">Panel de Control</h1>
             <p className="text-gray-600">Gestiona tu sistema desde aquí</p>
+            
+            {/* Quick Access Buttons */}
+            <div className="mt-4 flex gap-3">
+              {/* Dashboard Button */}
+              <button 
+                className={`flex items-center space-x-2 px-3 py-2 text-left rounded-lg transition-colors ${
+                  !showUserManagement 
+                    ? 'bg-blue-50 border border-blue-200 text-blue-700' 
+                    : 'hover:bg-gray-50 border border-transparent'
+                }`}
+                onClick={() => setView('dashboard')}
+              >
+                <div className={`p-1.5 rounded ${!showUserManagement ? 'bg-blue-100' : 'bg-blue-100'}`}>
+                  <LayoutDashboard className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900">Dashboard</h3>
+                  <p className="text-xs text-gray-500">Estadísticas del sistema</p>
+                </div>
+              </button>
+              
+              {/* User Management Button - Only visible for administrators */}
+              {permissions.canManageUsers && (
+                <button 
+                  className={`flex items-center space-x-2 px-3 py-2 text-left rounded-lg transition-colors ${
+                    showUserManagement 
+                      ? 'bg-green-50 border border-green-200 text-green-700' 
+                      : 'hover:bg-gray-50 border border-transparent'
+                  }`}
+                  onClick={() => setView('users')}
+                >
+                  <div className={`p-1.5 rounded ${showUserManagement ? 'bg-green-100' : 'bg-green-100'}`}>
+                    <Users className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">Administrador de Usuarios</h3>
+                    <p className="text-xs text-gray-500">Gestionar usuarios</p>
+                  </div>
+                </button>
+              )}
+            </div>
           </div>
           
           <div className="p-6">
-          {/* Stats Cards */}
-          <div className="mb-8">
-            <StatsCards stats={stats ? {
-              totalSolicitudes: stats.totalSolicitudes,
-              pendientes: stats.pendientes,
-              enviadas: stats.enviadas,
-              respondidas: stats.respondidas,
-              rechazadas: stats.rechazadas
-            } : {
-              totalSolicitudes: 0,
-              pendientes: 0,
-              enviadas: 0,
-              respondidas: 0,
-              rechazadas: 0
-            }} />
-          </div>
+          {!showUserManagement ? (
+            <>
+              {/* Stats Cards */}
+              <div className="mb-8">
+                <StatsCards stats={stats ? {
+                  totalSolicitudes: stats.totalSolicitudes,
+                  pendientes: stats.pendientes,
+                  enviadas: stats.enviadas,
+                  respondidas: stats.respondidas,
+                  rechazadas: stats.rechazadas
+                } : {
+                  totalSolicitudes: 0,
+                  pendientes: 0,
+                  enviadas: 0,
+                  respondidas: 0,
+                  rechazadas: 0
+                }} />
+              </div>
 
-          {/* Charts and Recent Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Chart Card */}
-            <Card>
+              {/* Charts and Recent Activity */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Chart Card */}
+                <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg font-semibold">
                   Solicitudes por Operador
@@ -134,10 +318,10 @@ export default function Dashboard() {
                   })}
                 </div>
               </CardContent>
-            </Card>
+                </Card>
 
-            {/* Recent Activity */}
-            <Card>
+                {/* Recent Activity */}
+                <Card>
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">
                   Actividad Reciente
@@ -187,11 +371,85 @@ export default function Dashboard() {
                   </Button>
                 </div>
               </CardContent>
-            </Card>
-          </div>
+                </Card>
+              </div>
+            </>
+          ) : (
+            /* User Management Full View */
+            <div className="max-w-full overflow-hidden">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Administrador de Usuarios</h2>
+                  <p className="text-gray-600">Gestiona todos los usuarios del sistema</p>
+                </div>
+                <Button
+                  onClick={() => setIsCreateDialogOpen(true)}
+                  className="flex items-center space-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Agregar Usuario</span>
+                </Button>
+              </div>
+
+              <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+                <div className="p-6">
+                  {usersLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-gray-600">Cargando usuarios...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <UserTable
+                        users={usersData?.users || []}
+                        total={usersData?.users?.length || 0}
+                        currentPage={1}
+                        pageSize={50}
+                        onPageChange={() => {}}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           </div>
         </div>
       </div>
+      
+      {/* User Creation Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+          </DialogHeader>
+          <UserForm
+            onSubmit={handleCreateUser}
+            onCancel={() => setIsCreateDialogOpen(false)}
+            isLoading={createUserMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* User Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Usuario</DialogTitle>
+          </DialogHeader>
+          <UserForm
+            user={editingUser}
+            onSubmit={handleUpdateUser}
+            onCancel={() => setIsEditDialogOpen(false)}
+            isLoading={updateUserMutation.isPending}
+            isEdit={true}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
