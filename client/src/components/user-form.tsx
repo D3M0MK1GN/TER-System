@@ -1,0 +1,248 @@
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { User } from "@shared/schema";
+
+const userFormSchema = z.object({
+  username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
+  nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+  email: z.string().email("Email inválido").optional().or(z.literal("")),
+  rol: z.string().min(1, "Debe seleccionar un rol"),
+  status: z.string().min(1, "Debe seleccionar un estado"),
+  direccionIp: z.string().optional().or(z.literal("")),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional().or(z.literal("")),
+  tiempoSuspension: z.string().optional(),
+  motivoSuspension: z.string().optional(),
+}).refine((data) => {
+  // Si el status es suspendido, requerir tiempo y motivo
+  if (data.status === "suspendido") {
+    return data.tiempoSuspension && data.motivoSuspension;
+  }
+  return true;
+}, {
+  message: "El tiempo y motivo de suspensión son requeridos cuando el estado es suspendido",
+  path: ["tiempoSuspension"],
+});
+
+type UserFormData = z.infer<typeof userFormSchema>;
+
+interface UserFormProps {
+  onSubmit: (data: UserFormData) => void;
+  onCancel: () => void;
+  initialData?: Partial<User>;
+  isLoading?: boolean;
+  isEdit?: boolean;
+}
+
+export function UserForm({ onSubmit, onCancel, initialData, isLoading, isEdit = false }: UserFormProps) {
+  const form = useForm<UserFormData>({
+    resolver: zodResolver(userFormSchema.extend({
+      password: isEdit 
+        ? z.string().optional().or(z.literal(""))
+        : z.string().min(6, "La contraseña debe tener al menos 6 caracteres")
+    })),
+    defaultValues: {
+      username: initialData?.username || "",
+      nombre: initialData?.nombre || "",
+      email: initialData?.email || "",
+      rol: initialData?.rol || "usuario",
+      status: initialData?.status || "activo",
+      direccionIp: initialData?.direccionIp || "",
+      password: "",
+      tiempoSuspension: initialData?.tiempoSuspension ? new Date(initialData.tiempoSuspension).toISOString().slice(0, 16) : "",
+      motivoSuspension: initialData?.motivoSuspension || "",
+    },
+  });
+
+  const handleSubmit = (data: UserFormData) => {
+    // Si es edición y no se proporciona contraseña, no la incluir
+    if (isEdit && !data.password) {
+      const { password, ...dataWithoutPassword } = data;
+      onSubmit(dataWithoutPassword);
+    } else {
+      onSubmit(data);
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nombre de Usuario</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Ingresa el nombre de usuario" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="nombre"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nombre Completo</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Ingresa el nombre completo" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email (Opcional)</FormLabel>
+              <FormControl>
+                <Input {...field} type="email" placeholder="correo@ejemplo.com" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="rol"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Rol</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un rol" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="usuario">Usuario</SelectItem>
+                  <SelectItem value="supervisor">Supervisor</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Estado</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un estado" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="activo">Activo</SelectItem>
+                  <SelectItem value="suspendido">Suspendido</SelectItem>
+                  <SelectItem value="bloqueado">Bloqueado</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Campos adicionales para suspensión */}
+        {form.watch("status") === "suspendido" && (
+          <>
+            <FormField
+              control={form.control}
+              name="tiempoSuspension"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tiempo de Suspensión (hasta)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      type="datetime-local" 
+                      placeholder="Selecciona fecha y hora"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="motivoSuspension"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Motivo de Suspensión</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="Describe el motivo de la suspensión"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+
+        <FormField
+          control={form.control}
+          name="direccionIp"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Dirección IP (Opcional)</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="192.168.1.100" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Contraseña {isEdit && "(Dejar vacío para mantener la actual)"}
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  {...field} 
+                  type="password" 
+                  placeholder={isEdit ? "Nueva contraseña (opcional)" : "Contraseña"} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end space-x-2 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? (isEdit ? "Actualizando..." : "Creando...") : (isEdit ? "Actualizar" : "Crear Usuario")}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}

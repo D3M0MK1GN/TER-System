@@ -8,23 +8,29 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
+  options: RequestInit = {}
+): Promise<any> {
   const token = localStorage.getItem("token");
   
   const res = await fetch(url, {
-    method,
+    ...options,
     headers: {
-      ...(data ? { "Content-Type": "application/json" } : {}),
+      "Content-Type": "application/json",
       ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+      ...options.headers,
     },
-    body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
 
   await throwIfResNotOk(res);
+  
+  // Solo parsear JSON si la respuesta tiene contenido
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return await res.json();
+  }
+  
   return res;
 }
 

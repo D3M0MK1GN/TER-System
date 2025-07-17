@@ -19,8 +19,17 @@ export interface IStorage {
   // Users
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUsers(filters?: {
+    search?: string;
+    status?: string;
+    rol?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ users: User[]; total: number }>;
   createUser(user: InsertUser): Promise<User>;
-  updateUserLastAccess(id: number): Promise<void>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
+  updateUserLastAccess(id: number, ip?: string): Promise<void>;
 
   // Solicitudes
   getSolicitudes(filters?: {
@@ -75,10 +84,85 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserLastAccess(id: number): Promise<void> {
+  async getUsers(filters?: {
+    search?: string;
+    status?: string;
+    rol?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ users: User[]; total: number }> {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 10;
+    const offset = (page - 1) * limit;
+
+    let whereConditions: any[] = [];
+
+    if (filters?.search) {
+      whereConditions.push(
+        or(
+          like(users.nombre, `%${filters.search}%`),
+          like(users.username, `%${filters.search}%`),
+          like(users.email, `%${filters.search}%`)
+        )
+      );
+    }
+
+    if (filters?.status) {
+      if (filters.status === "inactivo") {
+        whereConditions.push(eq(users.activo, false));
+      } else {
+        whereConditions.push(eq(users.status, filters.status as any));
+      }
+    }
+
+    if (filters?.rol) {
+      whereConditions.push(eq(users.rol, filters.rol));
+    }
+
+    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+    const [usersResult, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(users)
+        .where(whereClause)
+        .orderBy(desc(users.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(users)
+        .where(whereClause)
+    ]);
+
+    return {
+      users: usersResult,
+      total: totalResult[0]?.count || 0,
+    };
+  }
+
+  async updateUser(id: number, updateData: Partial<InsertUser>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async updateUserLastAccess(id: number, ip?: string): Promise<void> {
+    const updateData: any = { ultimoAcceso: new Date() };
+    if (ip) {
+      updateData.direccionIp = ip;
+    }
     await db
       .update(users)
-      .set({ ultimoAcceso: new Date() })
+      .set(updateData)
       .where(eq(users.id, id));
   }
 

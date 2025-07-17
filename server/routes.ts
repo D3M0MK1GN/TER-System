@@ -32,7 +32,7 @@ function authenticateToken(req: any, res: any, next: any) {
       return res.status(403).json({ message: 'Token inválido' });
     }
 
-    const user = await storage.getUser(decoded.userId);
+    const user = await storage.getUser(decoded.id);
     if (!user) {
       return res.status(403).json({ message: 'Usuario no encontrado' });
     }
@@ -75,11 +75,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Usuario inactivo" });
       }
 
-      // Actualizar último acceso
-      await storage.updateUserLastAccess(user.id);
+      // Actualizar último acceso y dirección IP
+      const clientIp = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+                       (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
+                       req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+      
+      await storage.updateUserLastAccess(user.id, clientIp.toString());
 
       const token = jwt.sign(
-        { userId: user.id, username: user.username },
+        { id: user.id, username: user.username, rol: user.rol },
         JWT_SECRET,
         { expiresIn: "24h" }
       );
@@ -297,6 +301,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error eliminando plantilla:", error);
       res.status(500).json({ message: "Error eliminando plantilla" });
+    }
+  });
+
+  // Users Routes (Admin only)
+  const requireAdmin = (req: any, res: any, next: any) => {
+    if (req.user?.rol !== 'admin') {
+      return res.status(403).json({ message: 'Acceso denegado. Se requieren permisos de administrador.' });
+    }
+    next();
+  };
+
+  app.get("/api/users", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const filters = {
+        search: req.query.search as string,
+        status: req.query.status as string,
+        rol: req.query.rol as string,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 10,
+      };
+
+      const result = await storage.getUsers(filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error obteniendo usuarios:", error);
+      res.status(500).json({ message: "Error obteniendo usuarios" });
+    }
+  });
+
+  app.post("/api/users", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      const userDataWithHashedPassword = {
+        ...userData,
+        password: hashedPassword,
+      };
+
+      const user = await storage.createUser(userDataWithHashedPassword);
+      
+      // Remove password from response
+      const { password, ...userResponse } = user;
+      res.status(201).json(userResponse);
+    } catch (error) {
+      console.error("Error creando usuario:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
+      }
+      if (error.code === '23505') { // unique constraint violation
+        return res.status(400).json({ message: "El nombre de usuario ya existe" });
+      }
+      res.status(500).json({ message: "Error creando usuario" });
+    }
+  });
+
+  app.patch("/api/users/:id", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userData = insertUserSchema.partial().parse(req.body);
+
+      // If password is provided, hash it
+      if (userData.password) {
+        userData.password = await bcrypt.hash(userData.password, 10);
+      }
+
+      const user = await storage.updateUser(id, userData);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+
+      // Remove password from response
+      const { password, ...userResponse } = user;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Error actualizando usuario:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
+      }
+      if (error.code === '23505') { // unique constraint violation
+        return res.status(400).json({ message: "El nombre de usuario ya existe" });
+      }
+      res.status(500).json({ message: "Error actualizando usuario" });
+    }
+  });
+
+  app.delete("/api/users/:id", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Prevent deleting self
+      if (id === req.user.id) {
+        return res.status(400).json({ message: "No puedes eliminar tu propia cuenta" });
+      }
+
+      const deleted = await storage.deleteUser(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+
+      res.json({ message: "Usuario eliminado exitosamente" });
+    } catch (error) {
+      console.error("Error eliminando usuario:", error);
+      res.status(500).json({ message: "Error eliminando usuario" });
     }
   });
 

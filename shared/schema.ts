@@ -3,6 +3,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+export const statusEnum = pgEnum("status", ["activo", "suspendido", "bloqueado"]);
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -11,8 +13,13 @@ export const users = pgTable("users", {
   email: text("email"),
   rol: text("rol").default("usuario"),
   activo: boolean("activo").default(true),
+  status: statusEnum("status").default("activo"),
+  direccionIp: text("direccion_ip"),
   ultimoAcceso: timestamp("ultimo_acceso"),
   createdAt: timestamp("created_at").defaultNow(),
+  fechaSuspension: timestamp("fecha_suspension"),
+  tiempoSuspension: timestamp("tiempo_suspension"),
+  motivoSuspension: text("motivo_suspension"),
 });
 
 export const operadorEnum = pgEnum("operador", ["movistar", "claro", "entel", "bitel", "otros"]);

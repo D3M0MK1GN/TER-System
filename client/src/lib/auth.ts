@@ -15,24 +15,29 @@ export interface LoginResponse {
 
 export const authService = {
   async login(username: string, password: string): Promise<LoginResponse> {
-    const response = await apiRequest("POST", "/api/auth/login", {
-      username,
-      password,
+    const response = await apiRequest("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        username,
+        password,
+      }),
     });
-    return response.json();
+    return response;
   },
 
   async logout(): Promise<void> {
     const token = localStorage.getItem("token");
     if (token) {
-      await apiRequest("POST", "/api/auth/logout");
+      await apiRequest("/api/auth/logout", {
+        method: "POST",
+      });
     }
     localStorage.removeItem("token");
   },
 
   async getCurrentUser(): Promise<AuthUser> {
-    const response = await apiRequest("GET", "/api/auth/me");
-    return response.json();
+    const response = await apiRequest("/api/auth/me");
+    return response;
   },
 
   getToken(): string | null {

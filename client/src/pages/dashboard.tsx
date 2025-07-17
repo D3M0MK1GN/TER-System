@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
@@ -7,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Plus, Edit, Mail, Clock } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle, Plus, Edit, Mail, Clock, LayoutDashboard, Users as UsersIcon } from "lucide-react";
+import UsersPage from "./users";
 
 interface DashboardStats {
   totalSolicitudes: number;
@@ -49,12 +52,24 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
       <div className="ml-64 min-h-screen">
-        <Header
-          title="Dashboard"
-          subtitle="Resumen general del sistema"
-        />
-        
-        <main className="p-6">
+        <div className="border-b bg-white">
+          <div className="px-6 py-4">
+            <h1 className="text-2xl font-bold text-gray-900">Panel de Control</h1>
+            <p className="text-gray-600">Gestiona tu sistema desde aquí</p>
+          </div>
+          
+          <Tabs defaultValue="dashboard" className="w-full">
+            <TabsList className="px-6 bg-transparent border-b-0 h-12">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <UsersIcon className="h-4 w-4" />
+                Administrar Usuarios
+              </TabsTrigger>
+            </TabsList>
+          <TabsContent value="dashboard" className="p-6 m-0">
           {/* Stats Cards */}
           <div className="mb-8">
             <StatsCards stats={stats ? {
@@ -177,7 +192,13 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-        </main>
+          </TabsContent>
+          
+          <TabsContent value="users" className="p-6 m-0">
+            <UsersPage />
+          </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );

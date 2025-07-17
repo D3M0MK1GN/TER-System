@@ -4,6 +4,17 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
+
+// Middleware para obtener IP del cliente
+app.use((req, res, next) => {
+  req.clientIp = req.ip || 
+                 req.connection?.remoteAddress || 
+                 req.socket?.remoteAddress ||
+                 req.headers['x-forwarded-for'] || 
+                 req.headers['x-real-ip'] || 
+                 'unknown';
+  next();
+});
 app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
