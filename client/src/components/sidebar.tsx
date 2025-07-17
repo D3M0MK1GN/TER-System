@@ -32,7 +32,7 @@ const navItems = [
     title: "Plantillas de Correo",
     href: "/plantillas",
     icon: Mail,
-    permission: "canViewAllRequests" as const,
+    permission: "canViewEmailTemplates" as const,
   },
   {
     title: "Reportes",
@@ -58,6 +58,10 @@ export function Sidebar() {
       if (item.permission === "canViewAllReports" && item.href === "/reportes") {
         // For reports, both admins and supervisors can view all, users can view their own
         return permissions.canViewAllReports || permissions.canViewDashboard;
+      }
+      if (item.permission === "canViewEmailTemplates" && item.href === "/plantillas") {
+        // For email templates, only admins can access this section
+        return permissions.canViewEmailTemplates;
       }
       return permissions[item.permission];
     });

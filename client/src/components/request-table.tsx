@@ -9,6 +9,7 @@ import { Eye, Edit, Mail, Trash2, Search, Plus, ChevronLeft, ChevronRight, Print
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { type Solicitud } from "@shared/schema";
+import { type Permission } from "@/hooks/use-permissions";
 
 interface RequestTableProps {
   solicitudes: Solicitud[];
@@ -22,18 +23,17 @@ interface RequestTableProps {
   onView: (solicitud: Solicitud) => void;
   onCreateNew: () => void;
   loading?: boolean;
+  permissions: Permission;
 }
 
 const operatorColors = {
+  digitel: "bg-red-100 text-red-800",
   movistar: "bg-blue-100 text-blue-800",
-  claro: "bg-green-100 text-green-800",
-  entel: "bg-red-100 text-red-800",
-  bitel: "bg-purple-100 text-purple-800",
-  otros: "bg-gray-100 text-gray-800",
+  movilnet: "bg-green-100 text-green-800",
 };
 
 const statusColors = {
-  pendiente: "bg-yellow-100 text-yellow-800",
+  procesando: "bg-yellow-100 text-yellow-800",
   enviada: "bg-blue-100 text-blue-800",
   respondida: "bg-green-100 text-green-800",
   rechazada: "bg-red-100 text-red-800",
@@ -41,18 +41,16 @@ const statusColors = {
 
 const formatOperator = (operador: string) => {
   const names = {
+    digitel: "Digitel",
     movistar: "Movistar",
-    claro: "Claro",
-    entel: "Entel",
-    bitel: "Bitel",
-    otros: "Otros",
+    movilnet: "Movilnet",
   };
   return names[operador as keyof typeof names] || operador;
 };
 
 const formatStatus = (estado: string) => {
   const names = {
-    pendiente: "Pendiente",
+    procesando: "Procesando",
     enviada: "Enviada",
     respondida: "Respondida",
     rechazada: "Rechazada",
@@ -84,6 +82,7 @@ export function RequestTable({
   onView,
   onCreateNew,
   loading,
+  permissions,
 }: RequestTableProps) {
   const [filters, setFilters] = useState({
     operador: "",
@@ -165,11 +164,9 @@ export function RequestTable({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="digitel">Digitel</SelectItem>
                   <SelectItem value="movistar">Movistar</SelectItem>
-                  <SelectItem value="claro">Claro</SelectItem>
-                  <SelectItem value="entel">Entel</SelectItem>
-                  <SelectItem value="bitel">Bitel</SelectItem>
-                  <SelectItem value="otros">Otros</SelectItem>
+                  <SelectItem value="movilnet">Movilnet</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -187,7 +184,7 @@ export function RequestTable({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
+                  <SelectItem value="procesando">Procesando</SelectItem>
                   <SelectItem value="enviada">Enviada</SelectItem>
                   <SelectItem value="respondida">Respondida</SelectItem>
                   <SelectItem value="rechazada">Rechazada</SelectItem>
@@ -285,9 +282,9 @@ export function RequestTable({
                       <TableCell>{formatTipoExperticia(solicitud.tipoExperticia)}</TableCell>
                       <TableCell>
                         <Badge
-                          className={statusColors[solicitud.estado || "pendiente"] || "bg-gray-100 text-gray-800"}
+                          className={statusColors[solicitud.estado || "procesando"] || "bg-gray-100 text-gray-800"}
                         >
-                          {formatStatus(solicitud.estado || "pendiente")}
+                          {formatStatus(solicitud.estado || "procesando")}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -305,29 +302,39 @@ export function RequestTable({
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onEdit(solicitud)}
-                            title="Editar"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title="Enviar correo"
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onDelete(solicitud.id)}
-                            title="Eliminar"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
+                          {/* Edit button: Only show for "enviada" status OR admin users */}
+                          {(solicitud.estado === "enviada" || permissions.canManageUsers) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEdit(solicitud)}
+                              title="Editar"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {permissions.canManageUsers && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Enviar correo"
+                              >
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                              {/* Delete button: Only show for "enviada" status OR admin users */}
+                              {(solicitud.estado === "enviada" || permissions.canManageUsers) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => onDelete(solicitud.id)}
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-600" />
+                                </Button>
+                              )}
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -482,8 +489,14 @@ export function RequestTable({
                     <div>
                       <p className="text-sm font-medium text-gray-600">Estado</p>
                       <Badge className={statusColors[viewingSolicitud.estado as keyof typeof statusColors]}>
-                        {formatStatus(viewingSolicitud.estado || 'pendiente')}
+                        {formatStatus(viewingSolicitud.estado || 'procesando')}
                       </Badge>
+                      {viewingSolicitud.estado === "rechazada" && viewingSolicitud.motivoRechazo && (
+                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                          <p className="text-sm font-medium text-red-800">Motivo de rechazo:</p>
+                          <p className="text-sm text-red-700">{viewingSolicitud.motivoRechazo}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -498,7 +511,7 @@ export function RequestTable({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-2">Tipo de Experticia</p>
-                    <p className="text-gray-900">{formatExpertiseType(viewingSolicitud.tipoExperticia)}</p>
+                    <p className="text-gray-900">{formatTipoExperticia(viewingSolicitud.tipoExperticia)}</p>
                   </div>
                   
                   <div>
@@ -508,9 +521,9 @@ export function RequestTable({
                 </div>
 
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Descripción</p>
+                  <p className="text-sm font-medium text-gray-600 mb-2">Reseña</p>
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-900 whitespace-pre-wrap">{viewingSolicitud.descripcion || 'Sin descripción'}</p>
+                    <p className="text-gray-900 whitespace-pre-wrap">{viewingSolicitud.descripcion || 'Sin reseña'}</p>
                   </div>
                 </div>
               </div>

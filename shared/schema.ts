@@ -22,8 +22,8 @@ export const users = pgTable("users", {
   motivoSuspension: text("motivo_suspension"),
 });
 
-export const operadorEnum = pgEnum("operador", ["movistar", "claro", "entel", "bitel", "otros"]);
-export const estadoEnum = pgEnum("estado", ["pendiente", "enviada", "respondida", "rechazada"]);
+export const operadorEnum = pgEnum("operador", ["digitel", "movistar", "movilnet"]);
+export const estadoEnum = pgEnum("estado", ["procesando", "enviada", "respondida", "rechazada"]);
 export const tipoExperticicaEnum = pgEnum("tipo_experticia", [
   "analisis_radioespectro",
   "identificacion_bts",
@@ -42,7 +42,7 @@ export const coordinacionEnum = pgEnum("coordinacion", [
 
 export const solicitudes = pgTable("solicitudes", {
   id: serial("id").primaryKey(),
-  numeroSolicitud: text("numero_solicitud").notNull(),
+  numeroSolicitud: text("numero_solicitud").notNull().unique(),
   numeroExpediente: text("numero_expediente").notNull(),
   fiscal: text("fiscal"),
   tipoExperticia: tipoExperticicaEnum("tipo_experticia").notNull(),
@@ -50,6 +50,7 @@ export const solicitudes = pgTable("solicitudes", {
   operador: operadorEnum("operador").notNull(),
   informacionLinea: text("informacion_linea"),
   descripcion: text("descripcion"),
+  motivoRechazo: text("motivo_rechazo"),
   estado: estadoEnum("estado").default("pendiente"),
   fechaSolicitud: timestamp("fecha_solicitud").defaultNow(),
   fechaRespuesta: timestamp("fecha_respuesta"),
@@ -79,11 +80,21 @@ export const historialSolicitudes = pgTable("historial_solicitudes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const notificaciones = pgTable("notificaciones", {
+  id: serial("id").primaryKey(),
+  usuarioId: integer("usuario_id").references(() => users.id),
+  solicitudId: integer("solicitud_id").references(() => solicitudes.id),
+  mensaje: text("mensaje").notNull(),
+  leida: boolean("leida").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   solicitudes: many(solicitudes),
   plantillasCorreo: many(plantillasCorreo),
   historialSolicitudes: many(historialSolicitudes),
+  notificaciones: many(notificaciones),
 }));
 
 export const solicitudesRelations = relations(solicitudes, ({ one, many }) => ({
@@ -92,6 +103,7 @@ export const solicitudesRelations = relations(solicitudes, ({ one, many }) => ({
     references: [users.id],
   }),
   historial: many(historialSolicitudes),
+  notificaciones: many(notificaciones),
 }));
 
 export const plantillasCorreoRelations = relations(plantillasCorreo, ({ one }) => ({
@@ -112,6 +124,17 @@ export const historialSolicitudesRelations = relations(historialSolicitudes, ({ 
   }),
 }));
 
+export const notificacionesRelations = relations(notificaciones, ({ one }) => ({
+  usuario: one(users, {
+    fields: [notificaciones.usuarioId],
+    references: [users.id],
+  }),
+  solicitud: one(solicitudes, {
+    fields: [notificaciones.solicitudId],
+    references: [solicitudes.id],
+  }),
+}));
+
 // Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -125,6 +148,8 @@ export const insertSolicitudSchema = createInsertSchema(solicitudes).omit({
   fechaRespuesta: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  numeroSolicitud: z.string().min(1, "Número de solicitud es requerido"),
 });
 
 export const insertPlantillaCorreoSchema = createInsertSchema(plantillasCorreo).omit({

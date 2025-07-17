@@ -3,6 +3,7 @@ import {
   solicitudes,
   plantillasCorreo,
   historialSolicitudes,
+  notificaciones,
   type User,
   type InsertUser,
   type Solicitud,
@@ -50,6 +51,7 @@ export interface IStorage {
     limit?: number;
   }): Promise<{ solicitudes: Solicitud[]; total: number }>;
   getSolicitudById(id: number): Promise<Solicitud | undefined>;
+  getSolicitudByNumero(numeroSolicitud: string): Promise<Solicitud | undefined>;
   createSolicitud(solicitud: InsertSolicitud): Promise<Solicitud>;
   updateSolicitud(id: number, solicitud: Partial<InsertSolicitud>): Promise<Solicitud | undefined>;
   deleteSolicitud(id: number): Promise<boolean>;
@@ -64,6 +66,12 @@ export interface IStorage {
   // Historial
   createHistorial(historial: InsertHistorialSolicitud): Promise<HistorialSolicitud>;
   getHistorialBySolicitud(solicitudId: number): Promise<HistorialSolicitud[]>;
+
+  // Notificaciones
+  createNotificacion(userId: number, solicitudId: number, mensaje: string): Promise<void>;
+  getNotificacionesByUser(userId: number): Promise<any[]>;
+  markNotificacionAsRead(notificationId: number): Promise<void>;
+  getUnreadNotificationsCount(userId: number): Promise<number>;
 
   // Dashboard stats
   getDashboardStats(): Promise<{
@@ -248,6 +256,11 @@ export class DatabaseStorage implements IStorage {
     return solicitud || undefined;
   }
 
+  async getSolicitudByNumero(numeroSolicitud: string): Promise<Solicitud | undefined> {
+    const [solicitud] = await db.select().from(solicitudes).where(eq(solicitudes.numeroSolicitud, numeroSolicitud));
+    return solicitud || undefined;
+  }
+
   async createSolicitud(solicitud: InsertSolicitud): Promise<Solicitud> {
     const [newSolicitud] = await db.insert(solicitudes).values(solicitud).returning();
     return newSolicitud;
@@ -263,6 +276,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteSolicitud(id: number): Promise<boolean> {
+    // First delete related historial records
+    await db.delete(historialSolicitudes).where(eq(historialSolicitudes.solicitudId, id));
+    
+    // Then delete the solicitud
     const result = await db.delete(solicitudes).where(eq(solicitudes.id, id));
     return (result.rowCount || 0) > 0;
   }
@@ -328,7 +345,7 @@ export class DatabaseStorage implements IStorage {
       actividadReciente,
     ] = await Promise.all([
       db.select({ count: count() }).from(solicitudes),
-      db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.estado, "pendiente")),
+      db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.estado, "procesando")),
       db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.estado, "enviada")),
       db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.estado, "respondida")),
       db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.estado, "rechazada")),
@@ -376,7 +393,7 @@ export class DatabaseStorage implements IStorage {
       actividadReciente,
     ] = await Promise.all([
       db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.usuarioId, userId)),
-      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "pendiente"))),
+      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "procesando"))),
       db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "enviada"))),
       db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "respondida"))),
       db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "rechazada"))),
@@ -463,6 +480,51 @@ export class DatabaseStorage implements IStorage {
       solicitudes: solicitudesResult,
       total: totalResult[0]?.count || 0,
     };
+  }
+
+  // Notificaciones
+  async createNotificacion(userId: number, solicitudId: number, mensaje: string): Promise<void> {
+    await db.insert(notificaciones).values({
+      usuarioId: userId,
+      solicitudId: solicitudId,
+      mensaje: mensaje,
+      leida: false,
+    });
+  }
+
+  async getNotificacionesByUser(userId: number): Promise<any[]> {
+    const result = await db
+      .select({
+        id: notificaciones.id,
+        mensaje: notificaciones.mensaje,
+        leida: notificaciones.leida,
+        createdAt: notificaciones.createdAt,
+        solicitudId: notificaciones.solicitudId,
+        numeroSolicitud: solicitudes.numeroSolicitud,
+        estado: solicitudes.estado,
+      })
+      .from(notificaciones)
+      .leftJoin(solicitudes, eq(notificaciones.solicitudId, solicitudes.id))
+      .where(eq(notificaciones.usuarioId, userId))
+      .orderBy(desc(notificaciones.createdAt));
+    
+    return result;
+  }
+
+  async markNotificacionAsRead(notificationId: number): Promise<void> {
+    await db
+      .update(notificaciones)
+      .set({ leida: true })
+      .where(eq(notificaciones.id, notificationId));
+  }
+
+  async getUnreadNotificationsCount(userId: number): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(notificaciones)
+      .where(and(eq(notificaciones.usuarioId, userId), eq(notificaciones.leida, false)));
+    
+    return result[0]?.count || 0;
   }
 }
 

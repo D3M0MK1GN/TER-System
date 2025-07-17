@@ -175,6 +175,7 @@ export default function Requests() {
             onView={handleView}
             onCreateNew={() => setShowCreateModal(true)}
             loading={isLoading}
+            permissions={permissions}
           />
         </main>
       </div>

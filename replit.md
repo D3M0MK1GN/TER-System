@@ -117,7 +117,7 @@ Preferred communication style: Simple, everyday language.
 - **Real-time Updates**: React Query for efficient data synchronization
 - **User Management**: Complete user administration with role-based access control
 
-## Recent Changes (January 2025)
+## Recent Changes (July 2025)
 - ✓ Successfully migrated from Replit Agent to Replit environment (July 17, 2025)
 - ✓ Removed "Usuarios" tab from sidebar navigation
 - ✓ Integrated user management access into dashboard for administrators only
@@ -156,5 +156,40 @@ Preferred communication style: Simple, everyday language.
   - Added backend validation to enforce request status restrictions for non-admin users
   - Updated user creation dialog with proper sizing (max-w-lg, max-h-90vh, scrollable) to prevent screen overflow
   - Added memoization to components for improved performance and reduced re-renders
+- ✓ **Updated Role-Based Access Control for Email Templates and Request Management (July 17, 2025):**
+  - Restricted email templates (plantillas de correo) access to administrators only - supervisors and users can no longer access this section
+  - Added specific permission `canViewEmailTemplates` that is only granted to admin role
+  - Modified request management actions: only administrators can see all three action icons (view, edit, delete), while supervisors and users only see view and edit icons
+  - Updated navigation sidebar to hide email templates section for non-admin users
+  - Enhanced request table to conditionally show delete and email actions based on user permissions
+- ✓ **Implemented Unique Request Number Validation (July 17, 2025):**
+  - Added database constraint to ensure numeroSolicitud is unique across all requests
+  - Implemented backend validation to check for duplicate request numbers during creation and updates
+  - Added proper error handling with descriptive messages when duplicate request numbers are detected
+  - Enhanced user experience by preventing duplicate request numbers at both database and application level
+- ✓ **Updated Operator System and Enhanced Error Handling (July 17, 2025):**
+  - Limited operator options to only three Venezuelan telecommunications companies: Digitel, Movistar, and Movilnet
+  - Updated database schema to reflect new operator enum values
+  - Enhanced error handling to show "Número de Solicitud Duplicada" message instead of generic 500 errors
+  - Updated frontend components (forms and tables) to display only the three valid operators
+  - Improved PostgreSQL error detection and user-friendly error messages
+- ✓ **Updated Field Labels for Better User Experience (July 17, 2025):**
+  - Changed "Descripción" to "Reseña" throughout the application
+  - Updated form labels, placeholders, and modal display text
+  - Enhanced consistency in Spanish language terminology
+- ✓ **Implemented Status-Based Edit/Delete Restrictions (July 17, 2025):**
+  - Added backend validation to prevent non-admin users from editing or deleting requests with status other than "enviada"
+  - Only administrators can edit or delete requests with status "pendiente", "respondida", or "rechazada"
+  - Updated frontend to conditionally show edit/delete buttons based on request status and user permissions
+  - Enhanced user experience with proper error messages when trying to perform restricted actions
+  - Maintains data integrity by preventing unauthorized modifications to processed requests
+- ✓ **Updated Status System and Fixed Delete Functionality (July 17, 2025):**
+  - Changed status "pendiente" to "procesando" throughout the entire application
+  - Fixed database migration issue with enum type changes
+  - Resolved foreign key constraint error when deleting requests with history records
+  - Updated all frontend components to display "Procesando" instead of "Pendiente"
+  - Fixed delete functionality to properly remove history records before deleting requests
+  - Ensured consistent status handling across dashboard, reports, and request management
+
 
 The application follows modern web development best practices with a focus on maintainability, performance, and user experience. The architecture supports scalability and future enhancements while maintaining code quality and type safety.

@@ -205,6 +205,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         usuarioId: req.user.id,
       });
 
+      // Verificar que el número de solicitud no exista
+      const existingSolicitud = await storage.getSolicitudByNumero(solicitudData.numeroSolicitud);
+      if (existingSolicitud) {
+        return res.status(400).json({ 
+          message: "El número de solicitud ya existe. Por favor, ingrese un número único." 
+        });
+      }
+
       const solicitud = await storage.createSolicitud(solicitudData);
       
       // Crear historial
@@ -221,6 +229,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
       }
+      
+      // Check for duplicate key error
+      if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
+        return res.status(400).json({ message: "Número de Solicitud Duplicada" });
+      }
+      
       res.status(500).json({ message: "Error creando solicitud" });
     }
   });
@@ -228,6 +242,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/solicitudes/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Get current solicitud to check its status
+      const currentSolicitud = await storage.getSolicitudById(id);
+      if (!currentSolicitud) {
+        return res.status(404).json({ message: "Solicitud no encontrada" });
+      }
+
+      // Only admins can edit requests that are not in "enviada" status
+      if (currentSolicitud.estado !== "enviada" && req.user.rol !== "admin") {
+        return res.status(403).json({ 
+          message: "Solo los administradores pueden editar solicitudes con estado diferente a 'enviada'" 
+        });
+      }
       
       // Role-based validation: supervisor and usuario can only update to "enviada" status
       if ((req.user.rol === "supervisor" || req.user.rol === "usuario") && req.body.estado && req.body.estado !== "enviada") {
@@ -244,10 +271,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const solicitudData = insertSolicitudSchema.partial().parse(requestData);
 
+      // Verificar que el número de solicitud no exista (si se está actualizando)
+      if (solicitudData.numeroSolicitud) {
+        const existingSolicitud = await storage.getSolicitudByNumero(solicitudData.numeroSolicitud);
+        if (existingSolicitud && existingSolicitud.id !== id) {
+          return res.status(400).json({ 
+            message: "El número de solicitud ya existe. Por favor, ingrese un número único." 
+          });
+        }
+      }
+
       const solicitud = await storage.updateSolicitud(id, solicitudData);
       
       if (!solicitud) {
         return res.status(404).json({ message: "Solicitud no encontrada" });
+      }
+
+      // Create notification when status changes
+      if (solicitudData.estado && solicitudData.estado !== currentSolicitud.estado) {
+        const statusNames = {
+          procesando: "Procesando",
+          enviada: "Enviada",
+          respondida: "Respondida",
+          rechazada: "Rechazada"
+        };
+        
+        let mensaje = `Solicitud ${solicitud.numeroSolicitud} cambió a estado: ${statusNames[solicitudData.estado as keyof typeof statusNames]}`;
+        
+        // If rejected, include rejection reason
+        if (solicitudData.estado === "rechazada" && solicitudData.motivoRechazo) {
+          mensaje += ` - Motivo: ${solicitudData.motivoRechazo}`;
+        }
+        
+        // Notify the user who created the request
+        if (solicitud.usuarioId) {
+          await storage.createNotificacion(solicitud.usuarioId, solicitud.id, mensaje);
+        }
       }
 
       // Crear historial
@@ -264,6 +323,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
       }
+      
+      // Check for duplicate key error
+      if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
+        return res.status(400).json({ message: "Número de Solicitud Duplicada" });
+      }
+      
       res.status(500).json({ message: "Error actualizando solicitud" });
     }
   });
@@ -271,6 +336,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/solicitudes/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Get current solicitud to check its status
+      const currentSolicitud = await storage.getSolicitudById(id);
+      if (!currentSolicitud) {
+        return res.status(404).json({ message: "Solicitud no encontrada" });
+      }
+
+      // Only admins can delete requests that are not in "enviada" status
+      if (currentSolicitud.estado !== "enviada" && req.user.rol !== "admin") {
+        return res.status(403).json({ 
+          message: "Solo los administradores pueden eliminar solicitudes con estado diferente a 'enviada'" 
+        });
+      }
+      
       const deleted = await storage.deleteSolicitud(id);
       
       if (!deleted) {
@@ -513,6 +592,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error obteniendo historial:", error);
       res.status(500).json({ message: "Error obteniendo historial" });
+    }
+  });
+
+  // Notifications routes
+  app.get("/api/notifications", authenticateToken, async (req: any, res) => {
+    try {
+      const notifications = await storage.getNotificacionesByUser(req.user.id);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error obteniendo notificaciones:", error);
+      res.status(500).json({ message: "Error obteniendo notificaciones" });
+    }
+  });
+
+  app.put("/api/notifications/:id/read", authenticateToken, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.markNotificacionAsRead(id);
+      res.json({ message: "Notificación marcada como leída" });
+    } catch (error) {
+      console.error("Error marcando notificación como leída:", error);
+      res.status(500).json({ message: "Error marcando notificación como leída" });
+    }
+  });
+
+  app.get("/api/notifications/unread-count", authenticateToken, async (req: any, res) => {
+    try {
+      const count = await storage.getUnreadNotificationsCount(req.user.id);
+      res.json({ count });
+    } catch (error) {
+      console.error("Error obteniendo conteo de notificaciones:", error);
+      res.status(500).json({ message: "Error obteniendo conteo de notificaciones" });
     }
   });
 

@@ -10,6 +10,7 @@ export interface Permission {
   canManageAllRequests: boolean;
   canViewAllReports: boolean;
   canViewDashboard: boolean;
+  canViewEmailTemplates: boolean;
 }
 
 export function usePermissions(): Permission {
@@ -24,6 +25,7 @@ export function usePermissions(): Permission {
         canManageAllRequests: false,
         canViewAllReports: false,
         canViewDashboard: false,
+        canViewEmailTemplates: false,
       };
     }
 
@@ -38,6 +40,7 @@ export function usePermissions(): Permission {
           canManageAllRequests: true,
           canViewAllReports: true,
           canViewDashboard: true,
+          canViewEmailTemplates: true,
         };
       
       case "supervisor":
@@ -48,6 +51,7 @@ export function usePermissions(): Permission {
           canManageAllRequests: true,
           canViewAllReports: true,
           canViewDashboard: true,
+          canViewEmailTemplates: false,
         };
       
       case "usuario":
@@ -58,6 +62,7 @@ export function usePermissions(): Permission {
           canManageAllRequests: false,
           canViewAllReports: false,
           canViewDashboard: true,
+          canViewEmailTemplates: false,
         };
       
       default:
@@ -68,6 +73,7 @@ export function usePermissions(): Permission {
           canManageAllRequests: false,
           canViewAllReports: false,
           canViewDashboard: false,
+          canViewEmailTemplates: false,
         };
     }
   }, [user?.rol]);

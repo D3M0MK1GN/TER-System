@@ -52,7 +52,7 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/plantillas">
-        <ProtectedRoute>
+        <ProtectedRoute requirePermission="canViewEmailTemplates">
           <Templates />
         </ProtectedRoute>
       </Route>

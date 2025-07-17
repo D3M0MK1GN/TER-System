@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Antenna, User, Lock, LogIn, Shield } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const [, setLocation] = useLocation();
@@ -82,17 +82,7 @@ export default function Login() {
               />
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked === true)}
-                />
-                <Label htmlFor="remember" className="text-sm text-gray-600">
-                  Recordarme
-                </Label>
-              </div>
+            <div className="flex items-center justify-end">
               <Button variant="link" className="text-sm text-primary hover:underline p-0">
                 ¿Olvidaste tu contraseña?
               </Button>

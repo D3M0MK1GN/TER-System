@@ -18,6 +18,15 @@ const requestFormSchema = insertSolicitudSchema.extend({
   tipoExperticia: z.string().min(1, "Tipo de experticia es requerido"),
   coordinacionSolicitante: z.string().min(1, "Coordinación solicitante es requerida"),
   operador: z.string().min(1, "Operador es requerido"),
+}).refine((data) => {
+  // If estado is "rechazada", motivoRechazo is required
+  if (data.estado === "rechazada") {
+    return data.motivoRechazo && data.motivoRechazo.trim().length > 0;
+  }
+  return true;
+}, {
+  message: "El motivo de rechazo es requerido cuando el estado es 'rechazada'",
+  path: ["motivoRechazo"],
 });
 
 type RequestFormData = z.infer<typeof requestFormSchema>;
@@ -38,7 +47,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
     if (user?.rol === "supervisor" || user?.rol === "usuario") {
       return "enviada"; // Force enviada for supervisor and usuario
     }
-    return initialData?.estado || "pendiente"; // Admin can choose
+    return initialData?.estado || "procesando"; // Admin can choose
   };
 
   const form = useForm<RequestFormData>({
@@ -52,6 +61,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
       operador: "",
       informacionLinea: "",
       descripcion: "",
+      motivoRechazo: "",
       estado: getDefaultStatus(),
       oficio: "",
       ...initialData,
@@ -119,11 +129,9 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                   <SelectValue placeholder="Seleccione un operador" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="digitel">Digitel</SelectItem>
                   <SelectItem value="movistar">Movistar</SelectItem>
-                  <SelectItem value="claro">Claro</SelectItem>
-                  <SelectItem value="entel">Entel</SelectItem>
-                  <SelectItem value="bitel">Bitel</SelectItem>
-                  <SelectItem value="otros">Otros</SelectItem>
+                  <SelectItem value="movilnet">Movilnet</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.operador && (
@@ -186,14 +194,14 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
               <Label htmlFor="estado">Estado</Label>
               {user?.rol === "admin" ? (
                 <Select
-                  value={form.watch("estado") || "pendiente"}
+                  value={form.watch("estado") || "procesando"}
                   onValueChange={(value) => form.setValue("estado", value as any)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="procesando">Procesando</SelectItem>
                     <SelectItem value="enviada">Enviada</SelectItem>
                     <SelectItem value="respondida">Respondida</SelectItem>
                     <SelectItem value="rechazada">Rechazada</SelectItem>
@@ -208,6 +216,24 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
               )}
             </div>
 
+            {/* Conditional field for rejection reason */}
+            {form.watch("estado") === "rechazada" && (
+              <div className="col-span-2">
+                <Label htmlFor="motivoRechazo">Motivo de Rechazo *</Label>
+                <Textarea
+                  id="motivoRechazo"
+                  rows={3}
+                  placeholder="Ingrese el motivo del rechazo..."
+                  {...form.register("motivoRechazo")}
+                />
+                {form.formState.errors.motivoRechazo && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {form.formState.errors.motivoRechazo.message}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div>
               <Label htmlFor="informacionLinea">Información de la Línea</Label>
               <Input
@@ -219,11 +245,11 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
           </div>
 
           <div>
-            <Label htmlFor="descripcion">Descripción</Label>
+            <Label htmlFor="descripcion">Reseña</Label>
             <Textarea
               id="descripcion"
               rows={4}
-              placeholder="Descripción detallada de la solicitud..."
+              placeholder="Reseña detallada de la solicitud..."
               {...form.register("descripcion")}
             />
           </div>

@@ -233,7 +233,7 @@ export default function Reports() {
                   <CardContent>
                     <div className="space-y-4">
                       {[
-                        { label: "Pendientes", value: stats?.pendientes || 0, color: "bg-yellow-500" },
+                        { label: "Procesando", value: stats?.pendientes || 0, color: "bg-yellow-500" },
                         { label: "Enviadas", value: stats?.enviadas || 0, color: "bg-blue-500" },
                         { label: "Respondidas", value: stats?.respondidas || 0, color: "bg-green-500" },
                         { label: "Rechazadas", value: stats?.rechazadas || 0, color: "bg-red-500" },
@@ -291,7 +291,7 @@ export default function Reports() {
                         {getPendingRate()}%
                       </div>
                       <div className="text-sm text-gray-600 mt-1">
-                        Solicitudes Pendientes
+                        Solicitudes Procesando
                       </div>
                     </div>
                     <div className="text-center">
