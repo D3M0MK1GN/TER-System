@@ -40,6 +40,15 @@ export interface IStorage {
     page?: number;
     limit?: number;
   }): Promise<{ solicitudes: Solicitud[]; total: number }>;
+  
+  getSolicitudesByUser(userId: number, filters?: {
+    operador?: string;
+    estado?: string;
+    tipoExperticia?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ solicitudes: Solicitud[]; total: number }>;
   getSolicitudById(id: number): Promise<Solicitud | undefined>;
   createSolicitud(solicitud: InsertSolicitud): Promise<Solicitud>;
   updateSolicitud(id: number, solicitud: Partial<InsertSolicitud>): Promise<Solicitud | undefined>;
@@ -58,6 +67,16 @@ export interface IStorage {
 
   // Dashboard stats
   getDashboardStats(): Promise<{
+    totalSolicitudes: number;
+    pendientes: number;
+    enviadas: number;
+    respondidas: number;
+    rechazadas: number;
+    solicitudesPorOperador: { operador: string; total: number }[];
+    actividadReciente: any[];
+  }>;
+  
+  getDashboardStatsByUser(userId: number): Promise<{
     totalSolicitudes: number;
     pendientes: number;
     enviadas: number;
@@ -335,6 +354,114 @@ export class DatabaseStorage implements IStorage {
       rechazadas: rechazadas[0].count,
       solicitudesPorOperador: solicitudesPorOperador,
       actividadReciente: actividadReciente,
+    };
+  }
+
+  async getDashboardStatsByUser(userId: number): Promise<{
+    totalSolicitudes: number;
+    pendientes: number;
+    enviadas: number;
+    respondidas: number;
+    rechazadas: number;
+    solicitudesPorOperador: { operador: string; total: number }[];
+    actividadReciente: any[];
+  }> {
+    const [
+      totalSolicitudes,
+      pendientes,
+      enviadas,
+      respondidas,
+      rechazadas,
+      solicitudesPorOperador,
+      actividadReciente,
+    ] = await Promise.all([
+      db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.usuarioId, userId)),
+      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "pendiente"))),
+      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "enviada"))),
+      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "respondida"))),
+      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "rechazada"))),
+      db
+        .select({
+          operador: solicitudes.operador,
+          total: count(),
+        })
+        .from(solicitudes)
+        .where(eq(solicitudes.usuarioId, userId))
+        .groupBy(solicitudes.operador),
+      db
+        .select()
+        .from(solicitudes)
+        .where(eq(solicitudes.usuarioId, userId))
+        .orderBy(desc(solicitudes.updatedAt))
+        .limit(10),
+    ]);
+
+    return {
+      totalSolicitudes: totalSolicitudes[0].count,
+      pendientes: pendientes[0].count,
+      enviadas: enviadas[0].count,
+      respondidas: respondidas[0].count,
+      rechazadas: rechazadas[0].count,
+      solicitudesPorOperador: solicitudesPorOperador,
+      actividadReciente: actividadReciente,
+    };
+  }
+
+  async getSolicitudesByUser(userId: number, filters?: {
+    operador?: string;
+    estado?: string;
+    tipoExperticia?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ solicitudes: Solicitud[]; total: number }> {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 10;
+    const offset = (page - 1) * limit;
+
+    let whereConditions: any[] = [eq(solicitudes.usuarioId, userId)];
+
+    if (filters?.operador) {
+      whereConditions.push(eq(solicitudes.operador, filters.operador as any));
+    }
+
+    if (filters?.estado) {
+      whereConditions.push(eq(solicitudes.estado, filters.estado as any));
+    }
+
+    if (filters?.tipoExperticia) {
+      whereConditions.push(eq(solicitudes.tipoExperticia, filters.tipoExperticia as any));
+    }
+
+    if (filters?.search) {
+      whereConditions.push(
+        or(
+          like(solicitudes.numeroSolicitud, `%${filters.search}%`),
+          like(solicitudes.numeroExpediente, `%${filters.search}%`),
+          like(solicitudes.fiscal, `%${filters.search}%`)
+        )
+      );
+    }
+
+    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+    const [solicitudesResult, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(solicitudes)
+        .where(whereClause)
+        .orderBy(desc(solicitudes.updatedAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(solicitudes)
+        .where(whereClause)
+    ]);
+
+    return {
+      solicitudes: solicitudesResult,
+      total: totalResult[0]?.count || 0,
     };
   }
 }

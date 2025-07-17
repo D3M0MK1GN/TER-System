@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
 import { RequestTable } from "@/components/request-table";
@@ -21,6 +23,8 @@ export default function Requests() {
   const [editingSolicitud, setEditingSolicitud] = useState<Solicitud | null>(null);
   const pageSize = 10;
 
+  const { user } = useAuth();
+  const permissions = usePermissions();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

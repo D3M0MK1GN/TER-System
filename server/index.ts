@@ -3,16 +3,51 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Trust proxy para obtener IP correcta en entornos con proxy
+app.set('trust proxy', true);
+
 app.use(express.json());
 
 // Middleware para obtener IP del cliente
 app.use((req, res, next) => {
-  req.clientIp = req.ip || 
-                 req.connection?.remoteAddress || 
-                 req.socket?.remoteAddress ||
-                 req.headers['x-forwarded-for'] || 
-                 req.headers['x-real-ip'] || 
-                 'unknown';
+  // Función para obtener la IP real del cliente
+  function getClientIp(req: any) {
+    // Verificar headers de proxy primero
+    const xForwardedFor = req.headers['x-forwarded-for'];
+    if (xForwardedFor) {
+      // x-forwarded-for puede contener múltiples IPs separadas por comas
+      const ips = xForwardedFor.toString().split(',');
+      return ips[0].trim();
+    }
+    
+    // Verificar otros headers de proxy
+    const xRealIp = req.headers['x-real-ip'];
+    if (xRealIp) {
+      return xRealIp.toString();
+    }
+    
+    // Verificar headers adicionales
+    const xClientIp = req.headers['x-client-ip'];
+    if (xClientIp) {
+      return xClientIp.toString();
+    }
+    
+    // Verificar connection remoteAddress
+    if (req.connection?.remoteAddress) {
+      return req.connection.remoteAddress;
+    }
+    
+    // Verificar socket remoteAddress
+    if (req.socket?.remoteAddress) {
+      return req.socket.remoteAddress;
+    }
+    
+    // Usar req.ip como fallback
+    return req.ip || 'unknown';
+  }
+  
+  req.clientIp = getClientIp(req);
   next();
 });
 app.use(express.urlencoded({ extended: false }));

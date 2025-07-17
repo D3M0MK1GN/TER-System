@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
 import { StatsCards } from "@/components/stats-cards";
@@ -8,9 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, Plus, Edit, Mail, Clock, LayoutDashboard, Users as UsersIcon } from "lucide-react";
-import UsersPage from "./users";
+import { CheckCircle, Plus, Edit, Mail, Clock, LayoutDashboard } from "lucide-react";
 
 interface DashboardStats {
   totalSolicitudes: number;
@@ -23,8 +23,16 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const permissions = usePermissions();
+  
+  // For users, fetch only their own stats, for admins/supervisors fetch all
+  const statsEndpoint = permissions.canViewAllRequests 
+    ? "/api/dashboard/stats" 
+    : `/api/dashboard/stats?userId=${user?.id}`;
+    
   const { data: stats, isLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats"],
+    queryKey: [statsEndpoint],
   });
 
   if (isLoading) {
@@ -58,18 +66,7 @@ export default function Dashboard() {
             <p className="text-gray-600">Gestiona tu sistema desde aquí</p>
           </div>
           
-          <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="px-6 bg-transparent border-b-0 h-12">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2">
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
-              </TabsTrigger>
-              <TabsTrigger value="users" className="flex items-center gap-2">
-                <UsersIcon className="h-4 w-4" />
-                Administrar Usuarios
-              </TabsTrigger>
-            </TabsList>
-          <TabsContent value="dashboard" className="p-6 m-0">
+          <div className="p-6">
           {/* Stats Cards */}
           <div className="mb-8">
             <StatsCards stats={stats ? {
@@ -192,12 +189,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-          </TabsContent>
-          
-          <TabsContent value="users" className="p-6 m-0">
-            <UsersPage />
-          </TabsContent>
-          </Tabs>
+          </div>
         </div>
       </div>
     </div>

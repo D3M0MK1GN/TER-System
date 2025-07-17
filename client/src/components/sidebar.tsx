@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -10,6 +11,7 @@ import {
   User,
   LogOut,
   Antenna,
+  Users,
 } from "lucide-react";
 
 const navItems = [
@@ -17,27 +19,51 @@ const navItems = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+    permission: "canViewDashboard" as const,
   },
   {
     title: "Gestión de Solicitudes",
     href: "/solicitudes",
     icon: FileText,
+    permission: "canViewAllRequests" as const,
   },
   {
     title: "Plantillas de Correo",
     href: "/plantillas",
     icon: Mail,
+    permission: "canViewAllRequests" as const,
   },
   {
     title: "Reportes",
     href: "/reportes",
     icon: BarChart3,
+    permission: "canViewAllReports" as const,
+  },
+  {
+    title: "Usuarios",
+    href: "/usuarios",
+    icon: Users,
+    permission: "canViewUsers" as const,
   },
 ];
 
 export function Sidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const permissions = usePermissions();
+
+  // Filter nav items based on permissions
+  const visibleNavItems = navItems.filter(item => {
+    if (item.permission === "canViewAllRequests" && item.href === "/solicitudes") {
+      // For requests, both admins and supervisors can view all, users can view their own
+      return permissions.canViewAllRequests || permissions.canViewDashboard;
+    }
+    if (item.permission === "canViewAllReports" && item.href === "/reportes") {
+      // For reports, both admins and supervisors can view all, users can view their own
+      return permissions.canViewAllReports || permissions.canViewDashboard;
+    }
+    return permissions[item.permission];
+  });
 
   return (
     <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
@@ -50,7 +76,7 @@ export function Sidebar() {
 
       <nav className="mt-8">
         <div className="px-4 space-y-2">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.href;
             

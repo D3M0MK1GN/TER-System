@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,8 +21,16 @@ interface DashboardStats {
 }
 
 export default function Reports() {
+  const { user } = useAuth();
+  const permissions = usePermissions();
+  
+  // For users, fetch only their own stats, for admins/supervisors fetch all
+  const statsEndpoint = permissions.canViewAllReports 
+    ? "/api/dashboard/stats" 
+    : `/api/dashboard/stats?userId=${user?.id}`;
+    
   const { data: stats, isLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats"],
+    queryKey: [statsEndpoint],
   });
 
   const operatorColors = {

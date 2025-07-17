@@ -4,15 +4,18 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Requests from "@/pages/requests";
 import Templates from "@/pages/templates";
 import Reports from "@/pages/reports";
+import Users from "@/pages/users";
 import NotFound from "@/pages/not-found";
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, requirePermission }: { children: React.ReactNode; requirePermission?: keyof import("@/hooks/use-permissions").Permission }) {
   const { isAuthenticated, loading } = useAuth();
+  const permissions = usePermissions();
 
   if (loading) {
     return (
@@ -24,6 +27,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return <Login />;
+  }
+
+  if (requirePermission && !permissions[requirePermission]) {
+    return <NotFound />;
   }
 
   return <>{children}</>;
@@ -49,12 +56,17 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/reportes">
-        <ProtectedRoute>
+        <ProtectedRoute requirePermission="canViewDashboard">
           <Reports />
         </ProtectedRoute>
       </Route>
+      <Route path="/usuarios">
+        <ProtectedRoute requirePermission="canViewUsers">
+          <Users />
+        </ProtectedRoute>
+      </Route>
       <Route path="/">
-        <ProtectedRoute>
+        <ProtectedRoute requirePermission="canViewDashboard">
           <Dashboard />
         </ProtectedRoute>
       </Route>

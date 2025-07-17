@@ -76,11 +76,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Actualizar último acceso y dirección IP
-      const clientIp = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
-                       (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
-                       req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+      const clientIp = (req as any).clientIp || 'unknown';
       
-      await storage.updateUserLastAccess(user.id, clientIp.toString());
+      await storage.updateUserLastAccess(user.id, clientIp);
 
       const token = jwt.sign(
         { id: user.id, username: user.username, rol: user.rol },
@@ -119,10 +117,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Dashboard Routes
-  app.get("/api/dashboard/stats", authenticateToken, async (req, res) => {
+  // Dashboard Routes - role-based
+  app.get("/api/dashboard/stats", authenticateToken, async (req: any, res) => {
     try {
-      const stats = await storage.getDashboardStats();
+      const userId = req.query.userId ? parseInt(req.query.userId) : null;
+      const userRole = req.user.rol;
+      
+      // For regular users, only show their own data
+      let stats;
+      if (userRole === "usuario") {
+        stats = await storage.getDashboardStatsByUser(req.user.id);
+      } else if (userId && userRole === "usuario") {
+        // Users can only see their own data
+        stats = await storage.getDashboardStatsByUser(req.user.id);
+      } else {
+        // Admins and supervisors can see all data
+        stats = await storage.getDashboardStats();
+      }
+      
       res.json(stats);
     } catch (error) {
       console.error("Error obteniendo estadísticas:", error);
@@ -130,8 +142,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Solicitudes Routes
-  app.get("/api/solicitudes", authenticateToken, async (req, res) => {
+  // Solicitudes Routes - role-based
+  app.get("/api/solicitudes", authenticateToken, async (req: any, res) => {
     try {
       const filters = {
         operador: req.query.operador as string,
@@ -142,8 +154,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: parseInt(req.query.limit as string) || 10,
       };
 
-      const result = await storage.getSolicitudes(filters);
-      res.json(result);
+      // For regular users, only show their own requests
+      if (req.user.rol === "usuario") {
+        const result = await storage.getSolicitudesByUser(req.user.id, filters);
+        res.json(result);
+      } else {
+        // Admins and supervisors can see all requests
+        const result = await storage.getSolicitudes(filters);
+        res.json(result);
+      }
     } catch (error) {
       console.error("Error obteniendo solicitudes:", error);
       res.status(500).json({ message: "Error obteniendo solicitudes" });
@@ -312,6 +331,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  const requireAdminOrSupervisor = (req: any, res: any, next: any) => {
+    if (req.user?.rol !== 'admin' && req.user?.rol !== 'supervisor') {
+      return res.status(403).json({ message: 'Acceso denegado. Se requieren permisos de administrador o supervisor.' });
+    }
+    next();
+  };
+
   app.get("/api/users", authenticateToken, requireAdmin, async (req, res) => {
     try {
       const filters = {
@@ -332,13 +358,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/users", authenticateToken, requireAdmin, async (req: any, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      // Transform date fields from string to Date if provided
+      const bodyData = { ...req.body };
+      
+      // Clean up and transform date fields
+      if (bodyData.tiempoSuspension && bodyData.tiempoSuspension !== '' && bodyData.tiempoSuspension !== null) {
+        bodyData.tiempoSuspension = new Date(bodyData.tiempoSuspension);
+      } else {
+        delete bodyData.tiempoSuspension;
+      }
+      
+      if (bodyData.fechaSuspension && bodyData.fechaSuspension !== '' && bodyData.fechaSuspension !== null) {
+        bodyData.fechaSuspension = new Date(bodyData.fechaSuspension);
+      } else {
+        delete bodyData.fechaSuspension;
+      }
+
+      const userData = insertUserSchema.parse(bodyData);
       
       // Hash password
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       const userDataWithHashedPassword = {
         ...userData,
         password: hashedPassword,
+        // Auto-assign IP address if not provided
+        direccionIp: userData.direccionIp || (req as any).clientIp || 'unknown',
       };
 
       const user = await storage.createUser(userDataWithHashedPassword);
@@ -361,11 +405,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/users/:id", authenticateToken, requireAdmin, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const userData = insertUserSchema.partial().parse(req.body);
+      
+      // Transform date fields from string to Date if provided
+      const bodyData = { ...req.body };
+      
+      // Clean up and transform date fields
+      if (bodyData.tiempoSuspension && bodyData.tiempoSuspension !== '' && bodyData.tiempoSuspension !== null) {
+        bodyData.tiempoSuspension = new Date(bodyData.tiempoSuspension);
+      } else {
+        delete bodyData.tiempoSuspension;
+      }
+      
+      if (bodyData.fechaSuspension && bodyData.fechaSuspension !== '' && bodyData.fechaSuspension !== null) {
+        bodyData.fechaSuspension = new Date(bodyData.fechaSuspension);
+      } else {
+        delete bodyData.fechaSuspension;
+      }
+
+      const userData = insertUserSchema.partial().parse(bodyData);
 
       // If password is provided, hash it
       if (userData.password) {
         userData.password = await bcrypt.hash(userData.password, 10);
+      }
+
+      // Auto-assign IP address if not provided but is being updated
+      if (userData.direccionIp === '' || userData.direccionIp === undefined) {
+        userData.direccionIp = (req as any).clientIp || 'unknown';
       }
 
       const user = await storage.updateUser(id, userData);

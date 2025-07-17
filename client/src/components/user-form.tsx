@@ -8,28 +8,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { User } from "@shared/schema";
 
-const userFormSchema = z.object({
-  username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
-  nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  rol: z.string().min(1, "Debe seleccionar un rol"),
-  status: z.string().min(1, "Debe seleccionar un estado"),
-  direccionIp: z.string().optional().or(z.literal("")),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional().or(z.literal("")),
-  tiempoSuspension: z.string().optional(),
-  motivoSuspension: z.string().optional(),
-}).refine((data) => {
-  // Si el status es suspendido, requerir tiempo y motivo
-  if (data.status === "suspendido") {
-    return data.tiempoSuspension && data.motivoSuspension;
-  }
-  return true;
-}, {
-  message: "El tiempo y motivo de suspensión son requeridos cuando el estado es suspendido",
-  path: ["tiempoSuspension"],
-});
+const createUserFormSchema = (isEdit: boolean) => {
+  return z.object({
+    username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
+    nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+    email: z.string().email("Email inválido").optional().or(z.literal("")),
+    rol: z.string().min(1, "Debe seleccionar un rol"),
+    status: z.string().min(1, "Debe seleccionar un estado"),
+    direccionIp: z.string().optional().or(z.literal("")),
+    password: isEdit 
+      ? z.string().optional().or(z.literal(""))
+      : z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+    tiempoSuspension: z.string().optional(),
+    motivoSuspension: z.string().optional(),
+    fechaSuspension: z.string().optional(),
+  }).refine((data) => {
+    // Si el status es suspendido, requerir tiempo y motivo
+    if (data.status === "suspendido") {
+      return data.tiempoSuspension && data.motivoSuspension;
+    }
+    return true;
+  }, {
+    message: "El tiempo y motivo de suspensión son requeridos cuando el estado es suspendido",
+    path: ["tiempoSuspension"],
+  });
+};
 
-type UserFormData = z.infer<typeof userFormSchema>;
+type UserFormData = z.infer<ReturnType<typeof createUserFormSchema>>;
 
 interface UserFormProps {
   onSubmit: (data: UserFormData) => void;
@@ -40,12 +45,9 @@ interface UserFormProps {
 }
 
 export function UserForm({ onSubmit, onCancel, initialData, isLoading, isEdit = false }: UserFormProps) {
+  const userFormSchema = createUserFormSchema(isEdit);
   const form = useForm<UserFormData>({
-    resolver: zodResolver(userFormSchema.extend({
-      password: isEdit 
-        ? z.string().optional().or(z.literal(""))
-        : z.string().min(6, "La contraseña debe tener al menos 6 caracteres")
-    })),
+    resolver: zodResolver(userFormSchema),
     defaultValues: {
       username: initialData?.username || "",
       nombre: initialData?.nombre || "",
@@ -56,16 +58,34 @@ export function UserForm({ onSubmit, onCancel, initialData, isLoading, isEdit = 
       password: "",
       tiempoSuspension: initialData?.tiempoSuspension ? new Date(initialData.tiempoSuspension).toISOString().slice(0, 16) : "",
       motivoSuspension: initialData?.motivoSuspension || "",
+      fechaSuspension: initialData?.fechaSuspension ? new Date(initialData.fechaSuspension).toISOString().slice(0, 16) : "",
     },
   });
 
   const handleSubmit = (data: UserFormData) => {
+    // Transform datetime-local string to Date object if provided and clean up empty values
+    const transformedData: any = { ...data };
+    
+    // Only include tiempoSuspension if it has a value
+    if (data.tiempoSuspension && data.tiempoSuspension !== '') {
+      transformedData.tiempoSuspension = new Date(data.tiempoSuspension);
+    } else {
+      delete transformedData.tiempoSuspension;
+    }
+    
+    // Only include fechaSuspension if it has a value
+    if (data.fechaSuspension && data.fechaSuspension !== '') {
+      transformedData.fechaSuspension = new Date(data.fechaSuspension);
+    } else {
+      delete transformedData.fechaSuspension;
+    }
+
     // Si es edición y no se proporciona contraseña, no la incluir
-    if (isEdit && !data.password) {
-      const { password, ...dataWithoutPassword } = data;
+    if (isEdit && !transformedData.password) {
+      const { password, ...dataWithoutPassword } = transformedData;
       onSubmit(dataWithoutPassword);
     } else {
-      onSubmit(data);
+      onSubmit(transformedData);
     }
   };
 
@@ -207,7 +227,10 @@ export function UserForm({ onSubmit, onCancel, initialData, isLoading, isEdit = 
             <FormItem>
               <FormLabel>Dirección IP (Opcional)</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="192.168.1.100" />
+                <Input 
+                  {...field} 
+                  placeholder="Se detectará automáticamente si se deja vacío" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
