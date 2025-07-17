@@ -1,4 +1,4 @@
-import { Bell, Settings, LogOut } from "lucide-react";
+import { Bell, Settings, HelpCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -13,9 +13,29 @@ export function Header({ title, subtitle }: HeaderProps) {
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
 
-  const handleLogout = () => {
-    logout();
-    setLocation("/login");
+  const handleGenerateGuide = async () => {
+    try {
+      // Fetch the guide content
+      const response = await fetch('/api/guide/pdf', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const htmlContent = await response.text();
+        // Open in new window with the HTML content
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          newWindow.document.write(htmlContent);
+          newWindow.document.close();
+        }
+      } else {
+        console.error('Error fetching guide');
+      }
+    } catch (error) {
+      console.error('Error generating guide:', error);
+    }
   };
 
   return (
@@ -35,11 +55,11 @@ export function Header({ title, subtitle }: HeaderProps) {
         <Button
           variant="outline"
           size="sm"
-          onClick={handleLogout}
+          onClick={handleGenerateGuide}
           className="flex items-center space-x-2"
         >
-          <LogOut className="h-4 w-4" />
-          <span>Cerrar Sesión</span>
+          <HelpCircle className="h-4 w-4" />
+          <span>Guía de Usuario</span>
         </Button>
       </div>
     </header>

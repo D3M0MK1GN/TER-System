@@ -14,9 +14,12 @@ export function useAuth() {
       }
       try {
         return await authService.getCurrentUser();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error obteniendo usuario:", error);
-        authService.setToken("");
+        // Clear token on authentication errors
+        if (error?.message?.includes('401') || error?.message?.includes('403')) {
+          localStorage.removeItem("token");
+        }
         throw error;
       }
     },
@@ -46,11 +49,20 @@ export function useAuth() {
     } catch (error: any) {
       console.error("Error en login:", error);
       const errorMessage = error.message || "Credenciales inválidas";
-      toast({
-        title: "Error de autenticación",
-        description: errorMessage.includes("401") ? "Usuario o contraseña incorrectos" : errorMessage,
-        variant: "destructive",
-      });
+      // Show specific suspension/blocking messages
+      if (errorMessage.includes("Cuenta Suspendida") || errorMessage.includes("Cuenta Bloqueada")) {
+        toast({
+          title: "Acceso restringido",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error de autenticación",
+          description: errorMessage.includes("401") ? "Usuario o contraseña incorrectos" : errorMessage,
+          variant: "destructive",
+        });
+      }
       return false;
     }
   };

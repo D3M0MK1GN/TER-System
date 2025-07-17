@@ -119,6 +119,29 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 2025)
 - ✓ Successfully migrated from Replit Agent to Replit environment (July 17, 2025)
+- ✓ **Comprehensive Code Optimization and Error Handling Enhancement (July 17, 2025):**
+  - Enhanced authentication middleware with improved JWT error handling and user status validation
+  - Optimized database queries with proper input validation, pagination limits, and transaction support
+  - Fixed potential memory leaks by adding proper cleanup for background task intervals
+  - Improved notification cleanup system with optimized admin user ID queries and better error handling
+  - Enhanced failed login attempt system with corrected suspension logic (fixed >= 2 instead of >= 3)
+  - Added transaction support for deleteSolicitud to ensure data consistency across related tables
+  - Improved error handling throughout the application with specific error logging and better user feedback
+  - Enhanced input validation and sanitization with Zod schema transforms for automatic data cleanup
+  - Optimized background tasks with Promise.allSettled for better parallel processing
+  - Added graceful shutdown handlers for background intervals to prevent resource leaks
+  - Improved client-side error handling with better token management and specific error messages
+  - Enhanced user form validation with regex patterns, length limits, and automatic data transformation
+  - Fixed authentication error display to show specific suspension/blocking messages with precise timing
+  - Optimized request creation with parallel promise execution for history and notifications
+  - Added comprehensive input validation for all API endpoints with detailed error responses
+  - Enhanced database query performance with proper WHERE clause optimization and search term trimming
+- ✓ **Replaced Logout Button with User Guide (July 17, 2025):**
+  - Removed unnecessary logout button from header navigation
+  - Added comprehensive user guide button that generates detailed HTML guide
+  - Implemented PDF generation endpoint at `/api/guide/pdf`
+  - Created complete user manual covering all system features, roles, and troubleshooting
+  - Guide includes step-by-step instructions for all functionalities with proper styling and print support
 - ✓ Removed "Usuarios" tab from sidebar navigation
 - ✓ Integrated user management access into dashboard for administrators only
 - ✓ Added "Panel de Administración" section in dashboard with user management button
@@ -190,6 +213,26 @@ Preferred communication style: Simple, everyday language.
   - Updated all frontend components to display "Procesando" instead of "Pendiente"
   - Fixed delete functionality to properly remove history records before deleting requests
   - Ensured consistent status handling across dashboard, reports, and request management
+- ✓ **Replaced Logout Button with User Guide Feature (July 17, 2025):**
+  - Removed "Cerrar Sesión" button from top header navigation
+  - Added "Guía de Usuario" button that generates comprehensive PDF user guide
+  - Created detailed HTML-based user guide covering all system functionalities
+  - Guide includes sections on login, dashboard, request management, email templates, reports, user management, notifications, and troubleshooting
+  - Users can print or save the guide as PDF directly from their browser
+  - Fixed guide display issue to properly render HTML content in new browser window
+- ✓ **Enhanced Security and Notification System (July 17, 2025):**
+  - **Failed Login Protection**: Users are automatically suspended for 3 hours after 3 failed login attempts
+  - **Admin Notifications for Sent Requests**: Administrators receive notifications when requests are sent to operators
+  - **Suspension Management**: Automatic lifting of temporary suspensions with notifications to users and admins
+  - **Security Alerts**: Admins are notified when accounts are suspended due to failed login attempts
+  - **Background Monitoring**: Automated task checks for expired suspensions every 5 minutes
+  - **Enhanced Login Security**: Failed attempts are tracked with IP addresses and timestamps
+  - **User Schema Extended**: Added intentosFallidos and ultimoIntentoFallido fields for security tracking
+  - **Comprehensive Notification System**: Real-time alerts for security events and request status changes
+  - **Automatic Notification Cleanup**: Notifications are automatically deleted after 48 hours for regular users and 120 hours (5 days) for administrators
+  - **Fixed Notification Foreign Key Issue**: Resolved database constraint error when creating system notifications without associated requests
+  - **Hourly Cleanup Task**: Background job runs every hour to clean expired notifications and maintain database performance
+  - **Enhanced Login Messages**: Improved login error messages for suspended accounts showing precise time remaining and clear "Cuenta Bloqueada" message for blocked accounts
 
 
 The application follows modern web development best practices with a focus on maintainability, performance, and user experience. The architecture supports scalability and future enhancements while maintaining code quality and type safety.

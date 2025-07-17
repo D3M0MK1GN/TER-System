@@ -20,6 +20,8 @@ export const users = pgTable("users", {
   fechaSuspension: timestamp("fecha_suspension"),
   tiempoSuspension: timestamp("tiempo_suspension"),
   motivoSuspension: text("motivo_suspension"),
+  intentosFallidos: integer("intentos_fallidos").default(0),
+  ultimoIntentoFallido: timestamp("ultimo_intento_fallido"),
 });
 
 export const operadorEnum = pgEnum("operador", ["digitel", "movistar", "movilnet"]);
@@ -51,7 +53,7 @@ export const solicitudes = pgTable("solicitudes", {
   informacionLinea: text("informacion_linea"),
   descripcion: text("descripcion"),
   motivoRechazo: text("motivo_rechazo"),
-  estado: estadoEnum("estado").default("pendiente"),
+  estado: estadoEnum("estado").default("enviada"),
   fechaSolicitud: timestamp("fecha_solicitud").defaultNow(),
   fechaRespuesta: timestamp("fecha_respuesta"),
   oficio: text("oficio"),
@@ -149,7 +151,18 @@ export const insertSolicitudSchema = createInsertSchema(solicitudes).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
-  numeroSolicitud: z.string().min(1, "Número de solicitud es requerido"),
+  numeroSolicitud: z.string()
+    .min(1, "Número de solicitud es requerido")
+    .max(50, "Número de solicitud muy largo")
+    .transform(val => val.trim()),
+  numeroExpediente: z.string()
+    .min(1, "Número de expediente es requerido")
+    .max(50, "Número de expediente muy largo")
+    .transform(val => val.trim()),
+  fiscal: z.string()
+    .min(1, "Fiscal es requerido")
+    .max(100, "Nombre del fiscal muy largo")
+    .transform(val => val.trim()),
 });
 
 export const insertPlantillaCorreoSchema = createInsertSchema(plantillasCorreo).omit({

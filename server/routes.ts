@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import {
   insertUserSchema,
   insertSolicitudSchema,
@@ -13,6 +16,334 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
+// Function to generate user guide HTML content
+function generateUserGuideHTML(): string {
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Usuario - SistelCom</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .header {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+        .header p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+        .section {
+            background: white;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #2563eb;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+        }
+        h3 {
+            color: #374151;
+            margin-top: 1.5rem;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            background: #f3f4f6;
+            border-left: 4px solid #2563eb;
+            border-radius: 4px;
+        }
+        .step-list {
+            counter-reset: step-counter;
+        }
+        .step-list li {
+            counter-increment: step-counter;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 6px;
+            position: relative;
+            padding-left: 3rem;
+        }
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 1rem;
+            top: 1rem;
+            background: #2563eb;
+            color: white;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        .warning {
+            background: #fef3cd;
+            border: 1px solid #fbbf24;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+        .warning::before {
+            content: "⚠️ ";
+            font-weight: bold;
+        }
+        .tip {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+        .tip::before {
+            content: "💡 ";
+            font-weight: bold;
+        }
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .print-button:hover {
+            background: #1d4ed8;
+        }
+        @media print {
+            body { background: white; padding: 0; }
+            .section { box-shadow: none; }
+            .print-button { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button" onclick="window.print()">Imprimir / Guardar PDF</button>
+    
+    <div class="header">
+        <h1>📡 SistelCom</h1>
+        <p>Guía de Usuario - Sistema de Gestión de Solicitudes de Telecomunicaciones</p>
+    </div>
+
+    <div class="section">
+        <h2>🏠 Introducción</h2>
+        <p>SistelCom es un sistema integral para la gestión de solicitudes de telecomunicaciones dirigidas a operadores venezolanos. Esta guía te ayudará a utilizar todas las funcionalidades del sistema de manera eficiente.</p>
+        
+        <h3>Operadores Soportados</h3>
+        <ul class="feature-list">
+            <li><strong>Digitel:</strong> Operador de telecomunicaciones venezolano</li>
+            <li><strong>Movistar:</strong> Operador de telecomunicaciones venezolano</li>
+            <li><strong>Movilnet:</strong> Operador de telecomunicaciones venezolano</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>🔐 Inicio de Sesión</h2>
+        <ol class="step-list">
+            <li>Ingresa tu nombre de usuario en el campo correspondiente</li>
+            <li>Introduce tu contraseña</li>
+            <li>Haz clic en "Iniciar Sesión"</li>
+            <li>Serás redirigido al Dashboard principal</li>
+        </ol>
+        
+        <div class="warning">
+            Si tienes problemas para acceder, contacta al administrador del sistema para verificar que tu cuenta esté activa.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📊 Dashboard Principal</h2>
+        <p>El Dashboard te proporciona una vista general del estado del sistema:</p>
+        
+        <h3>Estadísticas Principales</h3>
+        <ul class="feature-list">
+            <li><strong>Total de Solicitudes:</strong> Número total de solicitudes en el sistema</li>
+            <li><strong>Solicitudes Procesando:</strong> Solicitudes en proceso de gestión</li>
+            <li><strong>Solicitudes Enviadas:</strong> Solicitudes enviadas a operadores</li>
+            <li><strong>Solicitudes Respondidas:</strong> Solicitudes con respuesta recibida</li>
+            <li><strong>Solicitudes Rechazadas:</strong> Solicitudes rechazadas por operadores</li>
+        </ul>
+
+        <div class="tip">
+            Las estadísticas se actualizan en tiempo real cada vez que se modifica una solicitud.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📝 Gestión de Solicitudes</h2>
+        
+        <h3>Crear Nueva Solicitud</h3>
+        <ol class="step-list">
+            <li>Ve a la sección "Gestión de Solicitudes"</li>
+            <li>Haz clic en "Nueva Solicitud"</li>
+            <li>Completa todos los campos requeridos:
+                <ul>
+                    <li><strong>Número de Expediente:</strong> Ejemplo: "K-25-0271-00079"</li>
+                    <li><strong>Número de Solicitud:</strong> Ejemplo: "0271-1081" (debe ser único)</li>
+                    <li><strong>Fiscal:</strong> Nombre del fiscal responsable</li>
+                    <li><strong>Tipo de Experticia:</strong> Selecciona del menú desplegable</li>
+                    <li><strong>Coordinación Solicitante:</strong> Selecciona del menú desplegable</li>
+                    <li><strong>Operador:</strong> Digitel, Movistar o Movilnet</li>
+                    <li><strong>Información de la Línea:</strong> Datos específicos según experticia</li>
+                    <li><strong>Reseña:</strong> Descripción detallada de la solicitud</li>
+                </ul>
+            </li>
+            <li>Haz clic en "Crear Solicitud"</li>
+        </ol>
+
+        <h3>Buscar y Filtrar Solicitudes</h3>
+        <ul class="feature-list">
+            <li><strong>Búsqueda por texto:</strong> Busca por número de solicitud, expediente o fiscal</li>
+            <li><strong>Filtro por operador:</strong> Muestra solo solicitudes de un operador específico</li>
+            <li><strong>Filtro por estado:</strong> Filtra por estado de la solicitud</li>
+            <li><strong>Paginación:</strong> Navega entre páginas de resultados</li>
+        </ul>
+
+        <h3>Estados de Solicitudes</h3>
+        <ul class="feature-list">
+            <li><strong>Procesando:</strong> Solicitud en proceso interno</li>
+            <li><strong>Enviada:</strong> Solicitud enviada al operador</li>
+            <li><strong>Respondida:</strong> Operador ha enviado respuesta</li>
+            <li><strong>Rechazada:</strong> Solicitud rechazada por el operador</li>
+        </ul>
+
+        <div class="warning">
+            Los usuarios normales y supervisores solo pueden editar solicitudes en estado "Enviada". Los administradores pueden editar solicitudes en cualquier estado.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📧 Plantillas de Correo</h2>
+        <p><em>Esta funcionalidad está disponible solo para administradores.</em></p>
+        
+        <ol class="step-list">
+            <li>Ve a la sección "Plantillas de Correo"</li>
+            <li>Haz clic en "Nueva Plantilla"</li>
+            <li>Completa los campos:
+                <ul>
+                    <li><strong>Nombre:</strong> Identificador de la plantilla</li>
+                    <li><strong>Operador:</strong> Operador al que se dirige</li>
+                    <li><strong>Asunto:</strong> Asunto del correo electrónico</li>
+                    <li><strong>Cuerpo:</strong> Contenido del correo con variables dinámicas</li>
+                </ul>
+            </li>
+            <li>Guarda la plantilla para uso futuro</li>
+        </ol>
+
+        <div class="tip">
+            Puedes usar variables en las plantillas que se reemplazarán automáticamente con los datos de la solicitud.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📈 Reportes</h2>
+        <p>La sección de reportes te permite analizar el desempeño del sistema:</p>
+        
+        <ul class="feature-list">
+            <li><strong>Reportes por período:</strong> Analiza solicitudes en rangos de fechas</li>
+            <li><strong>Reportes por operador:</strong> Estadísticas específicas por operador</li>
+            <li><strong>Reportes por estado:</strong> Distribución de solicitudes por estado</li>
+            <li><strong>Exportación:</strong> Descarga reportes en diferentes formatos</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>👥 Gestión de Usuarios</h2>
+        <p><em>Esta funcionalidad está disponible solo para administradores.</em></p>
+        
+        <h3>Roles de Usuario</h3>
+        <ul class="feature-list">
+            <li><strong>Administrador:</strong> Acceso completo al sistema</li>
+            <li><strong>Supervisor:</strong> Puede ver/gestionar todas las solicitudes, sin gestión de usuarios</li>
+            <li><strong>Usuario:</strong> Solo puede ver/gestionar sus propias solicitudes</li>
+        </ul>
+
+        <h3>Estados de Usuario</h3>
+        <ul class="feature-list">
+            <li><strong>Activo:</strong> Usuario puede acceder al sistema</li>
+            <li><strong>Suspendido:</strong> Acceso temporalmente restringido</li>
+            <li><strong>Bloqueado:</strong> Acceso permanentemente restringido</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>🔔 Notificaciones</h2>
+        <p>El sistema te mantiene informado sobre cambios importantes:</p>
+        
+        <ul class="feature-list">
+            <li>Cambios en el estado de tus solicitudes</li>
+            <li>Respuestas recibidas de operadores</li>
+            <li>Nuevas asignaciones (para supervisores)</li>
+            <li>Alertas del sistema</li>
+        </ul>
+
+        <div class="tip">
+            Haz clic en el ícono de campana en la barra superior para ver tus notificaciones pendientes.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>❓ Solución de Problemas</h2>
+        
+        <h3>Problemas Comunes</h3>
+        <ul class="feature-list">
+            <li><strong>No puedo crear una solicitud:</strong> Verifica que el número de solicitud sea único</li>
+            <li><strong>No veo todas las solicitudes:</strong> Tu rol determina qué solicitudes puedes ver</li>
+            <li><strong>No puedo editar una solicitud:</strong> Solo se pueden editar solicitudes en estado "Enviada" (excepto administradores)</li>
+            <li><strong>No recibo notificaciones:</strong> Verifica tu conexión y refresca la página</li>
+        </ul>
+
+        <h3>Contacto</h3>
+        <p>Para soporte técnico o problemas con el sistema, contacta al administrador del sistema.</p>
+    </div>
+
+    <div class="section">
+        <h2>📅 Información de Versión</h2>
+        <p><strong>Sistema:</strong> SistelCom v1.0</p>
+        <p><strong>Última actualización:</strong> Julio 2025</p>
+        <p><strong>Soporte:</strong> PostgreSQL, React, Node.js</p>
+    </div>
+
+</body>
+</html>
+`;
+}
 
 interface AuthenticatedRequest extends Request {
   user?: User;
@@ -29,20 +360,66 @@ function authenticateToken(req: any, res: any, next: any) {
 
   jwt.verify(token, JWT_SECRET, async (err: any, decoded: any) => {
     if (err) {
+      console.error('JWT verification error:', err.message);
       return res.status(403).json({ message: 'Token inválido' });
     }
 
-    const user = await storage.getUser(decoded.id);
-    if (!user) {
-      return res.status(403).json({ message: 'Usuario no encontrado' });
-    }
+    try {
+      const user = await storage.getUser(decoded.id);
+      if (!user) {
+        return res.status(403).json({ message: 'Usuario no encontrado' });
+      }
 
-    req.user = user;
-    next();
+      // Check if user is active and not blocked
+      if (!user.activo || user.status === 'bloqueado') {
+        return res.status(403).json({ message: 'Acceso denegado' });
+      }
+
+      req.user = user;
+      next();
+    } catch (error) {
+      console.error('Error in authentication middleware:', error);
+      return res.status(500).json({ message: 'Error interno del servidor' });
+    }
   });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Background task to check for expired suspensions every 5 minutes
+  const suspensionCheckInterval = setInterval(async () => {
+    try {
+      const suspendedUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.status, 'suspendido'));
+
+      const promises = suspendedUsers.map(user => storage.checkSuspensionExpired(user.id));
+      await Promise.allSettled(promises);
+    } catch (error) {
+      console.error("Error checking expired suspensions:", error);
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+
+  // Background task to clean up old notifications every hour
+  const notificationCleanupInterval = setInterval(async () => {
+    try {
+      await storage.cleanupOldNotifications();
+    } catch (error) {
+      console.error("Error cleaning up old notifications:", error);
+    }
+  }, 60 * 60 * 1000); // 1 hour
+
+  // Cleanup intervals on server shutdown
+  process.on('SIGTERM', () => {
+    clearInterval(suspensionCheckInterval);
+    clearInterval(notificationCleanupInterval);
+  });
+
+  process.on('SIGINT', () => {
+    clearInterval(suspensionCheckInterval);
+    clearInterval(notificationCleanupInterval);
+  });
+
   // Crear usuario admin por defecto si no existe
   const adminUser = await storage.getUserByUsername("admin");
   if (!adminUser) {
@@ -60,28 +437,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { username, password } = loginSchema.parse(req.body);
+      const clientIp = (req as any).clientIp || 'unknown';
       
       const user = await storage.getUserByUsername(username);
       if (!user) {
+        // Increment failed attempts for non-existent users too (security)
         return res.status(401).json({ message: "Credenciales inválidas" });
       }
 
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
+      // Check if user suspension has expired
+      await storage.checkSuspensionExpired(user.id);
+      
+      // Refetch user to get updated status
+      const updatedUser = await storage.getUserByUsername(username);
+      if (!updatedUser) {
         return res.status(401).json({ message: "Credenciales inválidas" });
       }
 
-      if (!user.activo) {
+      // Check if user is suspended or blocked
+      if (updatedUser.status === 'suspendido') {
+        if (updatedUser.tiempoSuspension) {
+          const now = new Date();
+          const suspensionEnd = new Date(updatedUser.tiempoSuspension);
+          if (now < suspensionEnd) {
+            const timeLeftMs = suspensionEnd.getTime() - now.getTime();
+            const hours = Math.floor(timeLeftMs / (1000 * 60 * 60));
+            const minutes = Math.ceil((timeLeftMs % (1000 * 60 * 60)) / (1000 * 60));
+            
+            let timeMessage = "";
+            if (hours > 0) {
+              timeMessage = `${hours} hora${hours !== 1 ? 's' : ''}`;
+              if (minutes > 0) {
+                timeMessage += ` y ${minutes} minuto${minutes !== 1 ? 's' : ''}`;
+              }
+            } else {
+              timeMessage = `${minutes} minuto${minutes !== 1 ? 's' : ''}`;
+            }
+            
+            return res.status(401).json({ 
+              message: `Cuenta Suspendida (${timeMessage})`
+            });
+          }
+        } else {
+          return res.status(401).json({ message: "Cuenta Suspendida" });
+        }
+      }
+
+      if (updatedUser.status === 'bloqueado') {
+        return res.status(401).json({ message: "Cuenta Bloqueada" });
+      }
+
+      if (!updatedUser.activo) {
         return res.status(401).json({ message: "Usuario inactivo" });
       }
 
+      const isValidPassword = await bcrypt.compare(password, updatedUser.password);
+      if (!isValidPassword) {
+        // Increment failed attempts
+        await storage.incrementFailedAttempts(username);
+        
+        // Check if user should be suspended
+        const wasSuspended = await storage.checkAndSuspendUser(username);
+        if (wasSuspended) {
+          // Notify admins about the suspension
+          await storage.notifyAdminsOfFailedLoginSuspension(username, clientIp);
+          return res.status(401).json({ 
+            message: "Cuenta Suspendida (3 horas)"
+          });
+        }
+        
+        return res.status(401).json({ message: "Credenciales inválidas" });
+      }
+
+      // Reset failed attempts on successful login
+      await storage.resetFailedAttempts(username);
+
       // Actualizar último acceso y dirección IP
-      const clientIp = (req as any).clientIp || 'unknown';
-      
-      await storage.updateUserLastAccess(user.id, clientIp);
+      await storage.updateUserLastAccess(updatedUser.id, clientIp);
 
       const token = jwt.sign(
-        { id: user.id, username: user.username, rol: user.rol },
+        { id: updatedUser.id, username: updatedUser.username, rol: updatedUser.rol },
         JWT_SECRET,
         { expiresIn: "24h" }
       );
@@ -89,11 +524,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         token,
         user: {
-          id: user.id,
-          username: user.username,
-          nombre: user.nombre,
-          email: user.email,
-          rol: user.rol,
+          id: updatedUser.id,
+          username: updatedUser.username,
+          nombre: updatedUser.nombre,
+          email: updatedUser.email,
+          rol: updatedUser.rol,
         },
       });
     } catch (error) {
@@ -187,6 +622,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/solicitudes", authenticateToken, async (req: any, res) => {
     try {
+      // Input validation
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Datos de solicitud requeridos" });
+      }
+
       // Role-based validation: supervisor and usuario can only create requests with "enviada" status
       if ((req.user.rol === "supervisor" || req.user.rol === "usuario") && req.body.estado && req.body.estado !== "enviada") {
         return res.status(403).json({ 
@@ -205,6 +645,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         usuarioId: req.user.id,
       });
 
+      // Input sanitization is now handled by Zod schema transforms
+
       // Verificar que el número de solicitud no exista
       const existingSolicitud = await storage.getSolicitudByNumero(solicitudData.numeroSolicitud);
       if (existingSolicitud) {
@@ -215,19 +657,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const solicitud = await storage.createSolicitud(solicitudData);
       
-      // Crear historial
-      await storage.createHistorial({
-        solicitudId: solicitud.id,
-        accion: "creada",
-        descripcion: "Solicitud creada",
-        usuarioId: req.user.id,
-      });
+      // Crear historial y notificaciones en paralelo
+      const promises = [
+        storage.createHistorial({
+          solicitudId: solicitud.id,
+          accion: "creada",
+          descripcion: "Solicitud creada",
+          usuarioId: req.user.id,
+        })
+      ];
+
+      // Si la solicitud se crea con estado "enviada", notificar a los administradores
+      if (solicitud.estado === "enviada") {
+        promises.push(storage.notifyAdminsOfSentRequest(solicitud.id, solicitud.numeroSolicitud));
+      }
+
+      await Promise.all(promises);
 
       res.status(201).json(solicitud);
     } catch (error) {
       console.error("Error creando solicitud:", error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
+        const validationErrors = error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }));
+        return res.status(400).json({ 
+          message: "Datos inválidos", 
+          errors: validationErrors
+        });
       }
       
       // Check for duplicate key error
@@ -306,6 +764,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Notify the user who created the request
         if (solicitud.usuarioId) {
           await storage.createNotificacion(solicitud.usuarioId, solicitud.id, mensaje);
+        }
+
+        // If status changed to "enviada", notify admins
+        if (solicitudData.estado === "enviada") {
+          await storage.notifyAdminsOfSentRequest(solicitud.id, solicitud.numeroSolicitud);
         }
       }
 
@@ -624,6 +1087,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error obteniendo conteo de notificaciones:", error);
       res.status(500).json({ message: "Error obteniendo conteo de notificaciones" });
+    }
+  });
+
+  // Guide PDF Generation Route
+  app.get("/api/guide/pdf", authenticateToken, async (req: any, res) => {
+    try {
+      const guideContent = generateUserGuideHTML();
+      
+      // Set response headers for PDF download
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Content-Disposition', 'inline; filename="guia-usuario-sistelcom.html"');
+      
+      res.send(guideContent);
+    } catch (error) {
+      console.error("Error generando guía:", error);
+      res.status(500).json({ message: "Error generando guía de usuario" });
     }
   });
 

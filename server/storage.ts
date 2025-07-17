@@ -14,7 +14,7 @@ import {
   type InsertHistorialSolicitud,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
+import { eq, desc, and, or, like, count, sql, lt, inArray, notInArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -31,6 +31,14 @@ export interface IStorage {
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
   updateUserLastAccess(id: number, ip?: string): Promise<void>;
+  incrementFailedAttempts(username: string): Promise<void>;
+  resetFailedAttempts(username: string): Promise<void>;
+  checkAndSuspendUser(username: string): Promise<boolean>;
+  checkSuspensionExpired(userId: number): Promise<boolean>;
+  notifyAdminsOfSentRequest(solicitudId: number, numeroSolicitud: string): Promise<void>;
+  notifyUserSuspensionLifted(userId: number): Promise<void>;
+  notifyAdminsOfFailedLoginSuspension(username: string, ip: string): Promise<void>;
+  cleanupOldNotifications(): Promise<void>;
 
   // Solicitudes
   getSolicitudes(filters?: {
@@ -201,54 +209,60 @@ export class DatabaseStorage implements IStorage {
     page?: number;
     limit?: number;
   }): Promise<{ solicitudes: Solicitud[]; total: number }> {
-    const page = filters?.page || 1;
-    const limit = filters?.limit || 10;
-    const offset = (page - 1) * limit;
+    try {
+      const page = Math.max(1, filters?.page || 1);
+      const limit = Math.min(100, Math.max(1, filters?.limit || 10)); // Limit max page size
+      const offset = (page - 1) * limit;
 
-    let whereConditions: any[] = [];
+      let whereConditions: any[] = [];
 
-    if (filters?.operador) {
-      whereConditions.push(eq(solicitudes.operador, filters.operador as any));
+      if (filters?.operador && filters.operador.trim()) {
+        whereConditions.push(eq(solicitudes.operador, filters.operador as any));
+      }
+
+      if (filters?.estado && filters.estado.trim()) {
+        whereConditions.push(eq(solicitudes.estado, filters.estado as any));
+      }
+
+      if (filters?.tipoExperticia && filters.tipoExperticia.trim()) {
+        whereConditions.push(eq(solicitudes.tipoExperticia, filters.tipoExperticia as any));
+      }
+
+      if (filters?.search && filters.search.trim()) {
+        const searchTerm = `%${filters.search.trim()}%`;
+        whereConditions.push(
+          or(
+            like(solicitudes.numeroSolicitud, searchTerm),
+            like(solicitudes.numeroExpediente, searchTerm),
+            like(solicitudes.fiscal, searchTerm)
+          )
+        );
+      }
+
+      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+      const [solicitudesResult, totalResult] = await Promise.all([
+        db
+          .select()
+          .from(solicitudes)
+          .where(whereClause)
+          .orderBy(desc(solicitudes.fechaSolicitud))
+          .limit(limit)
+          .offset(offset),
+        db
+          .select({ count: count() })
+          .from(solicitudes)
+          .where(whereClause)
+      ]);
+
+      return {
+        solicitudes: solicitudesResult,
+        total: totalResult[0]?.count || 0,
+      };
+    } catch (error) {
+      console.error('Error in getSolicitudes:', error);
+      throw error;
     }
-
-    if (filters?.estado) {
-      whereConditions.push(eq(solicitudes.estado, filters.estado as any));
-    }
-
-    if (filters?.tipoExperticia) {
-      whereConditions.push(eq(solicitudes.tipoExperticia, filters.tipoExperticia as any));
-    }
-
-    if (filters?.search) {
-      whereConditions.push(
-        or(
-          like(solicitudes.numeroSolicitud, `%${filters.search}%`),
-          like(solicitudes.numeroExpediente, `%${filters.search}%`),
-          like(solicitudes.fiscal, `%${filters.search}%`)
-        )
-      );
-    }
-
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
-
-    const [solicitudesResult, totalResult] = await Promise.all([
-      db
-        .select()
-        .from(solicitudes)
-        .where(whereClause)
-        .orderBy(desc(solicitudes.fechaSolicitud))
-        .limit(limit)
-        .offset(offset),
-      db
-        .select({ count: count() })
-        .from(solicitudes)
-        .where(whereClause)
-    ]);
-
-    return {
-      solicitudes: solicitudesResult,
-      total: totalResult[0].count,
-    };
   }
 
   async getSolicitudById(id: number): Promise<Solicitud | undefined> {
@@ -276,12 +290,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteSolicitud(id: number): Promise<boolean> {
-    // First delete related historial records
-    await db.delete(historialSolicitudes).where(eq(historialSolicitudes.solicitudId, id));
-    
-    // Then delete the solicitud
-    const result = await db.delete(solicitudes).where(eq(solicitudes.id, id));
-    return (result.rowCount || 0) > 0;
+    try {
+      // Use transaction to ensure data consistency
+      return await db.transaction(async (tx) => {
+        // First delete related notifications
+        await tx.delete(notificaciones).where(eq(notificaciones.solicitudId, id));
+        
+        // Then delete history records
+        await tx.delete(historialSolicitudes).where(eq(historialSolicitudes.solicitudId, id));
+        
+        // Finally delete the solicitud
+        const result = await tx.delete(solicitudes).where(eq(solicitudes.id, id));
+        return (result.rowCount || 0) > 0;
+      });
+    } catch (error) {
+      console.error('Error in deleteSolicitud:', error);
+      throw error;
+    }
   }
 
   async getPlantillasCorreo(usuarioId?: number): Promise<PlantillaCorreo[]> {
@@ -432,33 +457,35 @@ export class DatabaseStorage implements IStorage {
     page?: number;
     limit?: number;
   }): Promise<{ solicitudes: Solicitud[]; total: number }> {
-    const page = filters?.page || 1;
-    const limit = filters?.limit || 10;
-    const offset = (page - 1) * limit;
+    try {
+      const page = Math.max(1, filters?.page || 1);
+      const limit = Math.min(100, Math.max(1, filters?.limit || 10));
+      const offset = (page - 1) * limit;
 
-    let whereConditions: any[] = [eq(solicitudes.usuarioId, userId)];
+      let whereConditions: any[] = [eq(solicitudes.usuarioId, userId)];
 
-    if (filters?.operador) {
-      whereConditions.push(eq(solicitudes.operador, filters.operador as any));
-    }
+      if (filters?.operador && filters.operador.trim()) {
+        whereConditions.push(eq(solicitudes.operador, filters.operador as any));
+      }
 
-    if (filters?.estado) {
-      whereConditions.push(eq(solicitudes.estado, filters.estado as any));
-    }
+      if (filters?.estado && filters.estado.trim()) {
+        whereConditions.push(eq(solicitudes.estado, filters.estado as any));
+      }
 
-    if (filters?.tipoExperticia) {
-      whereConditions.push(eq(solicitudes.tipoExperticia, filters.tipoExperticia as any));
-    }
+      if (filters?.tipoExperticia && filters.tipoExperticia.trim()) {
+        whereConditions.push(eq(solicitudes.tipoExperticia, filters.tipoExperticia as any));
+      }
 
-    if (filters?.search) {
-      whereConditions.push(
-        or(
-          like(solicitudes.numeroSolicitud, `%${filters.search}%`),
-          like(solicitudes.numeroExpediente, `%${filters.search}%`),
-          like(solicitudes.fiscal, `%${filters.search}%`)
-        )
-      );
-    }
+      if (filters?.search && filters.search.trim()) {
+        const searchTerm = `%${filters.search.trim()}%`;
+        whereConditions.push(
+          or(
+            like(solicitudes.numeroSolicitud, searchTerm),
+            like(solicitudes.numeroExpediente, searchTerm),
+            like(solicitudes.fiscal, searchTerm)
+          )
+        );
+      }
 
     const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
@@ -467,7 +494,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(solicitudes)
         .where(whereClause)
-        .orderBy(desc(solicitudes.updatedAt))
+        .orderBy(desc(solicitudes.fechaSolicitud))
         .limit(limit)
         .offset(offset),
       db
@@ -476,14 +503,18 @@ export class DatabaseStorage implements IStorage {
         .where(whereClause)
     ]);
 
-    return {
-      solicitudes: solicitudesResult,
-      total: totalResult[0]?.count || 0,
-    };
+      return {
+        solicitudes: solicitudesResult,
+        total: totalResult[0]?.count || 0,
+      };
+    } catch (error) {
+      console.error('Error in getSolicitudesByUser:', error);
+      throw error;
+    }
   }
 
   // Notificaciones
-  async createNotificacion(userId: number, solicitudId: number, mensaje: string): Promise<void> {
+  async createNotificacion(userId: number, solicitudId: number | null, mensaje: string): Promise<void> {
     await db.insert(notificaciones).values({
       usuarioId: userId,
       solicitudId: solicitudId,
@@ -525,6 +556,204 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(notificaciones.usuarioId, userId), eq(notificaciones.leida, false)));
     
     return result[0]?.count || 0;
+  }
+
+  // Cleanup old notifications
+  async cleanupOldNotifications(): Promise<void> {
+    try {
+      const now = new Date();
+      
+      // Get admin user IDs first to optimize the queries
+      const adminUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.rol, 'admin'));
+      
+      const adminIds = adminUsers.map(user => user.id);
+
+      // For admin users: delete notifications older than 120 hours (5 days)
+      const adminTimeLimit = new Date(now.getTime() - (120 * 60 * 60 * 1000));
+      if (adminIds.length > 0) {
+        const adminDeleted = await db
+          .delete(notificaciones)
+          .where(
+            and(
+              lt(notificaciones.createdAt, adminTimeLimit),
+              inArray(notificaciones.usuarioId, adminIds)
+            )
+          );
+        console.log(`Deleted ${adminDeleted.rowCount || 0} old admin notifications`);
+      }
+
+      // For non-admin users: delete notifications older than 48 hours
+      const userTimeLimit = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+      const userDeleted = await db
+        .delete(notificaciones)
+        .where(
+          and(
+            lt(notificaciones.createdAt, userTimeLimit),
+            ...(adminIds.length > 0 ? [notInArray(notificaciones.usuarioId, adminIds)] : [])
+          )
+        );
+      console.log(`Deleted ${userDeleted.rowCount || 0} old user notifications`);
+    } catch (error) {
+      console.error('Error in cleanupOldNotifications:', error);
+      throw error;
+    }
+  }
+
+  // Failed login attempts and suspension management
+  async incrementFailedAttempts(username: string): Promise<void> {
+    try {
+      await db
+        .update(users)
+        .set({ 
+          intentosFallidos: sql`${users.intentosFallidos} + 1`,
+          ultimoIntentoFallido: new Date()
+        })
+        .where(eq(users.username, username));
+    } catch (error) {
+      console.error('Error in incrementFailedAttempts:', error);
+      throw error;
+    }
+  }
+
+  async resetFailedAttempts(username: string): Promise<void> {
+    try {
+      await db
+        .update(users)
+        .set({ 
+          intentosFallidos: 0,
+          ultimoIntentoFallido: null
+        })
+        .where(eq(users.username, username));
+    } catch (error) {
+      console.error('Error in resetFailedAttempts:', error);
+      throw error;
+    }
+  }
+
+  async checkAndSuspendUser(username: string): Promise<boolean> {
+    try {
+      const user = await this.getUserByUsername(username);
+      if (!user) return false;
+
+      if (user.intentosFallidos >= 2) { // 3 attempts total (0, 1, 2 = 3 attempts)
+        const suspensionEnd = new Date();
+        suspensionEnd.setHours(suspensionEnd.getHours() + 3); // 3 horas de suspensión
+
+        await db
+          .update(users)
+          .set({ 
+            status: 'suspendido',
+            fechaSuspension: new Date(),
+            tiempoSuspension: suspensionEnd,
+            motivoSuspension: 'Múltiples intentos fallidos de acceso (3 intentos)',
+            intentosFallidos: 0
+          })
+          .where(eq(users.username, username));
+
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error in checkAndSuspendUser:', error);
+      throw error;
+    }
+  }
+
+  async checkSuspensionExpired(userId: number): Promise<boolean> {
+    try {
+      const user = await this.getUser(userId);
+      if (!user) return false;
+
+      if (user.status === 'suspendido' && user.tiempoSuspension) {
+        const now = new Date();
+        if (now >= user.tiempoSuspension) {
+          // Levantar suspensión
+          await db
+            .update(users)
+            .set({ 
+              status: 'activo',
+              fechaSuspension: null,
+              tiempoSuspension: null,
+              motivoSuspension: null
+            })
+            .where(eq(users.id, userId));
+
+          // Notificar al usuario que se levantó la suspensión
+          await this.notifyUserSuspensionLifted(userId);
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('Error in checkSuspensionExpired:', error);
+      throw error;
+    }
+  }
+
+  // Enhanced notification methods
+  async notifyAdminsOfSentRequest(solicitudId: number, numeroSolicitud: string): Promise<void> {
+    // Get all admin users
+    const admins = await db
+      .select()
+      .from(users)
+      .where(eq(users.rol, 'admin'));
+
+    // Send notification to each admin
+    for (const admin of admins) {
+      await this.createNotificacion(
+        admin.id,
+        solicitudId,
+        `Nueva solicitud enviada: ${numeroSolicitud} ha sido enviada al operador`
+      );
+    }
+  }
+
+  async notifyUserSuspensionLifted(userId: number): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) return;
+
+    // Notify the user
+    await this.createNotificacion(
+      userId,
+      null, // No solicitud asociada
+      `Tu cuenta ha sido reactivada. La suspensión temporal ha sido levantada.`
+    );
+
+    // Notify admins
+    const admins = await db
+      .select()
+      .from(users)
+      .where(eq(users.rol, 'admin'));
+
+    for (const admin of admins) {
+      await this.createNotificacion(
+        admin.id,
+        null,
+        `Suspensión levantada: La cuenta de ${user.nombre} (${user.username}) ha sido reactivada automáticamente`
+      );
+    }
+  }
+
+  async notifyAdminsOfFailedLoginSuspension(username: string, ip: string): Promise<void> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return;
+
+    // Notify all admins about the suspension
+    const admins = await db
+      .select()
+      .from(users)
+      .where(eq(users.rol, 'admin'));
+
+    for (const admin of admins) {
+      await this.createNotificacion(
+        admin.id,
+        null,
+        `Cuenta suspendida por seguridad: ${user.nombre} (${username}) desde IP ${ip} por múltiples intentos fallidos`
+      );
+    }
   }
 }
 

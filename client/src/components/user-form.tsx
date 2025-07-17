@@ -10,17 +10,36 @@ import { User } from "@shared/schema";
 
 const createUserFormSchema = (isEdit: boolean) => {
   return z.object({
-    username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
-    nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-    email: z.string().email("Email inválido").optional().or(z.literal("")),
+    username: z.string()
+      .min(3, "El nombre de usuario debe tener al menos 3 caracteres")
+      .max(30, "El nombre de usuario es muy largo")
+      .regex(/^[a-zA-Z0-9_]+$/, "Solo se permiten letras, números y guiones bajos")
+      .transform(val => val.trim().toLowerCase()),
+    nombre: z.string()
+      .min(2, "El nombre debe tener al menos 2 caracteres")
+      .max(100, "El nombre es muy largo")
+      .transform(val => val.trim()),
+    email: z.string()
+      .email("Email inválido")
+      .max(255, "Email muy largo")
+      .optional()
+      .or(z.literal(""))
+      .transform(val => val ? val.trim().toLowerCase() : val),
     rol: z.string().min(1, "Debe seleccionar un rol"),
     status: z.string().min(1, "Debe seleccionar un estado"),
-    direccionIp: z.string().optional().or(z.literal("")),
+    direccionIp: z.string()
+      .optional()
+      .or(z.literal(""))
+      .transform(val => val ? val.trim() : val),
     password: isEdit 
       ? z.string().optional().or(z.literal(""))
-      : z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+      : z.string()
+          .min(6, "La contraseña debe tener al menos 6 caracteres")
+          .max(100, "La contraseña es muy larga"),
     tiempoSuspension: z.string().optional(),
-    motivoSuspension: z.string().optional(),
+    motivoSuspension: z.string()
+      .max(500, "El motivo de suspensión es muy largo")
+      .optional(),
     fechaSuspension: z.string().optional(),
   }).refine((data) => {
     // Si el status es suspendido, requerir tiempo y motivo
