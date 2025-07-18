@@ -39,6 +39,12 @@ export interface IStorage {
   notifyUserSuspensionLifted(userId: number): Promise<void>;
   notifyAdminsOfFailedLoginSuspension(username: string, ip: string): Promise<void>;
   cleanupOldNotifications(): Promise<void>;
+  
+  // Session management
+  setUserSession(userId: number, sessionToken: string, expiresAt: Date): Promise<void>;
+  clearUserSession(userId: number): Promise<void>;
+  getUserBySessionToken(sessionToken: string): Promise<User | undefined>;
+  isSessionActive(userId: number): Promise<boolean>;
 
   // Solicitudes
   getSolicitudes(filters?: {
@@ -754,6 +760,48 @@ export class DatabaseStorage implements IStorage {
         `Cuenta suspendida por seguridad: ${user.nombre} (${username}) desde IP ${ip} por múltiples intentos fallidos`
       );
     }
+  }
+  // Session management methods
+  async setUserSession(userId: number, sessionToken: string, expiresAt: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        sessionToken: sessionToken,
+        sessionExpires: expiresAt
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async clearUserSession(userId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        sessionToken: null,
+        sessionExpires: null
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async getUserBySessionToken(sessionToken: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.sessionToken, sessionToken));
+    return user || undefined;
+  }
+
+  async isSessionActive(userId: number): Promise<boolean> {
+    const [user] = await db
+      .select({ sessionToken: users.sessionToken, sessionExpires: users.sessionExpires })
+      .from(users)
+      .where(eq(users.id, userId));
+    
+    if (!user || !user.sessionToken || !user.sessionExpires) {
+      return false;
+    }
+    
+    const now = new Date();
+    return now < user.sessionExpires;
   }
 }
 

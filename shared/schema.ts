@@ -22,6 +22,8 @@ export const users = pgTable("users", {
   motivoSuspension: text("motivo_suspension"),
   intentosFallidos: integer("intentos_fallidos").default(0),
   ultimoIntentoFallido: timestamp("ultimo_intento_fallido"),
+  sessionToken: text("session_token"), // Para gestión de sesiones únicas
+  sessionExpires: timestamp("session_expires"), // Expiración de sesión
 });
 
 export const operadorEnum = pgEnum("operador", ["digitel", "movistar", "movilnet"]);

@@ -375,6 +375,20 @@ function authenticateToken(req: any, res: any, next: any) {
         return res.status(403).json({ message: 'Acceso denegado' });
       }
 
+      // Check if session is still active
+      const sessionUser = await storage.getUserBySessionToken(token);
+      if (!sessionUser || sessionUser.id !== user.id) {
+        return res.status(403).json({ message: 'Sesión inválida o expirada' });
+      }
+
+      // Check if session has expired
+      const isSessionActive = await storage.isSessionActive(user.id);
+      if (!isSessionActive) {
+        // Clear expired session
+        await storage.clearUserSession(user.id);
+        return res.status(403).json({ message: 'Sesión expirada' });
+      }
+
       req.user = user;
       next();
     } catch (error) {
@@ -509,6 +523,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Credenciales inválidas" });
       }
 
+      // Check if user already has an active session
+      const hasActiveSession = await storage.isSessionActive(updatedUser.id);
+      if (hasActiveSession) {
+        return res.status(401).json({ 
+          message: "Ya tienes una sesión activa. Cierra la sesión actual antes de iniciar una nueva."
+        });
+      }
+
       // Reset failed attempts on successful login
       await storage.resetFailedAttempts(username);
 
@@ -520,6 +542,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         JWT_SECRET,
         { expiresIn: "24h" }
       );
+
+      // Set session token and expiration (24 hours)
+      const sessionExpires = new Date();
+      sessionExpires.setHours(sessionExpires.getHours() + 24);
+      await storage.setUserSession(updatedUser.id, token, sessionExpires);
 
       res.json({
         token,
@@ -537,8 +564,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/logout", authenticateToken, async (req, res) => {
-    res.json({ message: "Sesión cerrada exitosamente" });
+  app.post("/api/auth/logout", authenticateToken, async (req: any, res) => {
+    try {
+      const user = req.user;
+      // Clear the user's session
+      await storage.clearUserSession(user.id);
+      res.json({ message: "Sesión cerrada exitosamente" });
+    } catch (error) {
+      console.error("Error en logout:", error);
+      res.status(500).json({ message: "Error al cerrar sesión" });
+    }
   });
 
   app.get("/api/auth/me", authenticateToken, async (req: any, res) => {
