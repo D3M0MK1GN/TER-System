@@ -58,7 +58,7 @@ export default function Templates() {
         description: "La plantilla ha sido creada exitosamente",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Error creando la plantilla",
@@ -84,7 +84,7 @@ export default function Templates() {
         description: "La plantilla ha sido actualizada exitosamente",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Error actualizando la plantilla",
@@ -106,7 +106,7 @@ export default function Templates() {
         description: "La plantilla ha sido eliminada exitosamente",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Error eliminando la plantilla",

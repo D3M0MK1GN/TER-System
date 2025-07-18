@@ -80,7 +80,7 @@ export function Sidebar() {
       <div className="flex items-center justify-between h-16 bg-primary text-white px-4">
         <div className="flex items-center space-x-3">
           <Antenna className="h-6 w-6 flex-shrink-0" />
-          {isOpen && <span className="font-bold text-lg">SistelCom</span>}
+          {isOpen && <span className="font-bold text-lg">TER-System</span>}
         </div>
         <Button
           variant="ghost"

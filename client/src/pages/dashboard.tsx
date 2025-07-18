@@ -100,7 +100,7 @@ export default function Dashboard() {
         description: "El usuario ha sido creado exitosamente.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "No se pudo crear el usuario.",
@@ -125,7 +125,7 @@ export default function Dashboard() {
         description: "El usuario ha sido actualizado exitosamente.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "No se pudo actualizar el usuario.",
@@ -147,7 +147,7 @@ export default function Dashboard() {
         description: "El usuario ha sido eliminado exitosamente.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "No se pudo eliminar el usuario.",

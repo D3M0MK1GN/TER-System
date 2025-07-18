@@ -51,7 +51,7 @@ export default function Requests() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: Record<string, any>) => {
       return await apiRequest("/api/solicitudes", {
         method: "POST",
         body: JSON.stringify(data),
@@ -66,7 +66,7 @@ export default function Requests() {
         description: "La solicitud ha sido creada exitosamente",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Error creando la solicitud",
@@ -76,7 +76,7 @@ export default function Requests() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+    mutationFn: async ({ id, data }: { id: number; data: Record<string, any> }) => {
       return await apiRequest(`/api/solicitudes/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
@@ -91,7 +91,7 @@ export default function Requests() {
         description: "La solicitud ha sido actualizada exitosamente",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Error actualizando la solicitud",
@@ -114,7 +114,7 @@ export default function Requests() {
         description: "La solicitud ha sido eliminada exitosamente",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Error eliminando la solicitud",
@@ -123,11 +123,11 @@ export default function Requests() {
     },
   });
 
-  const handleCreateSubmit = (data: any) => {
+  const handleCreateSubmit = (data: Record<string, any>) => {
     createMutation.mutate(data);
   };
 
-  const handleEditSubmit = (data: any) => {
+  const handleEditSubmit = (data: Record<string, any>) => {
     if (editingSolicitud) {
       updateMutation.mutate({ id: editingSolicitud.id, data });
     }
@@ -141,7 +141,6 @@ export default function Requests() {
 
   const handleView = (solicitud: Solicitud) => {
     // TODO: Implement view modal
-    console.log("View solicitud:", solicitud);
   };
 
   const handleFiltersChange = (newFilters: any) => {

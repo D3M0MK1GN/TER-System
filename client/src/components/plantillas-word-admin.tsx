@@ -21,12 +21,23 @@ interface PlantillaWord {
 }
 
 const tiposExperticia = [
-  { value: "analisis_radioespectro", label: "Análisis Radioespectro" },
-  { value: "identificacion_bts", label: "Identificación BTS" },
-  { value: "analisis_trafico", label: "Análisis Tráfico" },
-  { value: "localizacion_antenas", label: "Localización Antenas" },
-  { value: "analisis_cobertura", label: "Análisis Cobertura" },
-  { value: "otros", label: "Otros" },
+  { value: "identificar_datos_numero", label: "Identificar datos de un número" },
+  { value: "determinar_tramite_venta_linea", label: "Determinar dónde fue tramitada la venta de línea" },
+  { value: "determinar_linea_conexion_ip", label: "Determinar línea telefónica con conexión IP" },
+  { value: "identificar_radio_bases_bts", label: "Identificar las Radio Bases (BTS)" },
+  { value: "identificar_numeros_duraciones_bts", label: "Identificar números con duraciones específicas en la Radio Base (BTS)" },
+  { value: "determinar_contaminacion_linea", label: "Determinar contaminación de línea" },
+  { value: "determinar_sim_cards_numero", label: "Determinar SIM CARDS utilizados con un número telefónico" },
+  { value: "determinar_comportamiento_social", label: "Determinar comportamiento social" },
+  { value: "determinar_numeros_comun", label: "Determinar números en común" },
+  { value: "determinar_ubicacion_llamadas", label: "Determinar ubicación mediante registros de llamadas" },
+  { value: "determinar_ubicacion_trazas", label: "Determinar ubicación mediante registros de trazas telefónicas" },
+  { value: "determinar_contaminacion_equipo_imei", label: "Determinar contaminación de equipo (IMEI)" },
+  { value: "identificar_numeros_comun_bts", label: "Identificar números en común en dos o más Radio Base (BTS)" },
+  { value: "identificar_numeros_desconectan_bts", label: "Identificar números que se desconectan de la Radio Base (BTS) después del hecho" },
+  { value: "identificar_numeros_repetidos_bts", label: "Identificar números repetidos en la Radio Base (BTS)" },
+  { value: "determinar_numero_internacional", label: "Determinar número internacional" },
+  { value: "identificar_linea_sim_card", label: "Identificar línea mediante SIM CARD" },
 ];
 
 export function PlantillasWordAdmin() {
@@ -55,7 +66,7 @@ export function PlantillasWordAdmin() {
         description: "La plantilla se eliminó exitosamente.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Error al eliminar la plantilla",
@@ -109,10 +120,11 @@ export function PlantillasWordAdmin() {
         title: "Plantilla subida",
         description: "La plantilla se subió exitosamente.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Error al subir la plantilla";
       toast({
         title: "Error",
-        description: error.message || "Error al subir la plantilla",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -141,10 +153,11 @@ export function PlantillasWordAdmin() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Error al descargar la plantilla";
       toast({
         title: "Error",
-        description: error.message || "Error al descargar la plantilla",
+        description: errorMessage,
         variant: "destructive",
       });
     }

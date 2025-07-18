@@ -1,8 +1,8 @@
-# SistelCom - Sistema de Gestión de Solicitudes de Telecomunicaciones
+# TER-System - Sistema de Gestión de Solicitudes de Telecomunicaciones
 
 ## Overview
 
-SistelCom is a modern web application designed for managing telecommunications requests in Spanish. It's built with a full-stack architecture using React for the frontend and Node.js/Express for the backend, with PostgreSQL as the database. The application focuses on streamlining the process of creating, tracking, and managing telecommunications requests for different operators.
+TER-System is a modern web application designed for managing telecommunications requests in Spanish. It's built with a full-stack architecture using React for the frontend and Node.js/Express for the backend, with PostgreSQL as the database. The application focuses on streamlining the process of creating, tracking, and managing telecommunications requests for different operators.
 
 ## User Preferences
 
@@ -119,19 +119,40 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 2025)
 - ✓ Successfully migrated from Replit Agent to Replit environment (July 18, 2025)
+- ✓ **Updated Expertise Types System (July 18, 2025):**
+  - Replaced old expertise types with comprehensive telecommunications analysis options
+  - Added 17 new specific expertise types covering all aspects of telecommunications investigations
+  - Updated all forms, tables, and templates to use new expertise types with proper Spanish labels
+  - Enhanced Word template management to support new expertise categories
+- ✓ **Application Renamed to TER-System (July 18, 2025):**
+  - Changed application name from SistelCom to TER-System throughout the entire codebase
+  - Updated all HTML titles, meta tags, and branding references
+  - Modified user guide generation to reflect new system name
+  - Updated sidebar header and application documentation
+- ✓ **Updated Expertise Types System (July 18, 2025):**
+  - Completely replaced old expertise types with comprehensive telecommunications analysis options
+  - Added 17 new specific expertise types covering all aspects of telecommunications investigation
+  - Updated database schema with new enum values for tipo_experticia
+  - Modified all frontend components to display new expertise types with proper Spanish labels
+  - Updated form selectors, filters, and display functions throughout the application
+  - New expertise types include: identification of phone data, line sale tracking, IP connections, BTS analysis, social behavior patterns, location tracking, contamination analysis, and international number identification
 - ✓ **Comprehensive Error Resolution and Code Quality Improvements (July 18, 2025):**
-  - Fixed all TypeScript compilation errors across frontend and backend
+  - Fixed all TypeScript compilation errors across frontend and backend including syntax error in dashboard-old.tsx
   - Corrected notification dropdown type safety issues with proper undefined checking
   - Updated API request patterns in templates.tsx to use consistent apiRequest format
   - Fixed operator color mapping to match Venezuelan telecommunications companies (Digitel, Movistar, Movilnet)
   - Resolved user form data type compatibility issues with proper interface extensions
   - Added Express Request type extensions for clientIp property
-  - Fixed error handling in server routes with proper type casting for PostgreSQL errors
+  - Fixed error handling in server routes with proper type casting for PostgreSQL errors and multer file filter
   - Corrected null/undefined handling in user authentication and storage operations
   - Fixed request form data type compatibility for editing functionality
   - Resolved Promise type mismatch in notification system
-  - Updated all error handling to use proper TypeScript type safety
-  - Application now builds successfully with no TypeScript errors
+  - Updated all error handling to use proper TypeScript type safety across all components
+  - Replaced console.log statements with proper error handling or removed unnecessary logging
+  - Enhanced error handling in mutations and async operations with proper Error types
+  - Fixed type annotations in storage operations with proper type definitions
+  - Improved type safety in request forms, template management, and user administration
+  - Application now builds successfully with no TypeScript errors and passes all compilation checks
 - ✓ **UI/UX Improvements (July 18, 2025):**
   - Removed logout button from top header bar for cleaner interface
   - Reduced spacing between sidebar header and navigation buttons for better visual flow

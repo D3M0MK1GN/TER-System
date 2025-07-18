@@ -438,7 +438,7 @@ export default function Dashboard() {
             <div className="max-w-full overflow-hidden">
               <PlantillasWordAdmin />
             </div>
-          )}
+          ) : null}
         </div>
       
       {/* User Creation Dialog */}

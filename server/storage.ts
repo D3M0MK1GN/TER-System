@@ -209,7 +209,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserLastAccess(id: number, ip?: string): Promise<void> {
-    const updateData: any = { ultimoAcceso: new Date() };
+    const updateData: { ultimoAcceso: Date; direccionIp?: string } = { 
+      ultimoAcceso: new Date() 
+    };
     if (ip) {
       updateData.direccionIp = ip;
     }

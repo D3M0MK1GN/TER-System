@@ -8,7 +8,7 @@ interface LayoutProps {
   subtitle?: string;
 }
 
-export function Layout({ children, title = "SistelCom", subtitle = "Sistema de Gestión de Solicitudes" }: LayoutProps) {
+export function Layout({ children, title = "TER-System", subtitle = "Sistema de Gestión de Solicitudes" }: LayoutProps) {
   const { isOpen } = useSidebarContext();
   
   return (

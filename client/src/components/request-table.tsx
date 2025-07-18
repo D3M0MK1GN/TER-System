@@ -60,12 +60,23 @@ const formatStatus = (estado: string) => {
 
 const formatTipoExperticia = (tipo: string) => {
   const names = {
-    analisis_radioespectro: "Análisis de Radioespectro",
-    identificacion_bts: "Identificación BTS",
-    analisis_trafico: "Análisis de Tráfico",
-    localizacion_antenas: "Localización de Antenas",
-    analisis_cobertura: "Análisis de Cobertura",
-    otros: "Otros",
+    identificar_datos_numero: "Identificar datos de un número",
+    determinar_tramite_venta_linea: "Determinar dónde fue tramitada la venta de línea",
+    determinar_linea_conexion_ip: "Determinar línea telefónica con conexión IP",
+    identificar_radio_bases_bts: "Identificar las Radio Bases (BTS)",
+    identificar_numeros_duraciones_bts: "Identificar números con duraciones específicas en la Radio Base (BTS)",
+    determinar_contaminacion_linea: "Determinar contaminación de línea",
+    determinar_sim_cards_numero: "Determinar SIM CARDS utilizados con un número telefónico",
+    determinar_comportamiento_social: "Determinar comportamiento social",
+    determinar_numeros_comun: "Determinar números en común",
+    determinar_ubicacion_llamadas: "Determinar ubicación mediante registros de llamadas",
+    determinar_ubicacion_trazas: "Determinar ubicación mediante registros de trazas telefónicas",
+    determinar_contaminacion_equipo_imei: "Determinar contaminación de equipo (IMEI)",
+    identificar_numeros_comun_bts: "Identificar números en común en dos o más Radio Base (BTS)",
+    identificar_numeros_desconectan_bts: "Identificar números que se desconectan de la Radio Base (BTS) después del hecho",
+    identificar_numeros_repetidos_bts: "Identificar números repetidos en la Radio Base (BTS)",
+    determinar_numero_internacional: "Determinar número internacional",
+    identificar_linea_sim_card: "Identificar línea mediante SIM CARD",
   };
   return names[tipo as keyof typeof names] || tipo;
 };
@@ -122,12 +133,23 @@ export function RequestTable({
 
   const formatExpertiseType = (tipo: string) => {
     const types = {
-      analisis_radioespectro: "Análisis de Radioespectro",
-      identificacion_bts: "Identificación BTS",
-      analisis_trafico: "Análisis de Tráfico",
-      localizacion_antenas: "Localización de Antenas",
-      analisis_cobertura: "Análisis de Cobertura",
-      otros: "Otros",
+      identificar_datos_numero: "Identificar datos de un número",
+      determinar_tramite_venta_linea: "Determinar dónde fue tramitada la venta de línea",
+      determinar_linea_conexion_ip: "Determinar línea telefónica con conexión IP",
+      identificar_radio_bases_bts: "Identificar las Radio Bases (BTS)",
+      identificar_numeros_duraciones_bts: "Identificar números con duraciones específicas en la Radio Base (BTS)",
+      determinar_contaminacion_linea: "Determinar contaminación de línea",
+      determinar_sim_cards_numero: "Determinar SIM CARDS utilizados con un número telefónico",
+      determinar_comportamiento_social: "Determinar comportamiento social",
+      determinar_numeros_comun: "Determinar números en común",
+      determinar_ubicacion_llamadas: "Determinar ubicación mediante registros de llamadas",
+      determinar_ubicacion_trazas: "Determinar ubicación mediante registros de trazas telefónicas",
+      determinar_contaminacion_equipo_imei: "Determinar contaminación de equipo (IMEI)",
+      identificar_numeros_comun_bts: "Identificar números en común en dos o más Radio Base (BTS)",
+      identificar_numeros_desconectan_bts: "Identificar números que se desconectan de la Radio Base (BTS) después del hecho",
+      identificar_numeros_repetidos_bts: "Identificar números repetidos en la Radio Base (BTS)",
+      determinar_numero_internacional: "Determinar número internacional",
+      identificar_linea_sim_card: "Identificar línea mediante SIM CARD",
     };
     return types[tipo as keyof typeof types] || tipo;
   };
@@ -205,12 +227,23 @@ export function RequestTable({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="analisis_radioespectro">Análisis de Radioespectro</SelectItem>
-                  <SelectItem value="identificacion_bts">Identificación BTS</SelectItem>
-                  <SelectItem value="analisis_trafico">Análisis de Tráfico</SelectItem>
-                  <SelectItem value="localizacion_antenas">Localización de Antenas</SelectItem>
-                  <SelectItem value="analisis_cobertura">Análisis de Cobertura</SelectItem>
-                  <SelectItem value="otros">Otros</SelectItem>
+                  <SelectItem value="identificar_datos_numero">Identificar datos de un número</SelectItem>
+                  <SelectItem value="determinar_tramite_venta_linea">Determinar dónde fue tramitada la venta de línea</SelectItem>
+                  <SelectItem value="determinar_linea_conexion_ip">Determinar línea telefónica con conexión IP</SelectItem>
+                  <SelectItem value="identificar_radio_bases_bts">Identificar las Radio Bases (BTS)</SelectItem>
+                  <SelectItem value="identificar_numeros_duraciones_bts">Identificar números con duraciones específicas en la Radio Base (BTS)</SelectItem>
+                  <SelectItem value="determinar_contaminacion_linea">Determinar contaminación de línea</SelectItem>
+                  <SelectItem value="determinar_sim_cards_numero">Determinar SIM CARDS utilizados con un número telefónico</SelectItem>
+                  <SelectItem value="determinar_comportamiento_social">Determinar comportamiento social</SelectItem>
+                  <SelectItem value="determinar_numeros_comun">Determinar números en común</SelectItem>
+                  <SelectItem value="determinar_ubicacion_llamadas">Determinar ubicación mediante registros de llamadas</SelectItem>
+                  <SelectItem value="determinar_ubicacion_trazas">Determinar ubicación mediante registros de trazas telefónicas</SelectItem>
+                  <SelectItem value="determinar_contaminacion_equipo_imei">Determinar contaminación de equipo (IMEI)</SelectItem>
+                  <SelectItem value="identificar_numeros_comun_bts">Identificar números en común en dos o más Radio Base (BTS)</SelectItem>
+                  <SelectItem value="identificar_numeros_desconectan_bts">Identificar números que se desconectan de la Radio Base (BTS) después del hecho</SelectItem>
+                  <SelectItem value="identificar_numeros_repetidos_bts">Identificar números repetidos en la Radio Base (BTS)</SelectItem>
+                  <SelectItem value="determinar_numero_internacional">Determinar número internacional</SelectItem>
+                  <SelectItem value="identificar_linea_sim_card">Identificar línea mediante SIM CARD</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -29,12 +29,23 @@ export const users = pgTable("users", {
 export const operadorEnum = pgEnum("operador", ["digitel", "movistar", "movilnet"]);
 export const estadoEnum = pgEnum("estado", ["procesando", "enviada", "respondida", "rechazada"]);
 export const tipoExperticicaEnum = pgEnum("tipo_experticia", [
-  "analisis_radioespectro",
-  "identificacion_bts",
-  "analisis_trafico",
-  "localizacion_antenas",
-  "analisis_cobertura",
-  "otros"
+  "identificar_datos_numero",
+  "determinar_tramite_venta_linea",
+  "determinar_linea_conexion_ip",
+  "identificar_radio_bases_bts",
+  "identificar_numeros_duraciones_bts",
+  "determinar_contaminacion_linea",
+  "determinar_sim_cards_numero",
+  "determinar_comportamiento_social",
+  "determinar_numeros_comun",
+  "determinar_ubicacion_llamadas",
+  "determinar_ubicacion_trazas",
+  "determinar_contaminacion_equipo_imei",
+  "identificar_numeros_comun_bts",
+  "identificar_numeros_desconectan_bts",
+  "identificar_numeros_repetidos_bts",
+  "determinar_numero_internacional",
+  "identificar_linea_sim_card"
 ]);
 export const coordinacionEnum = pgEnum("coordinacion", [
   "delitos_propiedad",

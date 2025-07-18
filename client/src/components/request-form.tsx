@@ -105,12 +105,11 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
         });
       } else if (response.status === 404) {
         // No template available for this expertise type, silently continue
-        console.log("No template available for expertise type:", tipoExperticia);
       } else {
-        console.error("Error downloading template:", response.statusText);
+        // Silent error for download failures
       }
     } catch (error) {
-      console.error("Error downloading template:", error);
+      // Silent error for download failures
     }
   };
 
@@ -197,12 +196,23 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                   <SelectValue placeholder="Seleccione tipo de experticia" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="analisis_radioespectro">Análisis de Radioespectro</SelectItem>
-                  <SelectItem value="identificacion_bts">Identificación BTS</SelectItem>
-                  <SelectItem value="analisis_trafico">Análisis de Tráfico</SelectItem>
-                  <SelectItem value="localizacion_antenas">Localización de Antenas</SelectItem>
-                  <SelectItem value="analisis_cobertura">Análisis de Cobertura</SelectItem>
-                  <SelectItem value="otros">Otros</SelectItem>
+                  <SelectItem value="identificar_datos_numero">Identificar datos de un número</SelectItem>
+                  <SelectItem value="determinar_tramite_venta_linea">Determinar dónde fue tramitada la venta de línea</SelectItem>
+                  <SelectItem value="determinar_linea_conexion_ip">Determinar línea telefónica con conexión IP</SelectItem>
+                  <SelectItem value="identificar_radio_bases_bts">Identificar las Radio Bases (BTS)</SelectItem>
+                  <SelectItem value="identificar_numeros_duraciones_bts">Identificar números con duraciones específicas en la Radio Base (BTS)</SelectItem>
+                  <SelectItem value="determinar_contaminacion_linea">Determinar contaminación de línea</SelectItem>
+                  <SelectItem value="determinar_sim_cards_numero">Determinar SIM CARDS utilizados con un número telefónico</SelectItem>
+                  <SelectItem value="determinar_comportamiento_social">Determinar comportamiento social</SelectItem>
+                  <SelectItem value="determinar_numeros_comun">Determinar números en común</SelectItem>
+                  <SelectItem value="determinar_ubicacion_llamadas">Determinar ubicación mediante registros de llamadas</SelectItem>
+                  <SelectItem value="determinar_ubicacion_trazas">Determinar ubicación mediante registros de trazas telefónicas</SelectItem>
+                  <SelectItem value="determinar_contaminacion_equipo_imei">Determinar contaminación de equipo (IMEI)</SelectItem>
+                  <SelectItem value="identificar_numeros_comun_bts">Identificar números en común en dos o más Radio Base (BTS)</SelectItem>
+                  <SelectItem value="identificar_numeros_desconectan_bts">Identificar números que se desconectan de la Radio Base (BTS) después del hecho</SelectItem>
+                  <SelectItem value="identificar_numeros_repetidos_bts">Identificar números repetidos en la Radio Base (BTS)</SelectItem>
+                  <SelectItem value="determinar_numero_internacional">Determinar número internacional</SelectItem>
+                  <SelectItem value="identificar_linea_sim_card">Identificar línea mediante SIM CARD</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.tipoExperticia && (

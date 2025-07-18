@@ -33,7 +33,7 @@ const upload = multer({
         file.mimetype === 'application/msword') {
       cb(null, true);
     } else {
-      cb(new Error('Solo se permiten archivos Word (.doc, .docx)'), false);
+      cb(new Error('Solo se permiten archivos Word (.doc, .docx)') as any, false);
     }
   }
 });
@@ -52,7 +52,7 @@ function generateUserGuideHTML(): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guía de Usuario - SistelCom</title>
+    <title>Guía de Usuario - TER-System</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -184,13 +184,13 @@ function generateUserGuideHTML(): string {
     <button class="print-button" onclick="window.print()">Imprimir / Guardar PDF</button>
     
     <div class="header">
-        <h1>📡 SistelCom</h1>
+        <h1>📡 TER-System</h1>
         <p>Guía de Usuario - Sistema de Gestión de Solicitudes de Telecomunicaciones</p>
     </div>
 
     <div class="section">
         <h2>🏠 Introducción</h2>
-        <p>SistelCom es un sistema integral para la gestión de solicitudes de telecomunicaciones dirigidas a operadores venezolanos. Esta guía te ayudará a utilizar todas las funcionalidades del sistema de manera eficiente.</p>
+        <p>TER-System es un sistema integral para la gestión de solicitudes de telecomunicaciones dirigidas a operadores venezolanos. Esta guía te ayudará a utilizar todas las funcionalidades del sistema de manera eficiente.</p>
         
         <h3>Operadores Soportados</h3>
         <ul class="feature-list">
@@ -362,7 +362,7 @@ function generateUserGuideHTML(): string {
 
     <div class="section">
         <h2>📅 Información de Versión</h2>
-        <p><strong>Sistema:</strong> SistelCom v1.0</p>
+        <p><strong>Sistema:</strong> TER-System v1.0</p>
         <p><strong>Última actualización:</strong> Julio 2025</p>
         <p><strong>Soporte:</strong> PostgreSQL, React, Node.js</p>
     </div>
@@ -1168,7 +1168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set response headers for PDF download
       res.setHeader('Content-Type', 'text/html');
-      res.setHeader('Content-Disposition', 'inline; filename="guia-usuario-sistelcom.html"');
+      res.setHeader('Content-Disposition', 'inline; filename="guia-usuario-ter-system.html"');
       
       res.send(guideContent);
     } catch (error) {

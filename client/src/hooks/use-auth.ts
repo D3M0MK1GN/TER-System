@@ -15,7 +15,7 @@ export function useAuth() {
       try {
         return await authService.getCurrentUser();
       } catch (error: any) {
-        console.error("Error obteniendo usuario:", error);
+        // Error getting user, will be handled by query
         // Clear token on authentication errors
         if (error?.message?.includes('401') || error?.message?.includes('403')) {
           localStorage.removeItem("token");
@@ -47,7 +47,7 @@ export function useAuth() {
       });
       return true;
     } catch (error: any) {
-      console.error("Error en login:", error);
+      // Login error will be handled by UI
       const errorMessage = error.message || "Credenciales inválidas";
       // Show specific suspension/blocking messages
       if (errorMessage.includes("Cuenta Suspendida") || errorMessage.includes("Cuenta Bloqueada")) {
@@ -76,7 +76,7 @@ export function useAuth() {
         description: "Has cerrado sesión exitosamente",
       });
     } catch (error) {
-      console.error("Error en logout:", error);
+      // Logout error handled gracefully
       queryClient.clear(); // Clear all queries even on error
     }
   };
