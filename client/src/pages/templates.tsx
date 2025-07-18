@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Sidebar } from "@/components/sidebar";
-import { Header } from "@/components/header";
+import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -44,8 +43,11 @@ export default function Templates() {
 
   const createMutation = useMutation({
     mutationFn: async (data: TemplateFormData) => {
-      const response = await apiRequest("POST", "/api/plantillas", data);
-      return response.json();
+      const response = await apiRequest("/api/plantillas", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/plantillas"] });
@@ -67,8 +69,11 @@ export default function Templates() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: TemplateFormData }) => {
-      const response = await apiRequest("PUT", `/api/plantillas/${id}`, data);
-      return response.json();
+      const response = await apiRequest(`/api/plantillas/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/plantillas"] });
@@ -90,7 +95,9 @@ export default function Templates() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/plantillas/${id}`);
+      await apiRequest(`/api/plantillas/${id}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/plantillas"] });
@@ -135,34 +142,23 @@ export default function Templates() {
   };
 
   const operatorColors = {
-    movistar: "bg-blue-100 text-blue-800",
-    claro: "bg-green-100 text-green-800",
-    entel: "bg-red-100 text-red-800",
-    bitel: "bg-purple-100 text-purple-800",
-    otros: "bg-gray-100 text-gray-800",
+    digitel: "bg-blue-100 text-blue-800",
+    movistar: "bg-red-100 text-red-800",
+    movilnet: "bg-green-100 text-green-800",
   };
 
   const formatOperator = (operador: string) => {
     const names = {
+      digitel: "Digitel",
       movistar: "Movistar",
-      claro: "Claro",
-      entel: "Entel",
-      bitel: "Bitel",
-      otros: "Otros",
+      movilnet: "Movilnet",
     };
     return names[operador as keyof typeof names] || operador;
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      <div className="ml-64 min-h-screen">
-        <Header
-          title="Plantillas de Correo"
-          subtitle="Gestionar plantillas de correo por operador"
-        />
-        
-        <main className="p-6">
+    <Layout title="Plantillas de Correo" subtitle="Gestionar plantillas de correo por operador">
+      <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Plantillas de Correo</h2>
             <Button onClick={() => setShowCreateModal(true)} className="bg-primary text-white">
@@ -229,8 +225,7 @@ export default function Templates() {
               ))
             )}
           </div>
-        </main>
-      </div>
+        </div>
 
       {/* Create/Edit Modal */}
       <Dialog open={showCreateModal || !!editingTemplate} onOpenChange={(open) => {
@@ -266,11 +261,9 @@ export default function Templates() {
                   <SelectValue placeholder="Seleccione un operador" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="digitel">Digitel</SelectItem>
                   <SelectItem value="movistar">Movistar</SelectItem>
-                  <SelectItem value="claro">Claro</SelectItem>
-                  <SelectItem value="entel">Entel</SelectItem>
-                  <SelectItem value="bitel">Bitel</SelectItem>
-                  <SelectItem value="otros">Otros</SelectItem>
+                  <SelectItem value="movilnet">Movilnet</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -326,6 +319,6 @@ Variables disponibles:
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </Layout>
   );
 }

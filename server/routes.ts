@@ -8,14 +8,41 @@ import {
   insertUserSchema,
   insertSolicitudSchema,
   insertPlantillaCorreoSchema,
+  insertPlantillaWordSchema,
   loginSchema,
   type User,
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
+import multer from "multer";
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";
+import path from "path";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow only Word documents
+    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.mimetype === 'application/msword') {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos Word (.doc, .docx)'), false);
+    }
+  }
+});
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!existsSync(uploadsDir)) {
+  mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Function to generate user guide HTML content
 function generateUserGuideHTML(): string {
@@ -704,7 +731,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Si la solicitud se crea con estado "enviada", notificar a los administradores
       if (solicitud.estado === "enviada") {
-        promises.push(storage.notifyAdminsOfSentRequest(solicitud.id, solicitud.numeroSolicitud));
+        promises.push(
+          storage.notifyAdminsOfSentRequest(solicitud.id, solicitud.numeroSolicitud).then(() => ({
+            id: 0,
+            createdAt: null,
+            usuarioId: null,
+            descripcion: null,
+            solicitudId: null,
+            accion: "notification_sent"
+          }))
+        );
       }
 
       await Promise.all(promises);
@@ -999,7 +1035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
       }
-      if (error.code === '23505') { // unique constraint violation
+      if ((error as any).code === '23505') { // unique constraint violation
         return res.status(400).json({ message: "El nombre de usuario ya existe" });
       }
       res.status(500).json({ message: "Error creando usuario" });
@@ -1052,7 +1088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
       }
-      if (error.code === '23505') { // unique constraint violation
+      if ((error as any).code === '23505') { // unique constraint violation
         return res.status(400).json({ message: "El nombre de usuario ya existe" });
       }
       res.status(500).json({ message: "Error actualizando usuario" });
@@ -1138,6 +1174,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generando guía:", error);
       res.status(500).json({ message: "Error generando guía de usuario" });
+    }
+  });
+
+  // Plantillas Word Routes
+  app.get("/api/plantillas-word", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const tipoExperticia = req.query.tipoExperticia as string;
+      const plantillas = await storage.getPlantillasWord(tipoExperticia);
+      res.json(plantillas);
+    } catch (error) {
+      console.error("Error obteniendo plantillas Word:", error);
+      res.status(500).json({ message: "Error obteniendo plantillas Word" });
+    }
+  });
+
+  app.post("/api/plantillas-word", authenticateToken, requireAdmin, upload.single('archivo'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No se proporcionó archivo" });
+      }
+
+      const { nombre, tipoExperticia } = req.body;
+      
+      // Validate request body
+      if (!nombre || !tipoExperticia) {
+        return res.status(400).json({ message: "Nombre y tipo de experticia son requeridos" });
+      }
+
+      // Check if a template already exists for this expertise type
+      const existingTemplate = await storage.getPlantillaWordByTipoExperticia(tipoExperticia);
+      if (existingTemplate) {
+        return res.status(400).json({ message: "Ya existe una plantilla para este tipo de experticia" });
+      }
+
+      // Generate unique filename
+      const fileExtension = path.extname(req.file.originalname);
+      const fileName = `plantilla-${tipoExperticia}-${Date.now()}${fileExtension}`;
+      const filePath = path.join(uploadsDir, fileName);
+
+      // Save file to disk
+      writeFileSync(filePath, req.file.buffer);
+
+      // Create template record
+      const plantillaData = {
+        nombre,
+        tipoExperticia,
+        archivo: filePath,
+        nombreArchivo: req.file.originalname,
+        tamaño: req.file.size,
+        usuarioId: req.user.id,
+      };
+
+      const plantilla = await storage.createPlantillaWord(plantillaData);
+      res.json(plantilla);
+    } catch (error) {
+      console.error("Error creando plantilla Word:", error);
+      res.status(500).json({ message: "Error creando plantilla Word" });
+    }
+  });
+
+  app.get("/api/plantillas-word/:id", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const plantilla = await storage.getPlantillaWordById(id);
+      
+      if (!plantilla) {
+        return res.status(404).json({ message: "Plantilla no encontrada" });
+      }
+
+      res.json(plantilla);
+    } catch (error) {
+      console.error("Error obteniendo plantilla Word:", error);
+      res.status(500).json({ message: "Error obteniendo plantilla Word" });
+    }
+  });
+
+  app.get("/api/plantillas-word/:id/download", authenticateToken, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const plantilla = await storage.getPlantillaWordById(id);
+      
+      if (!plantilla) {
+        return res.status(404).json({ message: "Plantilla no encontrada" });
+      }
+
+      // Check if file exists
+      if (!existsSync(plantilla.archivo)) {
+        return res.status(404).json({ message: "Archivo no encontrado" });
+      }
+
+      // Read file and send it
+      const fileBuffer = readFileSync(plantilla.archivo);
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${plantilla.nombreArchivo}"`);
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Error descargando plantilla Word:", error);
+      res.status(500).json({ message: "Error descargando plantilla Word" });
+    }
+  });
+
+  app.delete("/api/plantillas-word/:id", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const plantilla = await storage.getPlantillaWordById(id);
+      
+      if (!plantilla) {
+        return res.status(404).json({ message: "Plantilla no encontrada" });
+      }
+
+      // Delete file from disk
+      if (existsSync(plantilla.archivo)) {
+        const fs = require('fs');
+        fs.unlinkSync(plantilla.archivo);
+      }
+
+      // Delete record from database
+      const deleted = await storage.deletePlantillaWord(id);
+      
+      if (deleted) {
+        res.json({ message: "Plantilla eliminada exitosamente" });
+      } else {
+        res.status(500).json({ message: "Error eliminando plantilla" });
+      }
+    } catch (error) {
+      console.error("Error eliminando plantilla Word:", error);
+      res.status(500).json({ message: "Error eliminando plantilla Word" });
+    }
+  });
+
+  // Route to get template by expertise type (for automatic download)
+  app.get("/api/plantillas-word/by-expertise/:tipoExperticia", authenticateToken, async (req: any, res) => {
+    try {
+      const tipoExperticia = req.params.tipoExperticia;
+      const plantilla = await storage.getPlantillaWordByTipoExperticia(tipoExperticia);
+      
+      if (!plantilla) {
+        return res.status(404).json({ message: "No hay plantilla disponible para este tipo de experticia" });
+      }
+
+      // Check if file exists
+      if (!existsSync(plantilla.archivo)) {
+        return res.status(404).json({ message: "Archivo no encontrado" });
+      }
+
+      // Read file and send it
+      const fileBuffer = readFileSync(plantilla.archivo);
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${plantilla.nombreArchivo}"`);
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Error descargando plantilla por experticia:", error);
+      res.status(500).json({ message: "Error descargando plantilla" });
     }
   });
 

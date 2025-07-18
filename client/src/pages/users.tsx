@@ -20,6 +20,7 @@ interface UserFormData {
   password?: string;
   tiempoSuspension?: string;
   motivoSuspension?: string;
+  fechaSuspension?: string;
 }
 
 export default function Users() {

@@ -4,12 +4,15 @@ import {
   plantillasCorreo,
   historialSolicitudes,
   notificaciones,
+  plantillasWord,
   type User,
   type InsertUser,
   type Solicitud,
   type InsertSolicitud,
   type PlantillaCorreo,
   type InsertPlantillaCorreo,
+  type PlantillaWord,
+  type InsertPlantillaWord,
   type HistorialSolicitud,
   type InsertHistorialSolicitud,
 } from "@shared/schema";
@@ -73,6 +76,15 @@ export interface IStorage {
   // Plantillas de correo
   getPlantillasCorreo(usuarioId?: number): Promise<PlantillaCorreo[]>;
   getPlantillaCorreoById(id: number): Promise<PlantillaCorreo | undefined>;
+  
+  // Plantillas Word
+  getPlantillasWord(tipoExperticia?: string): Promise<PlantillaWord[]>;
+  getPlantillaWordById(id: number): Promise<PlantillaWord | undefined>;
+  getPlantillaWordByTipoExperticia(tipoExperticia: string): Promise<PlantillaWord | undefined>;
+  createPlantillaWord(plantilla: InsertPlantillaWord): Promise<PlantillaWord>;
+  updatePlantillaWord(id: number, plantilla: Partial<InsertPlantillaWord>): Promise<PlantillaWord | undefined>;
+  deletePlantillaWord(id: number): Promise<boolean>;
+  
   createPlantillaCorreo(plantilla: InsertPlantillaCorreo): Promise<PlantillaCorreo>;
   updatePlantillaCorreo(id: number, plantilla: Partial<InsertPlantillaCorreo>): Promise<PlantillaCorreo | undefined>;
   deletePlantillaCorreo(id: number): Promise<boolean>;
@@ -644,7 +656,7 @@ export class DatabaseStorage implements IStorage {
       const user = await this.getUserByUsername(username);
       if (!user) return false;
 
-      if (user.intentosFallidos >= 2) { // 3 attempts total (0, 1, 2 = 3 attempts)
+      if ((user.intentosFallidos ?? 0) >= 2) { // 3 attempts total (0, 1, 2 = 3 attempts)
         const suspensionEnd = new Date();
         suspensionEnd.setHours(suspensionEnd.getHours() + 3); // 3 horas de suspensión
 
@@ -802,6 +814,60 @@ export class DatabaseStorage implements IStorage {
     
     const now = new Date();
     return now < user.sessionExpires;
+  }
+
+  // Plantillas Word methods
+  async getPlantillasWord(tipoExperticia?: string): Promise<PlantillaWord[]> {
+    if (tipoExperticia) {
+      return await db.select().from(plantillasWord).where(eq(plantillasWord.tipoExperticia, tipoExperticia as any));
+    }
+    
+    return await db.select().from(plantillasWord);
+  }
+
+  async getPlantillaWordById(id: number): Promise<PlantillaWord | undefined> {
+    const [plantilla] = await db
+      .select()
+      .from(plantillasWord)
+      .where(eq(plantillasWord.id, id));
+    return plantilla || undefined;
+  }
+
+  async getPlantillaWordByTipoExperticia(tipoExperticia: string): Promise<PlantillaWord | undefined> {
+    const [plantilla] = await db
+      .select()
+      .from(plantillasWord)
+      .where(eq(plantillasWord.tipoExperticia, tipoExperticia as any));
+    return plantilla || undefined;
+  }
+
+  async createPlantillaWord(plantilla: InsertPlantillaWord): Promise<PlantillaWord> {
+    const [newPlantilla] = await db
+      .insert(plantillasWord)
+      .values(plantilla)
+      .returning();
+    return newPlantilla;
+  }
+
+  async updatePlantillaWord(id: number, plantilla: Partial<InsertPlantillaWord>): Promise<PlantillaWord | undefined> {
+    const [updatedPlantilla] = await db
+      .update(plantillasWord)
+      .set({ ...plantilla, updatedAt: new Date() })
+      .where(eq(plantillasWord.id, id))
+      .returning();
+    return updatedPlantilla || undefined;
+  }
+
+  async deletePlantillaWord(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(plantillasWord)
+        .where(eq(plantillasWord.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting plantilla word:', error);
+      return false;
+    }
   }
 }
 

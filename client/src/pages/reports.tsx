@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
-import { Sidebar } from "@/components/sidebar";
-import { Header } from "@/components/header";
+import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -63,15 +62,8 @@ export default function Reports() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      <div className="ml-64 min-h-screen">
-        <Header
-          title="Reportes y Análisis"
-          subtitle="Estadísticas y métricas del sistema"
-        />
-        
-        <main className="p-6">
+    <Layout title="Reportes y Análisis" subtitle="Estadísticas y métricas del sistema">
+      <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Dashboard de Reportes</h2>
             <div className="flex items-center space-x-4">
@@ -307,8 +299,7 @@ export default function Reports() {
               </Card>
             </div>
           )}
-        </main>
-      </div>
-    </div>
+        </div>
+    </Layout>
   );
 }

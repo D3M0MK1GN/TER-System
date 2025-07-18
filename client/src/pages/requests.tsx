@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
-import { Sidebar } from "@/components/sidebar";
-import { Header } from "@/components/header";
+import { Layout } from "@/components/layout";
 import { RequestTable } from "@/components/request-table";
 import { RequestForm } from "@/components/request-form";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -154,30 +153,22 @@ export default function Requests() {
   const total = solicitudesData?.total || 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      <div className="ml-64 min-h-screen">
-        <Header
-          title="Gestión de Solicitudes"
-          subtitle="Crear, editar y administrar solicitudes"
+    <Layout title="Gestión de Solicitudes" subtitle="Crear, editar y administrar solicitudes">
+      <div className="p-6">
+        <RequestTable
+          solicitudes={solicitudes}
+          total={total}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onFiltersChange={handleFiltersChange}
+          onEdit={setEditingSolicitud}
+          onDelete={handleDelete}
+          onView={handleView}
+          onCreateNew={() => setShowCreateModal(true)}
+          loading={isLoading}
+          permissions={permissions}
         />
-        
-        <main className="p-6">
-          <RequestTable
-            solicitudes={solicitudes}
-            total={total}
-            currentPage={currentPage}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onFiltersChange={handleFiltersChange}
-            onEdit={setEditingSolicitud}
-            onDelete={handleDelete}
-            onView={handleView}
-            onCreateNew={() => setShowCreateModal(true)}
-            loading={isLoading}
-            permissions={permissions}
-          />
-        </main>
       </div>
 
       {/* Create Modal */}
@@ -198,12 +189,15 @@ export default function Requests() {
             <RequestForm
               onSubmit={handleEditSubmit}
               onCancel={() => setEditingSolicitud(null)}
-              initialData={editingSolicitud}
+              initialData={{
+                ...editingSolicitud,
+                fiscal: editingSolicitud.fiscal || "",
+              }}
               isLoading={updateMutation.isPending}
             />
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </Layout>
   );
 }

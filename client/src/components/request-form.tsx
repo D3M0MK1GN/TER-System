@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Save, X } from "lucide-react";
+import { Save, X, Download } from "lucide-react";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 const requestFormSchema = insertSolicitudSchema.extend({
   numeroSolicitud: z.string().min(1, "Número de solicitud es requerido"),
@@ -34,13 +36,14 @@ type RequestFormData = z.infer<typeof requestFormSchema>;
 interface RequestFormProps {
   onSubmit: (data: RequestFormData) => void;
   onCancel: () => void;
-  initialData?: Partial<RequestFormData>;
+  initialData?: Partial<RequestFormData & { fiscal: string | null }>;
   isLoading?: boolean;
 }
 
 export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: RequestFormProps) {
   const { user } = useAuth();
   const permissions = usePermissions();
+  const { toast } = useToast();
   
   // Determine default status based on user role
   const getDefaultStatus = () => {
@@ -67,6 +70,49 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
       ...initialData,
     },
   });
+
+  // Watch for changes in tipo de experticia to trigger template download
+  const watchedTipoExperticia = form.watch("tipoExperticia");
+
+  useEffect(() => {
+    if (watchedTipoExperticia && watchedTipoExperticia !== initialData?.tipoExperticia) {
+      handleTemplateDownload(watchedTipoExperticia);
+    }
+  }, [watchedTipoExperticia]);
+
+  const handleTemplateDownload = async (tipoExperticia: string) => {
+    try {
+      const response = await fetch(`/api/plantillas-word/by-expertise/${tipoExperticia}`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = response.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || "plantilla.docx";
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast({
+          title: "Plantilla descargada",
+          description: "La plantilla Word se ha descargado automáticamente.",
+        });
+      } else if (response.status === 404) {
+        // No template available for this expertise type, silently continue
+        console.log("No template available for expertise type:", tipoExperticia);
+      } else {
+        console.error("Error downloading template:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error downloading template:", error);
+    }
+  };
 
   const handleSubmit = (data: RequestFormData) => {
     onSubmit(data);

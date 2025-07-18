@@ -93,12 +93,25 @@ export const notificaciones = pgTable("notificaciones", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const plantillasWord = pgTable("plantillas_word", {
+  id: serial("id").primaryKey(),
+  nombre: text("nombre").notNull(),
+  tipoExperticia: tipoExperticicaEnum("tipo_experticia").notNull(),
+  archivo: text("archivo").notNull(), // Ruta del archivo o contenido base64
+  nombreArchivo: text("nombre_archivo").notNull(), // Nombre original del archivo
+  tamaño: integer("tamaño"), // Tamaño en bytes
+  usuarioId: integer("usuario_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   solicitudes: many(solicitudes),
   plantillasCorreo: many(plantillasCorreo),
   historialSolicitudes: many(historialSolicitudes),
   notificaciones: many(notificaciones),
+  plantillasWord: many(plantillasWord),
 }));
 
 export const solicitudesRelations = relations(solicitudes, ({ one, many }) => ({
@@ -139,6 +152,13 @@ export const notificacionesRelations = relations(notificaciones, ({ one }) => ({
   }),
 }));
 
+export const plantillasWordRelations = relations(plantillasWord, ({ one }) => ({
+  usuario: one(users, {
+    fields: [plantillasWord.usuarioId],
+    references: [users.id],
+  }),
+}));
+
 // Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -173,6 +193,12 @@ export const insertPlantillaCorreoSchema = createInsertSchema(plantillasCorreo).
   updatedAt: true,
 });
 
+export const insertPlantillaWordSchema = createInsertSchema(plantillasWord).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertHistorialSchema = createInsertSchema(historialSolicitudes).omit({
   id: true,
   createdAt: true,
@@ -185,6 +211,8 @@ export type Solicitud = typeof solicitudes.$inferSelect;
 export type InsertSolicitud = z.infer<typeof insertSolicitudSchema>;
 export type PlantillaCorreo = typeof plantillasCorreo.$inferSelect;
 export type InsertPlantillaCorreo = z.infer<typeof insertPlantillaCorreoSchema>;
+export type PlantillaWord = typeof plantillasWord.$inferSelect;
+export type InsertPlantillaWord = z.infer<typeof insertPlantillaWordSchema>;
 export type HistorialSolicitud = typeof historialSolicitudes.$inferSelect;
 export type InsertHistorialSolicitud = z.infer<typeof insertHistorialSchema>;
 

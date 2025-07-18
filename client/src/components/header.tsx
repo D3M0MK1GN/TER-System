@@ -1,7 +1,6 @@
-import { Bell, Settings, HelpCircle, Download, LogOut } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
 import { NotificationsDropdown } from "@/components/notifications-dropdown";
 
 interface HeaderProps {
@@ -10,8 +9,7 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle }: HeaderProps) {
-  const { user, logout } = useAuth();
-  const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   const handleGenerateGuide = async () => {
     try {
@@ -60,16 +58,6 @@ export function Header({ title, subtitle }: HeaderProps) {
         >
           <HelpCircle className="h-4 w-4" />
           <span>Guía de Usuario</span>
-        </Button>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={logout}
-          className="flex items-center space-x-2"
-        >
-          <LogOut className="h-4 w-4" />
-          <span>Cerrar Sesión</span>
         </Button>
       </div>
     </header>
