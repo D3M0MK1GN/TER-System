@@ -16,7 +16,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import multer from "multer";
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";
+import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import path from "path";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
@@ -1287,8 +1287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Delete file from disk
       if (existsSync(plantilla.archivo)) {
-        const fs = require('fs');
-        fs.unlinkSync(plantilla.archivo);
+        unlinkSync(plantilla.archivo);
       }
 
       // Delete record from database
@@ -1329,6 +1328,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error descargando plantilla por experticia:", error);
       res.status(500).json({ message: "Error descargando plantilla" });
+    }
+  });
+
+  // Route to generate customized template with request data
+  app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authenticateToken, async (req: any, res) => {
+    try {
+      const tipoExperticia = req.params.tipoExperticia;
+      const requestData = req.body;
+      
+      const plantilla = await storage.getPlantillaWordByTipoExperticia(tipoExperticia);
+      
+      if (!plantilla) {
+        return res.status(404).json({ message: "No hay plantilla disponible para este tipo de experticia" });
+      }
+
+      // Check if file exists
+      if (!existsSync(plantilla.archivo)) {
+        return res.status(404).json({ message: "Archivo no encontrado" });
+      }
+
+      // Import docxtemplater for Word document processing (dynamic import for ES modules)
+      const { default: PizZip } = await import('pizzip');
+      const { default: Docxtemplater } = await import('docxtemplater');
+
+      // Read the template file
+      const content = readFileSync(plantilla.archivo, 'binary');
+      const zip = new PizZip(content);
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+      });
+
+      // Get current date in DD/MM/YYYY format
+      const currentDate = new Date().toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+
+      // Extract only the part after the dash from request number
+      const solicitudShort = requestData.numeroSolicitud ? 
+        requestData.numeroSolicitud.split('-').pop() || requestData.numeroSolicitud : '';
+
+      // Prepare template data for replacement - using proper placeholder format {variable}
+      const templateData = {
+        SOLICITUD: solicitudShort,
+        EXP: requestData.numeroExpediente || '',
+        OPER: (requestData.operador || '').toUpperCase(),
+        FECHA: currentDate,
+        FISCAL: requestData.fiscal || '',
+        // Additional placeholders for alternative naming
+        numeroSolicitud: solicitudShort,
+        numeroExpediente: requestData.numeroExpediente || '',
+        fiscal: requestData.fiscal || '',
+        operador: (requestData.operador || '').toUpperCase(),
+        fecha: currentDate,
+        informacionLinea: requestData.informacionLinea || '',
+        descripcion: requestData.descripcion || '',
+      };
+
+      // Set the template data using the new API
+      try {
+        // Generate the document with data
+        doc.render(templateData);
+      } catch (error: any) {
+        console.error("Error rendering template:", error);
+        // If template rendering fails, return the original template
+        const fileBuffer = readFileSync(plantilla.archivo);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        res.setHeader('Content-Disposition', `attachment; filename="${plantilla.nombreArchivo}"`);
+        return res.send(fileBuffer);
+      }
+
+      // Get the generated document buffer
+      const buf = doc.getZip().generate({ type: 'nodebuffer' });
+
+      // Create a custom filename with the request number
+      const customFileName = `${plantilla.nombre}-${requestData.numeroSolicitud || 'plantilla'}.docx`;
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${customFileName}"`);
+      res.send(buf);
+
+    } catch (error) {
+      console.error("Error generando plantilla personalizada:", error);
+      res.status(500).json({ message: "Error generando plantilla personalizada" });
     }
   });
 

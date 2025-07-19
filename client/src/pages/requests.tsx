@@ -27,6 +27,40 @@ export default function Requests() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const handleTemplateDownload = async (tipoExperticia: string, requestData?: any) => {
+    try {
+      const response = await fetch(`/api/plantillas-word/by-expertise/${tipoExperticia}/generate`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData || {}),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = response.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || "plantilla.docx";
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast({
+          title: "Plantilla descargada",
+          description: "La plantilla Word se ha descargado con los datos de la solicitud.",
+        });
+      } else if (response.status === 404) {
+        // No template available for this expertise type, silently continue
+      }
+    } catch (error) {
+      // Silent error for download failures
+    }
+  };
+
   const { data: solicitudesData, isLoading } = useQuery({
     queryKey: ["/api/solicitudes", currentPage, filters],
     queryFn: async () => {
@@ -57,7 +91,7 @@ export default function Requests() {
         body: JSON.stringify(data),
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/solicitudes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setShowCreateModal(false);
@@ -65,6 +99,11 @@ export default function Requests() {
         title: "Solicitud creada",
         description: "La solicitud ha sido creada exitosamente",
       });
+      
+      // Download template after successful creation with request data
+      if (variables.tipoExperticia) {
+        handleTemplateDownload(variables.tipoExperticia, variables);
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -90,6 +129,7 @@ export default function Requests() {
         title: "Solicitud actualizada",
         description: "La solicitud ha sido actualizada exitosamente",
       });
+      // Note: No template download for updates, only for new creations
     },
     onError: (error: Error) => {
       toast({

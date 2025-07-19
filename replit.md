@@ -118,7 +118,18 @@ Preferred communication style: Simple, everyday language.
 - **User Management**: Complete user administration with role-based access control
 
 ## Recent Changes (July 2025)
-- ✓ Successfully migrated from Replit Agent to Replit environment (July 18, 2025)
+- ✓ Successfully migrated from Replit Agent to Replit environment (July 19, 2025)
+- ✓ **Enhanced Template Download Behavior with Dynamic Data Replacement (July 19, 2025):**
+  - Modified request form to download Word templates only after successful request creation
+  - Removed automatic template download when selecting expertise type
+  - Templates now download only after clicking "Guardar Solicitud" and passing validation
+  - Template download only occurs for new request creation, not for updates/edits
+  - **NEW**: Added dynamic template customization with user request data
+  - Templates now automatically include: request number, expedition number, fiscal name, operator, current date
+  - Specific OFICIO number replacement: "OFICIO 9700-0271-CIRHV-2025-1109" updates "1109" with user's request number
+  - Installed docxtemplater and pizzip packages for Word document processing
+  - Created new POST endpoint `/api/plantillas-word/by-expertise/:tipoExperticia/generate` for customized templates
+  - Updated frontend to send complete request data for template personalization
 - ✓ **Updated Expertise Types System (July 18, 2025):**
   - Replaced old expertise types with comprehensive telecommunications analysis options
   - Added 17 new specific expertise types covering all aspects of telecommunications investigations

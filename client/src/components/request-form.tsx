@@ -38,6 +38,7 @@ interface RequestFormProps {
   onCancel: () => void;
   initialData?: Partial<RequestFormData & { fiscal: string | null }>;
   isLoading?: boolean;
+
 }
 
 export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: RequestFormProps) {
@@ -71,14 +72,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
     },
   });
 
-  // Watch for changes in tipo de experticia to trigger template download
-  const watchedTipoExperticia = form.watch("tipoExperticia");
-
-  useEffect(() => {
-    if (watchedTipoExperticia && watchedTipoExperticia !== initialData?.tipoExperticia) {
-      handleTemplateDownload(watchedTipoExperticia);
-    }
-  }, [watchedTipoExperticia]);
+  // Remove automatic template download on selection
 
   const handleTemplateDownload = async (tipoExperticia: string) => {
     try {
@@ -114,6 +108,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
   };
 
   const handleSubmit = (data: RequestFormData) => {
+    // Call the parent onSubmit handler
     onSubmit(data);
   };
 
