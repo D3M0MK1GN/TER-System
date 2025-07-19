@@ -29,7 +29,7 @@ export default function Login() {
         }, 100);
       }
     } catch (error) {
-      console.error("Error en login:", error);
+      // Error handled by useAuth hook
     } finally {
       setLoading(false);
     }

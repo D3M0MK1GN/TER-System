@@ -72,7 +72,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
     },
   });
 
-  // Remove automatic template download on selection
+  // Template download is handled after successful form submission
 
   const handleTemplateDownload = async (tipoExperticia: string) => {
     try {

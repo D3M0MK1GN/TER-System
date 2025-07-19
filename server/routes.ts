@@ -387,7 +387,7 @@ function authenticateToken(req: any, res: any, next: any) {
 
   jwt.verify(token, JWT_SECRET, async (err: any, decoded: any) => {
     if (err) {
-      console.error('JWT verification error:', err.message);
+      // JWT verification failed - token invalid or expired
       return res.status(403).json({ message: 'Token inválido' });
     }
 
@@ -419,7 +419,7 @@ function authenticateToken(req: any, res: any, next: any) {
       req.user = user;
       next();
     } catch (error) {
-      console.error('Error in authentication middleware:', error);
+      // Authentication middleware error - handle gracefully
       return res.status(500).json({ message: 'Error interno del servidor' });
     }
   });
@@ -437,7 +437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const promises = suspendedUsers.map(user => storage.checkSuspensionExpired(user.id));
       await Promise.allSettled(promises);
     } catch (error) {
-      console.error("Error checking expired suspensions:", error);
+      // Error checking expired suspensions - background task continues
     }
   }, 5 * 60 * 1000); // 5 minutes
 
@@ -446,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await storage.cleanupOldNotifications();
     } catch (error) {
-      console.error("Error cleaning up old notifications:", error);
+      // Error cleaning up old notifications - background task continues
     }
   }, 60 * 60 * 1000); // 1 hour
 
@@ -586,7 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
     } catch (error) {
-      console.error("Error en login:", error);
+      // Login error - handle gracefully
       res.status(400).json({ message: "Error en el login" });
     }
   });
@@ -598,7 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.clearUserSession(user.id);
       res.json({ message: "Sesión cerrada exitosamente" });
     } catch (error) {
-      console.error("Error en logout:", error);
+      // Logout error - handle gracefully
       res.status(500).json({ message: "Error al cerrar sesión" });
     }
   });
@@ -634,7 +634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(stats);
     } catch (error) {
-      console.error("Error obteniendo estadísticas:", error);
+      // Error getting dashboard stats - handle gracefully
       res.status(500).json({ message: "Error obteniendo estadísticas" });
     }
   });
@@ -661,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json(result);
       }
     } catch (error) {
-      console.error("Error obteniendo solicitudes:", error);
+      // Error getting requests - handle gracefully  
       res.status(500).json({ message: "Error obteniendo solicitudes" });
     }
   });
@@ -677,7 +677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(solicitud);
     } catch (error) {
-      console.error("Error obteniendo solicitud:", error);
+      // Error getting request by ID - handle gracefully
       res.status(500).json({ message: "Error obteniendo solicitud" });
     }
   });
@@ -747,7 +747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json(solicitud);
     } catch (error) {
-      console.error("Error creando solicitud:", error);
+      // Error creating request - handle validation and database errors
       if (error instanceof z.ZodError) {
         const validationErrors = error.errors.map(e => ({
           field: e.path.join('.'),
@@ -853,7 +853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(solicitud);
     } catch (error) {
-      console.error("Error actualizando solicitud:", error);
+      // Error actualizando solicitud:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
       }
@@ -892,7 +892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ message: "Solicitud eliminada exitosamente" });
     } catch (error) {
-      console.error("Error eliminando solicitud:", error);
+      // Error eliminando solicitud:", error);
       res.status(500).json({ message: "Error eliminando solicitud" });
     }
   });
@@ -903,7 +903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const plantillas = await storage.getPlantillasCorreo(req.user.id);
       res.json(plantillas);
     } catch (error) {
-      console.error("Error obteniendo plantillas:", error);
+      // Error obteniendo plantillas:", error);
       res.status(500).json({ message: "Error obteniendo plantillas" });
     }
   });
@@ -918,7 +918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const plantilla = await storage.createPlantillaCorreo(plantillaData);
       res.status(201).json(plantilla);
     } catch (error) {
-      console.error("Error creando plantilla:", error);
+      // Error creando plantilla:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
       }
@@ -939,7 +939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(plantilla);
     } catch (error) {
-      console.error("Error actualizando plantilla:", error);
+      // Error actualizando plantilla:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
       }
@@ -958,7 +958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ message: "Plantilla eliminada exitosamente" });
     } catch (error) {
-      console.error("Error eliminando plantilla:", error);
+      // Error eliminando plantilla:", error);
       res.status(500).json({ message: "Error eliminando plantilla" });
     }
   });
@@ -991,7 +991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await storage.getUsers(filters);
       res.json(result);
     } catch (error) {
-      console.error("Error obteniendo usuarios:", error);
+      // Error obteniendo usuarios:", error);
       res.status(500).json({ message: "Error obteniendo usuarios" });
     }
   });
@@ -1031,7 +1031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password, ...userResponse } = user;
       res.status(201).json(userResponse);
     } catch (error) {
-      console.error("Error creando usuario:", error);
+      // Error creando usuario:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
       }
@@ -1084,7 +1084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password, ...userResponse } = user;
       res.json(userResponse);
     } catch (error) {
-      console.error("Error actualizando usuario:", error);
+      // Error actualizando usuario:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
       }
@@ -1112,7 +1112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ message: "Usuario eliminado exitosamente" });
     } catch (error) {
-      console.error("Error eliminando usuario:", error);
+      // Error eliminando usuario:", error);
       res.status(500).json({ message: "Error eliminando usuario" });
     }
   });
@@ -1124,7 +1124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const historial = await storage.getHistorialBySolicitud(solicitudId);
       res.json(historial);
     } catch (error) {
-      console.error("Error obteniendo historial:", error);
+      // Error obteniendo historial:", error);
       res.status(500).json({ message: "Error obteniendo historial" });
     }
   });
@@ -1135,7 +1135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const notifications = await storage.getNotificacionesByUser(req.user.id);
       res.json(notifications);
     } catch (error) {
-      console.error("Error obteniendo notificaciones:", error);
+      // Error obteniendo notificaciones:", error);
       res.status(500).json({ message: "Error obteniendo notificaciones" });
     }
   });
@@ -1146,7 +1146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.markNotificacionAsRead(id);
       res.json({ message: "Notificación marcada como leída" });
     } catch (error) {
-      console.error("Error marcando notificación como leída:", error);
+      // Error marcando notificación como leída:", error);
       res.status(500).json({ message: "Error marcando notificación como leída" });
     }
   });
@@ -1156,7 +1156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const count = await storage.getUnreadNotificationsCount(req.user.id);
       res.json({ count });
     } catch (error) {
-      console.error("Error obteniendo conteo de notificaciones:", error);
+      // Error obteniendo conteo de notificaciones:", error);
       res.status(500).json({ message: "Error obteniendo conteo de notificaciones" });
     }
   });
@@ -1172,7 +1172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.send(guideContent);
     } catch (error) {
-      console.error("Error generando guía:", error);
+      // Error generando guía:", error);
       res.status(500).json({ message: "Error generando guía de usuario" });
     }
   });
@@ -1184,7 +1184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const plantillas = await storage.getPlantillasWord(tipoExperticia);
       res.json(plantillas);
     } catch (error) {
-      console.error("Error obteniendo plantillas Word:", error);
+      // Error obteniendo plantillas Word:", error);
       res.status(500).json({ message: "Error obteniendo plantillas Word" });
     }
   });
@@ -1229,7 +1229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const plantilla = await storage.createPlantillaWord(plantillaData);
       res.json(plantilla);
     } catch (error) {
-      console.error("Error creando plantilla Word:", error);
+      // Error creando plantilla Word:", error);
       res.status(500).json({ message: "Error creando plantilla Word" });
     }
   });
@@ -1245,7 +1245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(plantilla);
     } catch (error) {
-      console.error("Error obteniendo plantilla Word:", error);
+      // Error obteniendo plantilla Word:", error);
       res.status(500).json({ message: "Error obteniendo plantilla Word" });
     }
   });
@@ -1271,7 +1271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Disposition', `attachment; filename="${plantilla.nombreArchivo}"`);
       res.send(fileBuffer);
     } catch (error) {
-      console.error("Error descargando plantilla Word:", error);
+      // Error descargando plantilla Word:", error);
       res.status(500).json({ message: "Error descargando plantilla Word" });
     }
   });
@@ -1299,7 +1299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ message: "Error eliminando plantilla" });
       }
     } catch (error) {
-      console.error("Error eliminando plantilla Word:", error);
+      // Error eliminando plantilla Word:", error);
       res.status(500).json({ message: "Error eliminando plantilla Word" });
     }
   });
@@ -1326,7 +1326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Disposition', `attachment; filename="${plantilla.nombreArchivo}"`);
       res.send(fileBuffer);
     } catch (error) {
-      console.error("Error descargando plantilla por experticia:", error);
+      // Error descargando plantilla por experticia:", error);
       res.status(500).json({ message: "Error descargando plantilla" });
     }
   });
@@ -1393,7 +1393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate the document with data
         doc.render(templateData);
       } catch (error: any) {
-        console.error("Error rendering template:", error);
+        // Error rendering template:", error);
         // If template rendering fails, return the original template
         const fileBuffer = readFileSync(plantilla.archivo);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
@@ -1412,7 +1412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(buf);
 
     } catch (error) {
-      console.error("Error generando plantilla personalizada:", error);
+      // Error generando plantilla personalizada:", error);
       res.status(500).json({ message: "Error generando plantilla personalizada" });
     }
   });

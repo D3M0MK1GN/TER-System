@@ -24,15 +24,16 @@ export function Header({ title, subtitle }: HeaderProps) {
         const htmlContent = await response.text();
         // Open in new window with the HTML content
         const newWindow = window.open('', '_blank');
-        if (newWindow) {
+        if (newWindow && newWindow.document) {
+          newWindow.document.open();
           newWindow.document.write(htmlContent);
           newWindow.document.close();
         }
       } else {
-        console.error('Error fetching guide');
+        // Error fetching guide - handle silently
       }
     } catch (error) {
-      console.error('Error generating guide:', error);
+      // Error generating guide - handle silently
     }
   };
 
