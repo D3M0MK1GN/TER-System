@@ -32,7 +32,7 @@ const navItems = [
     permission: "canViewAllRequests" as const,
   },
   {
-    title: "Plantillas de Correo",
+    title: "Enviar Correo",
     href: "/plantillas",
     icon: Mail,
     permission: "canViewEmailTemplates" as const,
@@ -79,7 +79,9 @@ export function Sidebar() {
       {/* Header with toggle button */}
       <div className="flex items-center justify-between h-16 bg-primary text-white px-4">
         <div className="flex items-center space-x-3">
-          <Antenna className="h-6 w-6 flex-shrink-0" />
+          {/* <Antenna className="h-6 w-6 flex-shrink-0" /> */}
+          {/*<Cambiar logo del panel Lateral y ajustar tamaño /> */}
+          <img src="/cicipc.png" className="h-12 w-12 flex-shrink-0" alt="Logo" />
           {isOpen && <span className="font-bold text-lg">TER-System</span>}
         </div>
         <Button
