@@ -1,3 +1,4 @@
+// Formulario de Gestion de Solicitudes 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertSolicitudSchema } from "@shared/schema";
@@ -126,7 +127,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
               <Label htmlFor="numeroSolicitud">Número de Solicitud *</Label>
               <Input
                 id="numeroSolicitud"
-                placeholder="SOL-2024-XXX"
+                placeholder="0271-0982"
                 {...form.register("numeroSolicitud")}
               />
               {form.formState.errors.numeroSolicitud && (
@@ -154,7 +155,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
               <Label htmlFor="fiscal">Fiscal</Label>
               <Input
                 id="fiscal"
-                placeholder="Carlos León"
+                placeholder="Ej. Carlos León Fiscal Adscrito a la Fiscalía Quinta (º5)"
                 {...form.register("fiscal")}
               />
             </div>
@@ -227,11 +228,11 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                   <SelectValue placeholder="Seleccione coordinación" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="delitos_propiedad">Delitos Contra la Propiedad</SelectItem>
-                  <SelectItem value="delitos_personas">Delitos Contra las Personas</SelectItem>
-                  <SelectItem value="crimen_organizado">Crimen Organizado</SelectItem>
-                  <SelectItem value="ciberdelitos">Ciberdelitos</SelectItem>
-                  <SelectItem value="otros">Otros</SelectItem>
+                  <SelectItem value="delitos_propiedad">Coordinacion de Delitos Contra la Propiedad</SelectItem>
+                  <SelectItem value="delitos_personas">Coordinacion de los Delitos Contra las Personas</SelectItem>
+                  <SelectItem value="crimen_organizado">Coordinacion de los Delitos Contra la Delincuencia Organizada</SelectItem>
+                  <SelectItem value="delitos_vehiculos">Coordinacion de los Delitos Contra el Hurto y Robo de Vehiculo Automotor</SelectItem>
+                  <SelectItem value="captura">Captura</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.coordinacionSolicitante && (

@@ -203,7 +203,7 @@ export default function Dashboard() {
   }
 
   return (
-    <Layout title="Panel de Control" subtitle="Gestiona tu sistema desde aquí">
+    <Layout title="Panel de Control" subtitle="Gestion del Sistema">
       <div className="p-6">
         {/* Quick Access Buttons */}
         <div className="mb-6 flex gap-3">

@@ -1,3 +1,4 @@
+// Pagina para Enviar las solicitudes por correo 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
@@ -157,7 +158,7 @@ export default function Templates() {
   };
 
   return (
-    <Layout title="Plantillas de Correo" subtitle="Gestionar plantillas de correo por operador">
+    <Layout title="Plantillas de Correo" subtitle="Gestionar y Enviar correo por operador">
       <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Plantillas de Correo</h2>
