@@ -51,6 +51,8 @@ export const coordinacionEnum = pgEnum("coordinacion", [
   "delitos_propiedad",
   "delitos_personas",
   "crimen_organizado",
+  "delitos_vehiculos",
+  "captura",
   "ciberdelitos",
   "otros"
 ]);
