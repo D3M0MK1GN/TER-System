@@ -185,19 +185,19 @@ function generateUserGuideHTML(): string {
     <button class="print-button" onclick="window.print()">Imprimir / Guardar PDF</button>
     
     <div class="header">
-        <h1>📡 TER-System</h1>
+        <h1><img src="/cicipc32x32.png" className="h-15 w-15 flex-shrink-0" alt="Logo" /> TER-System</h1>
         <p>Guía de Usuario - Sistema de Gestión de Solicitudes de Telecomunicaciones</p>
     </div>
 
     <div class="section">
         <h2>🏠 Introducción</h2>
-        <p>TER-System es un sistema integral para la gestión de solicitudes de telecomunicaciones dirigidas a operadores venezolanos. Esta guía te ayudará a utilizar todas las funcionalidades del sistema de manera eficiente.</p>
+        <p>TER-System es un sistema integral para la gestión de solicitudes de telecomunicaciones dirigidas a operadores telefonicos del cicpc. Esta guía te ayudará a utilizar todas las funcionalidades del sistema de manera eficiente.</p>
         
-        <h3>Operadores Soportados</h3>
+        <h3>Empresas Telefonicas Soportadas</h3>
         <ul class="feature-list">
-            <li><strong>Digitel:</strong> Operador de telecomunicaciones venezolano</li>
-            <li><strong>Movistar:</strong> Operador de telecomunicaciones venezolano</li>
-            <li><strong>Movilnet:</strong> Operador de telecomunicaciones venezolano</li>
+            <li><strong>Digitel:</strong> Empresa de telecomunicaciones Digitel</li>
+            <li><strong>Movistar:</strong> Empresa de telecomunicaciones Movistar</li>
+            <li><strong>Movilnet:</strong> Empresa de telecomunicaciones Movilnet</li>
         </ul>
     </div>
 
@@ -248,7 +248,7 @@ function generateUserGuideHTML(): string {
                     <li><strong>Tipo de Experticia:</strong> Selecciona del menú desplegable</li>
                     <li><strong>Coordinación Solicitante:</strong> Selecciona del menú desplegable</li>
                     <li><strong>Operador:</strong> Digitel, Movistar o Movilnet</li>
-                    <li><strong>Información de la Línea:</strong> Datos específicos según experticia</li>
+                    <li><strong>Información de experticia:</strong> Datos específicos según experticia</li>
                     <li><strong>Reseña:</strong> Descripción detallada de la solicitud</li>
                 </ul>
             </li>
@@ -265,8 +265,8 @@ function generateUserGuideHTML(): string {
 
         <h3>Estados de Solicitudes</h3>
         <ul class="feature-list">
-            <li><strong>Procesando:</strong> Solicitud en proceso interno</li>
             <li><strong>Enviada:</strong> Solicitud enviada al operador</li>
+            <li><strong>Procesando:</strong> Solicitud en proceso interno</li>
             <li><strong>Respondida:</strong> Operador ha enviado respuesta</li>
             <li><strong>Rechazada:</strong> Solicitud rechazada por el operador</li>
         </ul>
@@ -286,9 +286,9 @@ function generateUserGuideHTML(): string {
             <li>Completa los campos:
                 <ul>
                     <li><strong>Nombre:</strong> Identificador de la plantilla</li>
-                    <li><strong>Operador:</strong> Operador al que se dirige</li>
+                    <li><strong>Operador:</strong> Empresa Telefonica a la que se dirige</li>
                     <li><strong>Asunto:</strong> Asunto del correo electrónico</li>
-                    <li><strong>Cuerpo:</strong> Contenido del correo con variables dinámicas</li>
+                    <li><strong>Cuerpo:</strong> Contenido del correo</li>
                 </ul>
             </li>
             <li>Guarda la plantilla para uso futuro</li>
@@ -363,9 +363,9 @@ function generateUserGuideHTML(): string {
 
     <div class="section">
         <h2>📅 Información de Versión</h2>
-        <p><strong>Sistema:</strong> TER-System v1.0</p>
-        <p><strong>Última actualización:</strong> Julio 2025</p>
-        <p><strong>Soporte:</strong> PostgreSQL, React, Node.js</p>
+        <p><strong>Sistema:</strong> TER-System v3.5</p>
+        <p><strong>Última actualización:</strong> Julio 24/07/2025</p>
+        <p><strong>Desarrolador:</strong> Sistema Desarollado por D1killer</p>
     </div>
 
 </body>

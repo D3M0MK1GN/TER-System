@@ -10,3 +10,10 @@ Funcionalidades Esenciales (MVP): de esta seccion Gestion de Solicitudes
 5.Búsqueda y Filtrado: Capacidad para buscar y filtrar solicitudes por, operador, número de número de solicitud, expediente, tipo de experticia, estado
 6.Visualización de Solicitudes:   clara y concisa para ver los detalles de cada solicitud, que sea por medio de una tabla que se muestran todas las solicitudes realizadas). Cada fila debe contener: Operador, Número de Solicitud, Número de Expediente, Tipo de Experticia y Estado de la Solicitud, La tabla debería permitir la paginación (para manejar un gran número de solicitudes
 Ojo: la creacion de la aplicacion web en español y creame la documentacion en donde especifiques funcinalidades y partes del codigo encensiales asi como tambien la librerias utilizadas
+
+Tailwind VALIDAR CSS EN JSON 
+{
+  "css.validate": false,
+  "less.validate": false,
+  "scss.validate": false
+}
