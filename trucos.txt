@@ -1,0 +1,1 @@
+Actualizar los token de acceso = UPDATE users SET session_token = NULL, session_expires = NULL WHERE session_token IS NOT NULL;

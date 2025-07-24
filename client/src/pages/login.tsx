@@ -1,20 +1,39 @@
-import { useState } from "react";
+//import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { Antenna, User, Lock, LogIn, Shield } from "lucide-react";
+import { Antenna, User, Lock, LogIn, Shield, Clock } from "lucide-react";
 import { useLocation } from "wouter";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [inactivityMessage, setInactivityMessage] = useState(false);
   const { login } = useAuth();
   const [, setLocation] = useLocation();
+
+    // Check for inactivity timeout message
+  useEffect(() => {
+    const timeoutReason = localStorage.getItem('sessionTimeoutReason');
+    if (timeoutReason === 'inactivity') {
+      setInactivityMessage(true);
+      localStorage.removeItem('sessionTimeoutReason');
+      
+      // Auto-hide message after 10 seconds
+      const timer = setTimeout(() => {
+        setInactivityMessage(false);
+      }, 10000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +66,15 @@ export default function Login() {
           </CardTitle>
           <p className="text-gray-600">Sistema de Gestion de Solicitudes de Telecomunicaciones</p>
         </CardHeader>
-        
+                  {inactivityMessage && (
+            <Alert className="mb-4 border-orange-200 bg-orange-50">
+              <Clock className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800">
+                Su sesión se cerró automáticamente por <strong>Inactividad Detectada</strong>. 
+                Por favor, inicie sesión nuevamente.
+              </AlertDescription>
+            </Alert>
+          )}
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>

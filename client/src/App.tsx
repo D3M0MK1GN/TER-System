@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/hooks/use-sidebar-context";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Requests from "@/pages/requests";
@@ -77,11 +78,17 @@ function Router() {
   );
 }
 
+function InactivityManager() {
+  useInactivityTimeout();
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <SidebarProvider>
+          <InactivityManager />
           <Toaster />
           <Router />
         </SidebarProvider>
