@@ -185,7 +185,7 @@ function generateUserGuideHTML(): string {
     <button class="print-button" onclick="window.print()">Imprimir / Guardar PDF</button>
     
     <div class="header">
-        <h1><img src="/cicipc32x32.png" className="h-15 w-15 flex-shrink-0" alt="Logo" /> TER-System</h1>
+        <h1><img src="/cicipc-32x32.png" className="h-15 w-15 flex-shrink-0" alt="Logo" /> TER-System</h1>
         <p>Guía de Usuario - Sistema de Gestión de Solicitudes de Telecomunicaciones</p>
     </div>
 

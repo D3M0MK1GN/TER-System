@@ -1,0 +1,92 @@
+[
+    {
+        "timestamp": "2025-07-24T01:45:28.264928",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28609925,
+                "fecha_nac": "2001-06-26",
+                "rif": "V286099250",
+                "primer_apellido": "JIMENEZ",
+                "segundo_apellido": "MENDOZA",
+                "primer_nombre": "RAUL",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2025-07-24T05:45:28.217Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-07-24T01:47:24.799037",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "16667970",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=16667970",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 16667970,
+                "fecha_nac": "1984-06-29",
+                "rif": "V166679709",
+                "cne": {
+                    "estado": "ANZOATEGUI",
+                    "municipio": "ARAGUA",
+                    "parroquia": "ARAGUA DE BARCELONA",
+                    "centro_electoral": "UNIDAD EDUCATIVA  DOCTOR ALIRIO ARREAZA"
+                },
+                "primer_apellido": "SUCRE",
+                "segundo_apellido": "VELASQUEZ",
+                "primer_nombre": "LUIS",
+                "segundo_nombre": "FERNANDO",
+                "request_date": "2025-07-24T05:47:24.717Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-07-24T12:39:59.383340",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "26305192",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=26305192",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 26305192,
+                "fecha_nac": "1997-11-27",
+                "rif": "V263051927",
+                "primer_apellido": "MARTINEZ",
+                "segundo_apellido": "RIVERO",
+                "primer_nombre": "LUISANDER",
+                "segundo_nombre": "LEONARDY",
+                "request_date": "2025-07-24T16:39:59.334Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-07-24T12:40:58.629271",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "30130053",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=30130053",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 30130053,
+                "fecha_nac": "2004-01-15",
+                "rif": "V301300537",
+                "primer_apellido": "TOVAR",
+                "segundo_apellido": "LEON",
+                "primer_nombre": "JOSE",
+                "segundo_nombre": "GREGORIO",
+                "request_date": "2025-07-24T16:40:58.568Z"
+            }
+        }
+    }
+]
