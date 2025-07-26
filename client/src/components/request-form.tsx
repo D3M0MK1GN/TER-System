@@ -193,14 +193,14 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="identificar_datos_numero">Identificar datos de un número</SelectItem>
-                  <SelectItem value="determinar_tramite_venta_linea">Determinar dónde fue tramitada la venta de línea</SelectItem>
+                  <SelectItem value="determinar_historicos_trazas_bts">Determinar Históricos de Trazas Telefónicas BTS</SelectItem>
                   <SelectItem value="determinar_linea_conexion_ip">Determinar línea telefónica con conexión IP</SelectItem>
                   <SelectItem value="identificar_radio_bases_bts">Identificar las Radio Bases (BTS)</SelectItem>
                   <SelectItem value="identificar_numeros_duraciones_bts">Identificar números con duraciones específicas en la Radio Base (BTS)</SelectItem>
                   <SelectItem value="determinar_contaminacion_linea">Determinar contaminación de línea</SelectItem>
                   <SelectItem value="determinar_sim_cards_numero">Determinar SIM CARDS utilizados con un número telefónico</SelectItem>
                   <SelectItem value="determinar_comportamiento_social">Determinar comportamiento social</SelectItem>
-                  <SelectItem value="determinar_numeros_comun">Determinar números en común</SelectItem>
+                  <SelectItem value="determinar_contacto_frecuente">Determinar Contacto Frecuente</SelectItem>
                   <SelectItem value="determinar_ubicacion_llamadas">Determinar ubicación mediante registros de llamadas</SelectItem>
                   <SelectItem value="determinar_ubicacion_trazas">Determinar ubicación mediante registros de trazas telefónicas</SelectItem>
                   <SelectItem value="determinar_contaminacion_equipo_imei">Determinar contaminación de equipo (IMEI)</SelectItem>
@@ -209,6 +209,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                   <SelectItem value="identificar_numeros_repetidos_bts">Identificar números repetidos en la Radio Base (BTS)</SelectItem>
                   <SelectItem value="determinar_numero_internacional">Determinar número internacional</SelectItem>
                   <SelectItem value="identificar_linea_sim_card">Identificar línea mediante SIM CARD</SelectItem>
+                  <SelectItem value="identificar_cambio_simcard_documentos">Identificar Cambio de SIM CARD y Documentos</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.tipoExperticia && (
