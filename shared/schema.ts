@@ -5,6 +5,7 @@ import { relations } from "drizzle-orm";
 
 export const statusEnum = pgEnum("status", ["activo", "suspendido", "bloqueado"]);
 
+// Esquema para la Tabla usuarios de la Base de datos
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -12,6 +13,7 @@ export const users = pgTable("users", {
   nombre: text("nombre").notNull(),
   email: text("email"),
   rol: text("rol").default("usuario"),
+  coordinacion: text("coordinacion"),
   activo: boolean("activo").default(true),
   status: statusEnum("status").default("activo"),
   direccionIp: text("direccion_ip"),

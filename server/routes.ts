@@ -652,7 +652,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: parseInt(req.query.limit as string) || 10,
       };
 
-      // For regular users, only show their own requests
+        // For regular users, filter by their coordination
+      if (req.user.rol === "usuario") {
+        // Users can only see requests from their coordination
+        if (!req.user.coordinacion) {
+        return res.status(403).json({ message: "Usuario sin coordinación asignada" });
+      }
+  
+          // Add coordination filter to existing filters
+          const coordinacionFilters = { 
+          ...filters, 
+          coordinacionSolicitante: req.user.coordinacion 
+        };
+        const result = await storage.getSolicitudes(coordinacionFilters);
+        res.json(result);
+      } else {
+        // Admins and supervisors can see all requests
+        const result = await storage.getSolicitudes(filters);
+        res.json(result);
+      }
+    } catch (error) {
+      // Error getting requests - handle gracefully  
+      res.status(500).json({ message: "Error obteniendo solicitudes" });
+    }
+  });
+      /* For regular users, only show their own requests
       if (req.user.rol === "usuario") {
         const result = await storage.getSolicitudesByUser(req.user.id, filters);
         res.json(result);
@@ -665,7 +689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Error getting requests - handle gracefully  
       res.status(500).json({ message: "Error obteniendo solicitudes" });
     }
-  });
+  }); */
 
   app.get("/api/solicitudes/:id", authenticateToken, async (req, res) => {
     try {

@@ -26,6 +26,7 @@ const createUserFormSchema = (isEdit: boolean) => {
       .or(z.literal(""))
       .transform(val => val ? val.trim().toLowerCase() : val),
     rol: z.string().min(1, "Debe seleccionar un rol"),
+    coordinacion: z.string().optional().or(z.literal("")),
     status: z.string().min(1, "Debe seleccionar un estado"),
     direccionIp: z.string()
       .optional()
@@ -50,6 +51,15 @@ const createUserFormSchema = (isEdit: boolean) => {
   }, {
     message: "El tiempo y motivo de suspensión son requeridos cuando el estado es suspendido",
     path: ["tiempoSuspension"],
+  }).refine((data) => {
+    // Si el rol es usuario, la coordinación es obligatoria
+    if (data.rol === "usuario") {
+      return data.coordinacion && data.coordinacion.trim() !== "";
+    }
+    return true;
+  }, {
+    message: "La coordinación es obligatoria para usuarios",
+    path: ["coordinacion"],
   });
 };
 
@@ -74,6 +84,7 @@ export function UserForm({ onSubmit, onCancel, user, initialData, isLoading, isE
       nombre: userData?.nombre || "",
       email: userData?.email || "",
       rol: userData?.rol || "usuario",
+      coordinacion: userData?.coordinacion || "",
       status: userData?.status || "activo",
       direccionIp: userData?.direccionIp || "",
       password: "",
@@ -177,6 +188,33 @@ export function UserForm({ onSubmit, onCancel, user, initialData, isLoading, isE
             </FormItem>
           )}
         />
+
+        {/* Campo de coordinación - obligatorio solo para usuarios */}
+        {form.watch("rol") === "usuario" && (
+          <FormField
+            control={form.control}
+            name="coordinacion"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Coordinación *</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una coordinación" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="delitos_propiedad">Coordinacion de los Delitos Contra la Propiedad</SelectItem>
+                    <SelectItem value="delitos_personas">Coordinacion de los Delitos Contra las Personas</SelectItem>
+                    <SelectItem value="crimen_organizado">Coordinacion de los Delitos Contra la Delincuencia Organizada</SelectItem>
+                    <SelectItem value="delitos_vehiculos">Coordinacion de los Delitos Contra el Hurto y Robo de Vehiculo Automotor</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}

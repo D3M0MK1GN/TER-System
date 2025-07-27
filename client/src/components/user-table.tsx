@@ -80,6 +80,23 @@ export function UserTable({
     }
   };
 
+  const getCoordinacionDisplay = (coordinacion: string | null | undefined) => {
+    if (!coordinacion) return "No asignada";
+    
+    switch (coordinacion) {
+      case "delitos_propiedad":
+        return "Coordinacion de los Delitos Contra la Propiedad";
+      case "delitos_personas":
+        return "Coordinacion de los Delitos Contra las Personas";
+      case "crimen_organizado":
+        return "Coordinacion de los Delitos Contra la Delincuencia Organizada";
+      case "delitos_vehiculos":
+        return "Coordinacion de los Delitos Contra el Hurto y Robo de Vehiculo Automotor";
+      default:
+        return coordinacion;
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -163,6 +180,7 @@ export function UserTable({
               <TableHead className="min-w-[150px]">Nombre</TableHead>
               <TableHead className="min-w-[200px]">Email</TableHead>
               <TableHead className="min-w-[120px]">Rol</TableHead>
+              <TableHead className="min-w-[150px]">Coordinación</TableHead>
               <TableHead className="min-w-[140px]">Estado</TableHead>
               <TableHead className="min-w-[140px]">Dirección IP</TableHead>
               <TableHead className="min-w-[140px]">Último Acceso</TableHead>
@@ -172,7 +190,7 @@ export function UserTable({
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                   No se encontraron usuarios
                 </TableCell>
               </TableRow>
@@ -183,6 +201,11 @@ export function UserTable({
                   <TableCell>{user.nombre}</TableCell>
                   <TableCell>{user.email || "No especificado"}</TableCell>
                   <TableCell>{getRoleBadge(user.rol || "usuario")}</TableCell>
+                  <TableCell>
+                    <span className="text-sm text-gray-600">
+                      {getCoordinacionDisplay(user.coordinacion)}
+                    </span>
+                  </TableCell>
                   <TableCell>{getStatusBadge(user)}</TableCell>
                   <TableCell>{user.direccionIp || "No especificada"}</TableCell>
                   <TableCell>

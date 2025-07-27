@@ -55,6 +55,7 @@ export interface IStorage {
     estado?: string;
     tipoExperticia?: string;
     search?: string;
+    coordinacionSolicitante?: string;
     page?: number;
     limit?: number;
   }): Promise<{ solicitudes: Solicitud[]; total: number }>;
@@ -67,6 +68,8 @@ export interface IStorage {
     page?: number;
     limit?: number;
   }): Promise<{ solicitudes: Solicitud[]; total: number }>;
+
+
   getSolicitudById(id: number): Promise<Solicitud | undefined>;
   getSolicitudByNumero(numeroSolicitud: string): Promise<Solicitud | undefined>;
   createSolicitud(solicitud: InsertSolicitud): Promise<Solicitud>;
@@ -119,6 +122,8 @@ export interface IStorage {
     solicitudesPorOperador: { operador: string; total: number }[];
     actividadReciente: any[];
   }>;
+
+
 }
 
 export class DatabaseStorage implements IStorage {
@@ -226,6 +231,7 @@ export class DatabaseStorage implements IStorage {
     estado?: string;
     tipoExperticia?: string;
     search?: string;
+    coordinacionSolicitante?: string;
     page?: number;
     limit?: number;
   }): Promise<{ solicitudes: Solicitud[]; total: number }> {
@@ -246,6 +252,10 @@ export class DatabaseStorage implements IStorage {
 
       if (filters?.tipoExperticia && filters.tipoExperticia.trim()) {
         whereConditions.push(eq(solicitudes.tipoExperticia, filters.tipoExperticia as any));
+      }
+
+      if (filters?.coordinacionSolicitante && filters.coordinacionSolicitante.trim()) {
+        whereConditions.push(eq(solicitudes.coordinacionSolicitante, filters.coordinacionSolicitante as any));
       }
 
       if (filters?.search && filters.search.trim()) {
@@ -469,6 +479,8 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+
+
   async getSolicitudesByUser(userId: number, filters?: {
     operador?: string;
     estado?: string;
@@ -532,6 +544,8 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+
+
 
   // Notificaciones
   async createNotificacion(userId: number, solicitudId: number | null, mensaje: string): Promise<void> {
