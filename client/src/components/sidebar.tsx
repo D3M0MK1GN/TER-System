@@ -16,6 +16,7 @@ import {
   Users,
   Menu,
   X,
+  Bot,
 } from "lucide-react";
 
 const navItems = [
@@ -42,6 +43,12 @@ const navItems = [
     href: "/reportes",
     icon: BarChart3,
     permission: "canViewAllReports" as const,
+  },
+  {
+    title: "Chatbot",
+    href: "/chatbot",
+    icon: Bot,
+    permission: "canViewDashboard" as const,
   },
 
 ];

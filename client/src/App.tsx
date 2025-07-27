@@ -13,6 +13,7 @@ import Requests from "@/pages/requests";
 import Templates from "@/pages/templates";
 import Reports from "@/pages/reports";
 import Users from "@/pages/users";
+import ChatbotPage from "@/pages/chatbot";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children, requirePermission }: { children: React.ReactNode; requirePermission?: keyof import("@/hooks/use-permissions").Permission }) {
@@ -61,6 +62,11 @@ function Router() {
       <Route path="/reportes">
         <ProtectedRoute requirePermission="canViewDashboard">
           <Reports />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/chatbot">
+        <ProtectedRoute>
+          <ChatbotPage />
         </ProtectedRoute>
       </Route>
       <Route path="/usuarios">

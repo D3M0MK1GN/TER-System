@@ -19,6 +19,7 @@ import { z } from "zod";
 import multer from "multer";
 import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import path from "path";
+import { processTextMessage, processFileMessage, getMimeType, isSupportedFileType } from "./gemini";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -35,6 +36,40 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Solo se permiten archivos Word (.doc, .docx)') as any, false);
+    }
+  }
+});
+
+// Configure multer for chatbot file uploads
+const chatbotUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const chatDir = path.join(process.cwd(), 'uploads', 'chatbot');
+      if (!existsSync(chatDir)) {
+        mkdirSync(chatDir, { recursive: true });
+      }
+      cb(null, chatDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}-${file.originalname}`;
+      cb(null, uniqueName);
+    }
+  }),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit for chatbot files
+  },
+  fileFilter: (req, file, cb) => {
+    const supportedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf', 'text/plain',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword'
+    ];
+    
+    if (supportedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no soportado para el chatbot') as any, false);
     }
   }
 });
@@ -1428,6 +1463,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       // Error generando plantilla personalizada:", error);
       res.status(500).json({ message: "Error generando plantilla personalizada" });
+    }
+  });
+
+  // Chatbot routes
+  app.post("/api/chatbot/message", authenticateToken, chatbotUpload.single('file'), async (req: any, res) => {
+    try {
+      const { message } = req.body;
+      const file = req.file;
+
+      if (!message && !file) {
+        return res.status(400).json({ message: "Se requiere un mensaje o archivo" });
+      }
+
+      let response: string;
+
+      if (file) {
+        // Process message with file
+        const mimeType = getMimeType(file.originalname);
+        if (!mimeType) {
+          // Clean up uploaded file
+          unlinkSync(file.path);
+          return res.status(400).json({ message: "Tipo de archivo no soportado" });
+        }
+
+        response = await processFileMessage(
+          message || "Analiza este archivo y proporciona un resumen detallado.",
+          file.path,
+          mimeType
+        );
+
+        // Clean up uploaded file after processing
+        try {
+          unlinkSync(file.path);
+        } catch (cleanupError) {
+          // Log cleanup error but don't fail the request
+        }
+      } else {
+        // Process text-only message
+        response = await processTextMessage(message);
+      }
+
+      res.json({ response });
+    } catch (error: any) {
+      // Clean up file if it exists and there was an error
+      if (req.file) {
+        try {
+          unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+        }
+      }
+
+      res.status(500).json({ 
+        message: "Error procesando mensaje del chatbot", 
+        error: error.message 
+      });
     }
   });
 
