@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Edit, Mail, Trash2, Search, Plus, ChevronLeft, ChevronRight, Printer, Calendar, User, FileText, Building, ClipboardList } from "lucide-react";
+import { Eye, Edit, Mail, Trash2, Search, Plus, ChevronLeft, ChevronRight, Printer, Calendar, User, FileText, Building, ClipboardList, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { type Solicitud } from "@shared/schema";
@@ -22,6 +23,7 @@ interface RequestTableProps {
   onDelete: (id: number) => void;
   onView: (solicitud: Solicitud) => void;
   onCreateNew: () => void;
+  onExportExcel: () => void;
   loading?: boolean;
   permissions: Permission;
 }
@@ -92,6 +94,7 @@ export function RequestTable({
   onDelete,
   onView,
   onCreateNew,
+  onExportExcel,
   loading,
   permissions,
 }: RequestTableProps) {
@@ -99,6 +102,7 @@ export function RequestTable({
     operador: "",
     estado: "",
     tipoExperticia: "",
+    coordinacion: "",
     search: "",
   });
 
@@ -106,6 +110,7 @@ export function RequestTable({
     operador: "todos",
     estado: "todos", 
     tipoExperticia: "todos",
+    coordinacion: "todos",
   });
 
   const [viewingSolicitud, setViewingSolicitud] = useState<Solicitud | null>(null);
@@ -161,10 +166,19 @@ export function RequestTable({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-800">Gestión de Solicitudes</h2>
-        <Button onClick={onCreateNew} className="bg-primary text-white">
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva Solicitud
-        </Button>
+        <div className="flex gap-2">
+          {/* Botón de exportar Excel solo para administradores */}
+          {permissions.canManageUsers && (
+            <Button onClick={onExportExcel} variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100">
+              <Download className="mr-2 h-4 w-4" />
+              Exportar Excel
+            </Button>
+          )}
+          <Button onClick={onCreateNew} className="bg-primary text-white">
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Solicitud
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -173,7 +187,7 @@ export function RequestTable({
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${permissions.canManageUsers ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Operador
@@ -249,6 +263,31 @@ export function RequestTable({
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Filtro de coordinación solo para administradores */}
+            {permissions.canManageUsers && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Coordinación
+                </label>
+                <Select
+                  value={selectValues.coordinacion}
+                  onValueChange={(value) => handleFilterChange("coordinacion", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    <SelectItem value="delitos_propiedad">Coordinación de los Delitos Contra la Propiedad</SelectItem>
+                    <SelectItem value="delitos_personas">Coordinación de los Delitos Contra las Personas</SelectItem>
+                    <SelectItem value="delincuencia_organizada">Coordinación de los Delitos Contra la Delincuencia Organizada</SelectItem>
+                    <SelectItem value="hurto_robo_vehiculo">Coordinación de los Delitos Contra el Hurto y Robo de Vehículo Automotor</SelectItem>
+                    <SelectItem value="captura_homicidio">Captura y Homicidio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

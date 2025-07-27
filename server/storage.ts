@@ -438,6 +438,25 @@ export class DatabaseStorage implements IStorage {
     solicitudesPorOperador: { operador: string; total: number }[];
     actividadReciente: any[];
   }> {
+    // First get the user to find their coordinacion
+    const user = await this.getUser(userId);
+    // console.log(`[DEBUG] getDashboardStatsByUser - User: ${user?.username}, Coordinacion: ${user?.coordinacion}`); Informacion por log 
+    
+    if (!user || !user.coordinacion) {
+    //  console.log(`[DEBUG] User not found or no coordinacion - returning empty stats`); Informacion por log 
+      // If user doesn't exist or has no coordinacion, return empty stats
+      return {
+        totalSolicitudes: 0,
+        pendientes: 0,
+        enviadas: 0,
+        respondidas: 0,
+        rechazadas: 0,
+        solicitudesPorOperador: [],
+        actividadReciente: [],
+      };
+    }
+
+    // Filter by coordinacion to show all requests for this user's coordination
     const [
       totalSolicitudes,
       pendientes,
@@ -447,23 +466,23 @@ export class DatabaseStorage implements IStorage {
       solicitudesPorOperador,
       actividadReciente,
     ] = await Promise.all([
-      db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.usuarioId, userId)),
-      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "procesando"))),
-      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "enviada"))),
-      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "respondida"))),
-      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.usuarioId, userId), eq(solicitudes.estado, "rechazada"))),
+      db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.coordinacionSolicitante, user.coordinacion)),
+      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.coordinacionSolicitante, user.coordinacion), eq(solicitudes.estado, "procesando"))),
+      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.coordinacionSolicitante, user.coordinacion), eq(solicitudes.estado, "enviada"))),
+      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.coordinacionSolicitante, user.coordinacion), eq(solicitudes.estado, "respondida"))),
+      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.coordinacionSolicitante, user.coordinacion), eq(solicitudes.estado, "rechazada"))),
       db
         .select({
           operador: solicitudes.operador,
           total: count(),
         })
         .from(solicitudes)
-        .where(eq(solicitudes.usuarioId, userId))
+        .where(eq(solicitudes.coordinacionSolicitante, user.coordinacion))
         .groupBy(solicitudes.operador),
       db
         .select()
         .from(solicitudes)
-        .where(eq(solicitudes.usuarioId, userId))
+        .where(eq(solicitudes.coordinacionSolicitante, user.coordinacion))
         .orderBy(desc(solicitudes.updatedAt))
         .limit(10),
     ]);
@@ -490,11 +509,18 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
   }): Promise<{ solicitudes: Solicitud[]; total: number }> {
     try {
+      // Get user to find their coordinacion
+      const user = await this.getUser(userId);
+      if (!user || !user.coordinacion) {
+        return { solicitudes: [], total: 0 };
+      }
+
       const page = Math.max(1, filters?.page || 1);
       const limit = Math.min(100, Math.max(1, filters?.limit || 10));
       const offset = (page - 1) * limit;
 
-      let whereConditions: any[] = [eq(solicitudes.usuarioId, userId)];
+      // Filter by coordinacion instead of just userId
+      let whereConditions: any[] = [eq(solicitudes.coordinacionSolicitante, user.coordinacion)];
 
       if (filters?.operador && filters.operador.trim()) {
         whereConditions.push(eq(solicitudes.operador, filters.operador as any));

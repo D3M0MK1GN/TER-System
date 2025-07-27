@@ -70,10 +70,8 @@ export default function Dashboard() {
     navigate(`/dashboard${search ? `?${search}` : ''}`);
   };
   
-  // For users, fetch only their own stats, for admins/supervisors fetch all
-  const statsEndpoint = permissions.canViewAllRequests 
-    ? "/api/dashboard/stats" 
-    : `/api/dashboard/stats?userId=${user?.id}`;
+  // For users, fetch stats by their coordination, for admins/supervisors fetch all
+  const statsEndpoint = "/api/dashboard/stats";
     
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: [statsEndpoint],

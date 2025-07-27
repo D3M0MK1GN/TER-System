@@ -618,15 +618,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard Routes - role-based
   app.get("/api/dashboard/stats", authenticateToken, async (req: any, res) => {
     try {
-      const userId = req.query.userId ? parseInt(req.query.userId) : null;
       const userRole = req.user.rol;
       
-      // For regular users, only show their own data
+      // For regular users, show data by their coordination
       let stats;
       if (userRole === "usuario") {
-        stats = await storage.getDashboardStatsByUser(req.user.id);
-      } else if (userId && userRole === "usuario") {
-        // Users can only see their own data
         stats = await storage.getDashboardStatsByUser(req.user.id);
       } else {
         // Admins and supervisors can see all data
@@ -635,7 +631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(stats);
     } catch (error) {
-      // Error getting dashboard stats - handle gracefully
+      console.error('Error getting dashboard stats:', error);
       res.status(500).json({ message: "Error obteniendo estadísticas" });
     }
   });
@@ -647,6 +643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         operador: req.query.operador as string,
         estado: req.query.estado as string,
         tipoExperticia: req.query.tipoExperticia as string,
+        coordinacion: req.query.coordinacion as string,
         search: req.query.search as string,
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
@@ -667,8 +664,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await storage.getSolicitudes(coordinacionFilters);
         res.json(result);
       } else {
-        // Admins and supervisors can see all requests
-        const result = await storage.getSolicitudes(filters);
+        // Admins and supervisors can see all requests with optional coordination filter
+        const adminFilters: any = { ...filters };
+        if (adminFilters.coordinacion && adminFilters.coordinacion !== "todos") {
+          adminFilters.coordinacionSolicitante = adminFilters.coordinacion;
+        }
+        delete adminFilters.coordinacion; // Remove coordinacion from filters, use coordinacionSolicitante instead
+        
+        const result = await storage.getSolicitudes(adminFilters);
         res.json(result);
       }
     } catch (error) {
@@ -676,20 +679,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error obteniendo solicitudes" });
     }
   });
-      /* For regular users, only show their own requests
-      if (req.user.rol === "usuario") {
-        const result = await storage.getSolicitudesByUser(req.user.id, filters);
-        res.json(result);
-      } else {
-        // Admins and supervisors can see all requests
-        const result = await storage.getSolicitudes(filters);
-        res.json(result);
-      }
-    } catch (error) {
-      // Error getting requests - handle gracefully  
-      res.status(500).json({ message: "Error obteniendo solicitudes" });
-    }
-  }); */
 
   app.get("/api/solicitudes/:id", authenticateToken, async (req, res) => {
     try {

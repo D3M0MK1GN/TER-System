@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@google/genai": "^1.11.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",
@@ -85,6 +86,7 @@
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0",
     "zustand": "^5.0.6"

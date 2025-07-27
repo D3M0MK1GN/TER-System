@@ -23,10 +23,8 @@ export default function Reports() {
   const { user } = useAuth();
   const permissions = usePermissions();
   
-  // For users, fetch only their own stats, for admins/supervisors fetch all
-  const statsEndpoint = permissions.canViewAllReports 
-    ? "/api/dashboard/stats" 
-    : `/api/dashboard/stats?userId=${user?.id}`;
+  // For users, fetch stats by their coordination, for admins/supervisors fetch all
+  const statsEndpoint = "/api/dashboard/stats";
     
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: [statsEndpoint],

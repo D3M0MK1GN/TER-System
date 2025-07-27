@@ -17,6 +17,7 @@ export default function Requests() {
     operador: "",
     estado: "",
     tipoExperticia: "",
+    coordinacion: "",
     search: "",
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -189,6 +190,75 @@ export default function Requests() {
     setCurrentPage(1);
   };
 
+  const handleExportExcel = async () => {
+    try {
+      // Fetch all solicitudes without pagination
+      const params = new URLSearchParams({
+        ...filters,
+        page: "1",
+        limit: "1000", // Get all records
+      });
+      
+      const response = await fetch(`/api/solicitudes?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error obteniendo solicitudes para exportar');
+      }
+      
+      const data = await response.json();
+      const allSolicitudes = data.solicitudes || [];
+      
+      // Import xlsx dynamically
+      const XLSX = await import('xlsx');
+      
+      // Format data for Excel
+      const excelData = allSolicitudes.map((solicitud: any) => ({
+        'ID': solicitud.id,
+        'Nº Solicitud': solicitud.numeroSolicitud,
+        'Nº Expediente': solicitud.numeroExpediente,
+        'Operador': solicitud.operador,
+        'Tipo Experticia': solicitud.tipoExperticia,
+        'Estado': solicitud.estado,
+        'Coordinación': solicitud.coordinacionSolicitante,
+        'Fiscal': solicitud.fiscal || '',
+        'Reseña': solicitud.descripcion || '',
+        'Fecha Solicitud': solicitud.fechaSolicitud ? new Date(solicitud.fechaSolicitud).toLocaleDateString() : '',
+        'Fecha Creación': solicitud.createdAt ? new Date(solicitud.createdAt).toLocaleDateString() : '',
+        'Última Actualización': solicitud.updatedAt ? new Date(solicitud.updatedAt).toLocaleDateString() : '',
+      }));
+      
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Solicitudes');
+      
+      // Generate filename with current date
+      const today = new Date().toISOString().split('T')[0];
+      const filename = `solicitudes_${today}.xlsx`;
+      
+      // Write and download file
+      XLSX.writeFile(wb, filename);
+      
+      toast({
+        title: "Excel exportado",
+        description: `Se ha descargado el archivo ${filename} con ${allSolicitudes.length} solicitudes.`,
+      });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast({
+        title: "Error",
+        description: "Error al exportar a Excel",
+        variant: "destructive",
+      });
+    }
+  };
+
   const solicitudes = solicitudesData?.solicitudes || [];
   const total = solicitudesData?.total || 0;
 
@@ -206,6 +276,7 @@ export default function Requests() {
           onDelete={handleDelete}
           onView={handleView}
           onCreateNew={() => setShowCreateModal(true)}
+          onExportExcel={handleExportExcel}
           loading={isLoading}
           permissions={permissions}
         />
