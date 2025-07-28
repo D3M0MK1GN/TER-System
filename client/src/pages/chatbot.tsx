@@ -71,6 +71,26 @@ const saveMessages = (messages: Message[]) => {
   }
 };
 
+// Función para limpiar mensajes del chatbot al cerrar sesión (solo para no-admin)
+export const clearChatbotMessagesOnLogout = () => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    
+    // Verificar el rol del usuario desde el token
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userRole = payload.rol;
+    
+    // Solo limpiar mensajes si NO es administrador
+    if (userRole !== 'admin') {
+      const storageKey = getChatStorageKey();
+      localStorage.removeItem(storageKey);
+    }
+  } catch (error) {
+    // Si hay error leyendo el token, no hacer nada
+  }
+};
+
 export default function ChatbotPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -87,33 +107,20 @@ export default function ChatbotPage() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Load messages on component mount based on user role
+  // Load messages on component mount - all users now have persistence until logout
   useEffect(() => {
-    if (currentUser?.rol === 'admin') {
-      // For admins, load from localStorage
-      const savedMessages = loadMessages();
-      if (savedMessages && savedMessages.length > 0) {
-        setMessages(savedMessages);
-      } else {
-        // Si no hay mensajes guardados, agregar mensaje de bienvenida
-        const welcomeMessage = getWelcomeMessage();
-        setMessages([welcomeMessage]);
-        saveMessages([welcomeMessage]);
-      }
+    const savedMessages = loadMessages();
+    if (savedMessages && savedMessages.length > 0) {
+      setMessages(savedMessages);
     } else {
-      // For users and supervisors, start with empty messages (session-only)
-      setMessages([]);
+      // Si no hay mensajes guardados, agregar mensaje de bienvenida
+      const welcomeMessage = getWelcomeMessage();
+      setMessages([welcomeMessage]);
+      saveMessages([welcomeMessage]);
     }
   }, [currentUser]);
 
-  // Clear messages when component unmounts for non-admin users
-  useEffect(() => {
-    return () => {
-      if (currentUser?.rol !== 'admin') {
-        setMessages([]);
-      }
-    };
-  }, [currentUser]);
+
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ message, file }: { message: string; file?: File }) => {
@@ -147,14 +154,13 @@ export default function ChatbotPage() {
         timestamp: new Date(),
       };
       
-      setMessages(prev => {
-        const newMessages = [...prev, botMessage];
-        // Only save messages for admin users
-        if (currentUser?.rol === 'admin') {
-          saveMessages(newMessages);
-        }
-        return newMessages;
-      });
+      // Always save to localStorage first to persist across navigation
+      const currentMessages = loadMessages();
+      const newMessages = [...currentMessages, botMessage];
+      saveMessages(newMessages);
+      
+      // Update state only if component is still mounted
+      setMessages(newMessages);
 
       // Refresh chatbot status to get updated message count
       if (currentUser?.rol !== 'admin') {
@@ -199,14 +205,11 @@ export default function ChatbotPage() {
       fileName: selectedFile?.name,
     };
 
-    setMessages(prev => {
-      const newMessages = [...prev, userMessage];
-      // Only save messages for admin users
-      if (currentUser?.rol === 'admin') {
-        saveMessages(newMessages);
-      }
-      return newMessages;
-    });
+    // Save user message immediately to localStorage and update state
+    const currentMessages = loadMessages();
+    const newMessages = [...currentMessages, userMessage];
+    saveMessages(newMessages);
+    setMessages(newMessages);
 
     // Send message to API
     sendMessageMutation.mutate({
@@ -267,23 +270,14 @@ export default function ChatbotPage() {
 
   // Función para limpiar el historial de mensajes
   const clearChatHistory = () => {
-    if (currentUser?.rol === 'admin') {
-      // For admins, keep welcome message and save to localStorage
-      const welcomeMessage = getWelcomeMessage();
-      setMessages([welcomeMessage]);
-      saveMessages([welcomeMessage]);
-      toast({
-        title: "Historial limpiado",
-        description: "Se ha eliminado el historial de conversación",
-      });
-    } else {
-      // For users and supervisors, clear completely (session-only)
-      setMessages([]);
-      toast({
-        title: "Mensajes eliminados",
-        description: "Los mensajes de esta sesión han sido eliminados.",
-      });
-    }
+    // For all users, keep welcome message and save to localStorage
+    const welcomeMessage = getWelcomeMessage();
+    setMessages([welcomeMessage]);
+    saveMessages([welcomeMessage]);
+    toast({
+      title: "Historial limpiado",
+      description: "Se ha eliminado el historial de conversación",
+    });
   };
 
   return (
