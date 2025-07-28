@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Send, Paperclip, Bot, User, Loader2 } from "lucide-react";
+import { Send, Paperclip, User, Loader2, Trash2 } from "lucide-react";
+import { Layout } from "@/components/layout";
 
 interface Message {
   id: string;
@@ -17,19 +18,70 @@ interface Message {
   fileName?: string;
 }
 
+// Clave para localStorage basada en el usuario actual
+const getChatStorageKey = () => {
+  const token = localStorage.getItem("token");
+  if (!token) return "chatbot-messages-guest";
+  
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return `chatbot-messages-${payload.id || 'unknown'}`;
+  } catch {
+    return "chatbot-messages-default";
+  }
+};
+
+// Mensaje de bienvenida por defecto
+const getWelcomeMessage = (): Message => ({
+  id: "welcome",
+  type: "bot",
+  content: "¡Hola! Soy tu asistente de IA especializado en telecomunicaciones. Puedo ayudarte con análisis de texto y archivos. ¿En qué puedo asistirte hoy?",
+  timestamp: new Date(),
+});
+
+// Funciones para persistencia de mensajes
+const loadMessages = (): Message[] => {
+  try {
+    const stored = localStorage.getItem(getChatStorageKey());
+    if (!stored) return [getWelcomeMessage()];
+    
+    const parsed = JSON.parse(stored);
+    return parsed.map((msg: any) => ({
+      ...msg,
+      timestamp: new Date(msg.timestamp)
+    }));
+  } catch {
+    return [getWelcomeMessage()];
+  }
+};
+
+const saveMessages = (messages: Message[]) => {
+  try {
+    localStorage.setItem(getChatStorageKey(), JSON.stringify(messages));
+  } catch (error) {
+    console.warn("No se pudieron guardar los mensajes:", error);
+  }
+};
+
 export default function ChatbotPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      type: "bot",
-      content: "¡Hola! Soy tu asistente de IA. Puedo ayudarte con análisis de texto y archivos. ¿En qué puedo asistirte hoy?",
-      timestamp: new Date(),
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Cargar mensajes al montar el componente
+  useEffect(() => {
+    const loadedMessages = loadMessages();
+    setMessages(loadedMessages);
+  }, []);
+
+  // Guardar mensajes cada vez que cambien
+  useEffect(() => {
+    if (messages.length > 0) {
+      saveMessages(messages);
+    }
+  }, [messages]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ message, file }: { message: string; file?: File }) => {
@@ -63,7 +115,11 @@ export default function ChatbotPage() {
         timestamp: new Date(),
       };
       
-      setMessages(prev => [...prev, botMessage]);
+      setMessages(prev => {
+        const newMessages = [...prev, botMessage];
+        saveMessages(newMessages); // Persistir inmediatamente
+        return newMessages;
+      });
     },
     onError: (error) => {
       toast({
@@ -88,7 +144,11 @@ export default function ChatbotPage() {
       fileName: selectedFile?.name,
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => {
+      const newMessages = [...prev, userMessage];
+      saveMessages(newMessages); // Persistir inmediatamente
+      return newMessages;
+    });
 
     // Send message to API
     sendMessageMutation.mutate({
@@ -147,15 +207,40 @@ export default function ChatbotPage() {
     }
   };
 
+  // Función para limpiar el historial de mensajes
+  const clearChatHistory = () => {
+    const welcomeMessage = getWelcomeMessage();
+    setMessages([welcomeMessage]);
+    saveMessages([welcomeMessage]);
+    toast({
+      title: "Historial limpiado",
+      description: "Se ha eliminado el historial de conversación",
+    });
+  };
+
   return (
-    <div className="container mx-auto p-6 h-full">
-      <Card className="h-[calc(100vh-8rem)] flex flex-col">
-        <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2">
-            <Bot className="h-6 w-6 text-blue-600" />
-            Chatbot IA - Asistente Inteligente
-          </CardTitle>
-        </CardHeader>
+    <Layout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <img src="/cicipc-32x32.png" className="h-8 w-8 ml-2" alt="Chatbot" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Chatbot IA</h1>
+              <p className="text-gray-600">Asistente Inteligente de Telecomunicaciones</p>
+            </div>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={clearChatHistory}
+            className="flex items-center gap-2 mr-4"
+          >
+            <Trash2 className="h-4 w-4" />
+            Limpiar historial
+          </Button>
+        </div>
+
+        <Card className="h-[calc(100vh-12rem)] flex flex-col">
         
         <CardContent className="flex-1 flex flex-col p-0">
           {/* Messages Area */}
@@ -170,7 +255,7 @@ export default function ChatbotPage() {
                 >
                   {message.type === "bot" && (
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-4 w-4 text-blue-600" />
+                      <img src="/cicipc-32x32.png" className="h-5 w-5" alt="Bot" />
                     </div>
                   )}
                   
@@ -204,7 +289,7 @@ export default function ChatbotPage() {
               {sendMessageMutation.isPending && (
                 <div className="flex gap-3 justify-start">
                   <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <Bot className="h-4 w-4 text-blue-600" />
+                    <img src="/cicipc-32x32.png" className="h-5 w-5" alt="Bot" />
                   </div>
                   <div className="bg-gray-100 text-gray-900 rounded-lg p-3">
                     <div className="flex items-center gap-2">
@@ -285,7 +370,8 @@ export default function ChatbotPage() {
             </p>
           </div>
         </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </Layout>
   );
 }
