@@ -1476,6 +1476,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Se requiere un mensaje o archivo" });
       }
 
+      // Check if user can send messages (limits and enabled status)
+      const canSend = await storage.incrementUserChatbotMessages(req.user.id);
+      if (!canSend) {
+        const status = await storage.getUserChatbotStatus(req.user.id);
+        if (!status.habilitado) {
+          return res.status(403).json({ 
+            message: "El chatbot está deshabilitado para tu cuenta. Contacta al administrador." 
+          });
+        } else {
+          return res.status(429).json({ 
+            message: `Has alcanzado el límite de ${status.limite} mensajes. Contacta al administrador para aumentar tu límite.` 
+          });
+        }
+      }
+
       let response: string;
 
       if (file) {
@@ -1504,6 +1519,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         response = await processTextMessage(message);
       }
 
+      // Save the message and response to database
+      await storage.saveChatbotMessage(
+        req.user.id,
+        message || "Archivo adjunto",
+        response,
+        !!file,
+        file?.originalname
+      );
+
       res.json({ response });
     } catch (error: any) {
       // Clean up file if it exists and there was an error
@@ -1519,6 +1543,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Error procesando mensaje del chatbot", 
         error: error.message 
       });
+    }
+  });
+
+  // Chatbot admin routes (only for admins)
+  app.get("/api/admin/chatbot/users", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const usersWithStats = await storage.getUsersWithChatbotStats();
+      res.json(usersWithStats);
+    } catch (error) {
+      res.status(500).json({ message: "Error obteniendo estadísticas de usuarios del chatbot" });
+    }
+  });
+
+  app.post("/api/admin/chatbot/update-limits", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const { updates } = req.body;
+      
+      if (!Array.isArray(updates)) {
+        return res.status(400).json({ message: "Se requiere un array de actualizaciones" });
+      }
+
+      // Validate each update
+      for (const update of updates) {
+        if (!update.userId || typeof update.limite !== 'number' || typeof update.habilitado !== 'boolean') {
+          return res.status(400).json({ message: "Formato de actualización inválido" });
+        }
+      }
+
+      await storage.bulkUpdateChatbotLimits(updates);
+      res.json({ message: "Límites del chatbot actualizados exitosamente" });
+    } catch (error) {
+      res.status(500).json({ message: "Error actualizando límites del chatbot" });
+    }
+  });
+
+  app.post("/api/admin/chatbot/reset-messages/:userId", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "ID de usuario inválido" });
+      }
+
+      await storage.resetUserChatbotMessages(userId);
+      res.json({ message: "Mensajes del chatbot reseteados exitosamente" });
+    } catch (error) {
+      res.status(500).json({ message: "Error reseteando mensajes del chatbot" });
+    }
+  });
+
+  app.get("/api/chatbot/status", authenticateToken, async (req: any, res) => {
+    try {
+      const status = await storage.getUserChatbotStatus(req.user.id);
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: "Error obteniendo estado del chatbot" });
+    }
+  });
+
+  // Global chatbot configuration (admin only)
+  app.get("/api/admin/chatbot/config/:key", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const config = await storage.getChatbotConfig(req.params.key);
+      res.json(config || { valor: null });
+    } catch (error) {
+      res.status(500).json({ message: "Error obteniendo configuración del chatbot" });
+    }
+  });
+
+  app.post("/api/admin/chatbot/config", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const { clave, valor, descripcion } = req.body;
+      
+      if (!clave || !valor) {
+        return res.status(400).json({ message: "Clave y valor son requeridos" });
+      }
+
+      await storage.setChatbotConfig(clave, valor, req.user.id, descripcion);
+      res.json({ message: "Configuración guardada exitosamente" });
+    } catch (error) {
+      res.status(500).json({ message: "Error guardando configuración del chatbot" });
     }
   });
 

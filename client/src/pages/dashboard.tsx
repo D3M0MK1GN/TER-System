@@ -14,6 +14,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import { UserTable } from "@/components/user-table";
 import { UserForm } from "@/components/user-form";
 import { PlantillasWordAdmin } from "@/components/plantillas-word-admin";
+import ChatbotAdmin from "@/components/chatbot-admin";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -56,6 +57,7 @@ export default function Dashboard() {
   const currentView = new URLSearchParams(searchParams).get('view') || 'dashboard';
   const showUserManagement = currentView === 'users';
   const showPlantillasWordAdmin = currentView === 'plantillas-word';
+  const showChatbotAdmin = currentView === 'chatbot-admin';
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -208,13 +210,13 @@ export default function Dashboard() {
           {/* Dashboard Button */}
           <button 
             className={`flex items-center space-x-2 px-3 py-2 text-left rounded-lg transition-colors ${
-              !showUserManagement && !showPlantillasWordAdmin
+              !showUserManagement && !showPlantillasWordAdmin && !showChatbotAdmin
                 ? 'bg-blue-50 border border-blue-200 text-blue-700' 
                 : 'hover:bg-gray-50 border border-transparent'
             }`}
             onClick={() => setView('dashboard')}
           >
-            <div className={`p-1.5 rounded ${!showUserManagement && !showPlantillasWordAdmin ? 'bg-blue-100' : 'bg-blue-100'}`}>
+            <div className={`p-1.5 rounded ${!showUserManagement && !showPlantillasWordAdmin && !showChatbotAdmin ? 'bg-blue-100' : 'bg-blue-100'}`}>
               <LayoutDashboard className="h-4 w-4 text-blue-600" />
             </div>
             <div>
@@ -262,10 +264,30 @@ export default function Dashboard() {
               </div>
             </button>
           )}
+
+          {/* Chatbot Admin Button - Only visible for administrators */}
+          {permissions.canManageUsers && (
+            <button 
+              className={`flex items-center space-x-2 px-3 py-2 text-left rounded-lg transition-colors ${
+                showChatbotAdmin 
+                  ? 'bg-orange-50 border border-orange-200 text-orange-700' 
+                  : 'hover:bg-gray-50 border border-transparent'
+              }`}
+              onClick={() => setView('chatbot-admin')}
+            >
+              <div className={`p-1.5 rounded ${showChatbotAdmin ? 'bg-orange-100' : 'bg-orange-100'}`}>
+                <Settings className="h-4 w-4 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-900">Administrar Chatbot</h3>
+                <p className="text-xs text-gray-500">Gestionar límites y acceso al chatbot</p>
+              </div>
+            </button>
+          )}
         </div>
         
         {/* Main Content */}
-        {!showUserManagement && !showPlantillasWordAdmin ? (
+        {!showUserManagement && !showPlantillasWordAdmin && !showChatbotAdmin ? (
           <>
             {/* Stats Cards */}
             <div className="mb-8">
@@ -436,6 +458,11 @@ export default function Dashboard() {
           /* Plantillas Word Admin Full View */
           <div className="max-w-full overflow-hidden">
             <PlantillasWordAdmin />
+          </div>
+        ) : showChatbotAdmin ? (
+          /* Chatbot Admin Full View */
+          <div className="max-w-full overflow-hidden">
+            <ChatbotAdmin />
           </div>
         ) : null}
       </div>

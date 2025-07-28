@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { apiRequest } from "@/lib/queryClient";
-import { Send, Paperclip, User, Loader2, Trash2 } from "lucide-react";
+import { Send, Paperclip, User, Loader2, Trash2, AlertCircle, MessageSquare } from "lucide-react";
 import { Layout } from "@/components/layout";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Message {
   id: string;
@@ -16,6 +18,12 @@ interface Message {
   timestamp: Date;
   hasFile?: boolean;
   fileName?: string;
+}
+
+interface ChatbotStatus {
+  habilitado: boolean;
+  mensajesUsados: number;
+  limite: number;
 }
 
 // Clave para localStorage basada en el usuario actual
@@ -70,18 +78,42 @@ export default function ChatbotPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Cargar mensajes al montar el componente
-  useEffect(() => {
-    const loadedMessages = loadMessages();
-    setMessages(loadedMessages);
-  }, []);
+  // Get current user info from auth
+  const { user: currentUser } = useAuth();
 
-  // Guardar mensajes cada vez que cambien
+  // Get user chatbot status
+  const { data: chatbotStatus, refetch: refetchStatus } = useQuery<ChatbotStatus>({
+    queryKey: ["/api/chatbot/status"],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Load messages on component mount based on user role
   useEffect(() => {
-    if (messages.length > 0) {
-      saveMessages(messages);
+    if (currentUser?.rol === 'admin') {
+      // For admins, load from localStorage
+      const savedMessages = loadMessages();
+      if (savedMessages && savedMessages.length > 0) {
+        setMessages(savedMessages);
+      } else {
+        // Si no hay mensajes guardados, agregar mensaje de bienvenida
+        const welcomeMessage = getWelcomeMessage();
+        setMessages([welcomeMessage]);
+        saveMessages([welcomeMessage]);
+      }
+    } else {
+      // For users and supervisors, start with empty messages (session-only)
+      setMessages([]);
     }
-  }, [messages]);
+  }, [currentUser]);
+
+  // Clear messages when component unmounts for non-admin users
+  useEffect(() => {
+    return () => {
+      if (currentUser?.rol !== 'admin') {
+        setMessages([]);
+      }
+    };
+  }, [currentUser]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ message, file }: { message: string; file?: File }) => {
@@ -117,17 +149,40 @@ export default function ChatbotPage() {
       
       setMessages(prev => {
         const newMessages = [...prev, botMessage];
-        saveMessages(newMessages); // Persistir inmediatamente
+        // Only save messages for admin users
+        if (currentUser?.rol === 'admin') {
+          saveMessages(newMessages);
+        }
         return newMessages;
       });
+
+      // Refresh chatbot status to get updated message count
+      if (currentUser?.rol !== 'admin') {
+        refetchStatus();
+      }
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      let errorMessage = "No se pudo enviar el mensaje. Inténtalo de nuevo.";
+      
+      // Handle specific error cases (only for non-admin users)
+      if (currentUser?.rol !== 'admin') {
+        if (error?.message?.includes("403")) {
+          errorMessage = "El chatbot está deshabilitado para tu cuenta. Contacta al administrador.";
+        } else if (error?.message?.includes("429")) {
+          errorMessage = "Has alcanzado tu límite de mensajes. Contacta al administrador para aumentar tu límite.";
+        }
+      }
+
       toast({
         title: "Error",
-        description: "No se pudo enviar el mensaje. Inténtalo de nuevo.",
+        description: errorMessage,
         variant: "destructive",
       });
-      console.error("Error sending message:", error);
+      
+      // Refresh status to get current limits (only for non-admin users)
+      if (currentUser?.rol !== 'admin') {
+        refetchStatus();
+      }
     }
   });
 
@@ -146,7 +201,10 @@ export default function ChatbotPage() {
 
     setMessages(prev => {
       const newMessages = [...prev, userMessage];
-      saveMessages(newMessages); // Persistir inmediatamente
+      // Only save messages for admin users
+      if (currentUser?.rol === 'admin') {
+        saveMessages(newMessages);
+      }
       return newMessages;
     });
 
@@ -209,13 +267,23 @@ export default function ChatbotPage() {
 
   // Función para limpiar el historial de mensajes
   const clearChatHistory = () => {
-    const welcomeMessage = getWelcomeMessage();
-    setMessages([welcomeMessage]);
-    saveMessages([welcomeMessage]);
-    toast({
-      title: "Historial limpiado",
-      description: "Se ha eliminado el historial de conversación",
-    });
+    if (currentUser?.rol === 'admin') {
+      // For admins, keep welcome message and save to localStorage
+      const welcomeMessage = getWelcomeMessage();
+      setMessages([welcomeMessage]);
+      saveMessages([welcomeMessage]);
+      toast({
+        title: "Historial limpiado",
+        description: "Se ha eliminado el historial de conversación",
+      });
+    } else {
+      // For users and supervisors, clear completely (session-only)
+      setMessages([]);
+      toast({
+        title: "Mensajes eliminados",
+        description: "Los mensajes de esta sesión han sido eliminados.",
+      });
+    }
   };
 
   return (
@@ -229,16 +297,55 @@ export default function ChatbotPage() {
               <p className="text-gray-600">Asistente Inteligente de Telecomunicaciones</p>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={clearChatHistory}
-            className="flex items-center gap-2 mr-4"
-          >
-            <Trash2 className="h-4 w-4" />
-            Limpiar historial
-          </Button>
+          <div className="flex items-center gap-4 mr-4">
+            {chatbotStatus && currentUser?.rol !== 'admin' && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-lg">
+                <MessageSquare className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  {chatbotStatus.mensajesUsados}/{chatbotStatus.limite} mensajes
+                </span>
+                {!chatbotStatus.habilitado && (
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                )}
+              </div>
+            )}
+            {currentUser?.rol === 'admin' && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-green-100 rounded-lg">
+                <MessageSquare className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-700">
+                  Acceso ilimitado
+                </span>
+              </div>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={clearChatHistory}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Limpiar historial
+            </Button>
+          </div>
         </div>
+
+        {chatbotStatus && !chatbotStatus.habilitado && currentUser?.rol !== 'admin' && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              El chatbot está deshabilitado para tu cuenta. Contacta al administrador para habilitarlo.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {chatbotStatus && chatbotStatus.habilitado && chatbotStatus.mensajesUsados >= chatbotStatus.limite && currentUser?.rol !== 'admin' && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Has alcanzado tu límite de {chatbotStatus.limite} mensajes. Contacta al administrador para aumentar tu límite.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Card className="h-[calc(100vh-12rem)] flex flex-col">
         
@@ -355,7 +462,11 @@ export default function ChatbotPage() {
               
               <Button
                 onClick={handleSendMessage}
-                disabled={sendMessageMutation.isPending || (!inputMessage.trim() && !selectedFile)}
+                disabled={
+                  sendMessageMutation.isPending || 
+                  (!inputMessage.trim() && !selectedFile) ||
+                  (currentUser?.rol !== 'admin' && chatbotStatus && (!chatbotStatus.habilitado || chatbotStatus.mensajesUsados >= chatbotStatus.limite))
+                }
               >
                 {sendMessageMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

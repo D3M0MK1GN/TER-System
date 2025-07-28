@@ -26,6 +26,11 @@ export const users = pgTable("users", {
   ultimoIntentoFallido: timestamp("ultimo_intento_fallido"),
   sessionToken: text("session_token"), // Para gestión de sesiones únicas
   sessionExpires: timestamp("session_expires"), // Expiración de sesión
+  // Campos para control del chatbot
+  chatbotHabilitado: boolean("chatbot_habilitado").default(true),
+  chatbotLimiteMensajes: integer("chatbot_limite_mensajes").default(20),
+  chatbotMensajesUsados: integer("chatbot_mensajes_usados").default(0),
+  chatbotReseteoMensajes: timestamp("chatbot_reseteo_mensajes").defaultNow(),
 });
 
 export const operadorEnum = pgEnum("operador", ["digitel", "movistar", "movilnet"]);
@@ -93,13 +98,51 @@ export const plantillasWord = pgTable("plantillas_word", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Tabla para configuración global del sistema
+export const configuracionSistema = pgTable("configuracion_sistema", {
+  id: serial("id").primaryKey(),
+  clave: text("clave").notNull().unique(),
+  valor: text("valor").notNull(),
+  descripcion: text("descripcion"),
+  usuarioId: integer("usuario_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Tabla para historial de mensajes del chatbot
+export const chatbotMensajes = pgTable("chatbot_mensajes", {
+  id: serial("id").primaryKey(),
+  usuarioId: integer("usuario_id").references(() => users.id).notNull(),
+  mensaje: text("mensaje").notNull(),
+  respuesta: text("respuesta").notNull(),
+  tieneArchivo: boolean("tiene_archivo").default(false),
+  nombreArchivo: text("nombre_archivo"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
+export const configuracionSistemaRelations = relations(configuracionSistema, ({ one }) => ({
+  usuario: one(users, {
+    fields: [configuracionSistema.usuarioId],
+    references: [users.id],
+  }),
+}));
+
+export const chatbotMensajesRelations = relations(chatbotMensajes, ({ one }) => ({
+  usuario: one(users, {
+    fields: [chatbotMensajes.usuarioId],
+    references: [users.id],
+  }),
+}));
+
 export const usersRelations = relations(users, ({ many }) => ({
   solicitudes: many(solicitudes),
   plantillasCorreo: many(plantillasCorreo),
   historialSolicitudes: many(historialSolicitudes),
   notificaciones: many(notificaciones),
   plantillasWord: many(plantillasWord),
+  chatbotMensajes: many(chatbotMensajes),
+  configuracionSistema: many(configuracionSistema),
 }));
 
 export const solicitudesRelations = relations(solicitudes, ({ one, many }) => ({
@@ -192,6 +235,17 @@ export const insertHistorialSchema = createInsertSchema(historialSolicitudes).om
   createdAt: true,
 });
 
+export const insertConfiguracionSistemaSchema = createInsertSchema(configuracionSistema).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertChatbotMensajeSchema = createInsertSchema(chatbotMensajes).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -203,6 +257,10 @@ export type PlantillaWord = typeof plantillasWord.$inferSelect;
 export type InsertPlantillaWord = z.infer<typeof insertPlantillaWordSchema>;
 export type HistorialSolicitud = typeof historialSolicitudes.$inferSelect;
 export type InsertHistorialSolicitud = z.infer<typeof insertHistorialSchema>;
+export type ConfiguracionSistema = typeof configuracionSistema.$inferSelect;
+export type InsertConfiguracionSistema = z.infer<typeof insertConfiguracionSistemaSchema>;
+export type ChatbotMensaje = typeof chatbotMensajes.$inferSelect;
+export type InsertChatbotMensaje = z.infer<typeof insertChatbotMensajeSchema>;
 
 // Auth schemas
 export const loginSchema = z.object({

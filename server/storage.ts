@@ -5,6 +5,8 @@ import {
   historialSolicitudes,
   notificaciones,
   plantillasWord,
+  configuracionSistema,
+  chatbotMensajes,
   type User,
   type InsertUser,
   type Solicitud,
@@ -15,9 +17,13 @@ import {
   type InsertPlantillaWord,
   type HistorialSolicitud,
   type InsertHistorialSolicitud,
+  type ConfiguracionSistema,
+  type InsertConfiguracionSistema,
+  type ChatbotMensaje,
+  type InsertChatbotMensaje,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, like, count, sql, lt, inArray, notInArray } from "drizzle-orm";
+import { eq, desc, and, or, ne, like, count, sql, lt, inArray, notInArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -123,7 +129,17 @@ export interface IStorage {
     actividadReciente: any[];
   }>;
 
-
+  // Chatbot management
+  getChatbotConfig(clave: string): Promise<ConfiguracionSistema | undefined>;
+  setChatbotConfig(clave: string, valor: string, usuarioId: number, descripcion?: string): Promise<void>;
+  getUserChatbotStatus(userId: number): Promise<{ habilitado: boolean; mensajesUsados: number; limite: number }>;
+  updateUserChatbotLimits(userId: number, limite: number, habilitado: boolean): Promise<void>;
+  incrementUserChatbotMessages(userId: number): Promise<boolean>; // Returns true if still under limit
+  resetUserChatbotMessages(userId: number): Promise<void>;
+  saveChatbotMessage(usuarioId: number, mensaje: string, respuesta: string, tieneArchivo?: boolean, nombreArchivo?: string): Promise<void>;
+  getChatbotMessagesByUser(userId: number, limit?: number): Promise<ChatbotMensaje[]>;
+  getUsersWithChatbotStats(): Promise<{ usuario: User; mensajesUsados: number; limite: number; habilitado: boolean }[]>;
+  bulkUpdateChatbotLimits(updates: { userId: number; limite: number; habilitado: boolean }[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -909,6 +925,190 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting plantilla word:', error);
       return false;
+    }
+  }
+
+  // Chatbot management methods
+  async getChatbotConfig(clave: string): Promise<ConfiguracionSistema | undefined> {
+    const [config] = await db
+      .select()
+      .from(configuracionSistema)
+      .where(eq(configuracionSistema.clave, clave));
+    return config || undefined;
+  }
+
+  async setChatbotConfig(clave: string, valor: string, usuarioId: number, descripcion?: string): Promise<void> {
+    const existingConfig = await this.getChatbotConfig(clave);
+    
+    if (existingConfig) {
+      await db
+        .update(configuracionSistema)
+        .set({ 
+          valor, 
+          usuarioId, 
+          descripcion: descripcion || existingConfig.descripcion,
+          updatedAt: new Date() 
+        })
+        .where(eq(configuracionSistema.clave, clave));
+    } else {
+      await db.insert(configuracionSistema).values({
+        clave,
+        valor,
+        usuarioId,
+        descripcion
+      });
+    }
+  }
+
+  async getUserChatbotStatus(userId: number): Promise<{ habilitado: boolean; mensajesUsados: number; limite: number }> {
+    const [user] = await db
+      .select({
+        chatbotHabilitado: users.chatbotHabilitado,
+        chatbotMensajesUsados: users.chatbotMensajesUsados,
+        chatbotLimiteMensajes: users.chatbotLimiteMensajes,
+        rol: users.rol
+      })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!user) {
+      return { habilitado: false, mensajesUsados: 0, limite: 0 };
+    }
+
+    // Set default limits based on role if not set
+    let defaultLimit = 20; // usuario
+    if (user.rol === 'supervisor') defaultLimit = 30;
+    if (user.rol === 'admin') defaultLimit = 999999; // unlimited for admins
+
+    return {
+      habilitado: user.chatbotHabilitado ?? true,
+      mensajesUsados: user.chatbotMensajesUsados ?? 0,
+      limite: user.chatbotLimiteMensajes ?? defaultLimit
+    };
+  }
+
+  async updateUserChatbotLimits(userId: number, limite: number, habilitado: boolean): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        chatbotLimiteMensajes: limite,
+        chatbotHabilitado: habilitado
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async incrementUserChatbotMessages(userId: number): Promise<boolean> {
+    const status = await this.getUserChatbotStatus(userId);
+    
+    // Get user role to check if admin
+    const [user] = await db
+      .select({ rol: users.rol })
+      .from(users)
+      .where(eq(users.id, userId));
+    
+    // Admins have unlimited access, no need to check limits or increment
+    if (user?.rol === 'admin') {
+      return true;
+    }
+    
+    if (!status.habilitado || status.mensajesUsados >= status.limite) {
+      return false;
+    }
+
+    await db
+      .update(users)
+      .set({
+        chatbotMensajesUsados: status.mensajesUsados + 1
+      })
+      .where(eq(users.id, userId));
+
+    return true;
+  }
+
+  async resetUserChatbotMessages(userId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        chatbotMensajesUsados: 0,
+        chatbotReseteoMensajes: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async saveChatbotMessage(
+    usuarioId: number, 
+    mensaje: string, 
+    respuesta: string, 
+    tieneArchivo?: boolean, 
+    nombreArchivo?: string
+  ): Promise<void> {
+    await db.insert(chatbotMensajes).values({
+      usuarioId,
+      mensaje,
+      respuesta,
+      tieneArchivo: tieneArchivo || false,
+      nombreArchivo
+    });
+  }
+
+  async getChatbotMessagesByUser(userId: number, limit: number = 50): Promise<ChatbotMensaje[]> {
+    return await db
+      .select()
+      .from(chatbotMensajes)
+      .where(eq(chatbotMensajes.usuarioId, userId))
+      .orderBy(desc(chatbotMensajes.createdAt))
+      .limit(limit);
+  }
+
+  async getUsersWithChatbotStats(): Promise<{ usuario: User; mensajesUsados: number; limite: number; habilitado: boolean }[]> {
+    const usersWithStats = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        nombre: users.nombre,
+        email: users.email,
+        rol: users.rol,
+        coordinacion: users.coordinacion,
+        activo: users.activo,
+        status: users.status,
+        direccionIp: users.direccionIp,
+        ultimoAcceso: users.ultimoAcceso,
+        createdAt: users.createdAt,
+        fechaSuspension: users.fechaSuspension,
+        tiempoSuspension: users.tiempoSuspension,
+        motivoSuspension: users.motivoSuspension,
+        intentosFallidos: users.intentosFallidos,
+        ultimoIntentoFallido: users.ultimoIntentoFallido,
+        sessionToken: users.sessionToken,
+        sessionExpires: users.sessionExpires,
+        password: users.password,
+        chatbotHabilitado: users.chatbotHabilitado,
+        chatbotMensajesUsados: users.chatbotMensajesUsados,
+        chatbotLimiteMensajes: users.chatbotLimiteMensajes,
+        chatbotReseteoMensajes: users.chatbotReseteoMensajes
+      })
+      .from(users)
+      .where(and(eq(users.activo, true), ne(users.rol, 'admin'))) // Exclude admin users
+      .orderBy(users.nombre);
+
+    return usersWithStats.map(user => {
+      // Set default limits based on role if not set
+      let defaultLimit = 20; // usuario
+      if (user.rol === 'supervisor') defaultLimit = 30;
+      if (user.rol === 'admin') defaultLimit = 999999; // unlimited for admins
+
+      return {
+        usuario: user as User,
+        mensajesUsados: user.chatbotMensajesUsados ?? 0,
+        limite: user.chatbotLimiteMensajes ?? defaultLimit,
+        habilitado: user.chatbotHabilitado ?? true
+      };
+    });
+  }
+
+  async bulkUpdateChatbotLimits(updates: { userId: number; limite: number; habilitado: boolean }[]): Promise<void> {
+    for (const update of updates) {
+      await this.updateUserChatbotLimits(update.userId, update.limite, update.habilitado);
     }
   }
 }
