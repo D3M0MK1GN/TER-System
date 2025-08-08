@@ -1,3 +1,4 @@
+// Seccion de Gestion de Solicitdues
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -282,8 +283,8 @@ export function RequestTable({
                     <SelectItem value="delitos_propiedad">Coordinación de los Delitos Contra la Propiedad</SelectItem>
                     <SelectItem value="delitos_personas">Coordinación de los Delitos Contra las Personas</SelectItem>
                     <SelectItem value="delincuencia_organizada">Coordinación de los Delitos Contra la Delincuencia Organizada</SelectItem>
-                    <SelectItem value="hurto_robo_vehiculo">Coordinación de los Delitos Contra el Hurto y Robo de Vehículo Automotor</SelectItem>
-                    <SelectItem value="captura_homicidio">Captura y Homicidio</SelectItem>
+                    <SelectItem value="delitos_vehiculos">Coordinación de los Delitos Contra el Hurto y Robo de Vehículo Automotor</SelectItem>
+                    <SelectItem value="homicidio">Homicidio</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

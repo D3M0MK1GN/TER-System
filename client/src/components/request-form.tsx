@@ -65,6 +65,8 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
       coordinacionSolicitante: "",
       operador: "",
       informacionLinea: "",
+      direc: "",
+      delito: "",
       descripcion: "",
       motivoRechazo: "",
       estado: getDefaultStatus(),
@@ -202,7 +204,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                   <SelectItem value="determinar_comportamiento_social">Determinar comportamiento social</SelectItem>
                   <SelectItem value="determinar_contacto_frecuente">Determinar Contacto Frecuente</SelectItem>
                   <SelectItem value="determinar_ubicacion_llamadas">Determinar ubicación mediante registros de llamadas</SelectItem>
-                  <SelectItem value="determinar_ubicacion_trazas">Determinar ubicación mediante registros de trazas telefónicas</SelectItem>
+                  <SelectItem value="determinar_ubicacion_trazas">Determinar ubicación mediante registros de trazas telefónicas (Recorrido)</SelectItem>
                   <SelectItem value="determinar_contaminacion_equipo_imei">Determinar contaminación de equipo (IMEI)</SelectItem>
                   <SelectItem value="identificar_numeros_comun_bts">Identificar números en común en dos o más Radio Base (BTS)</SelectItem>
                   <SelectItem value="identificar_numeros_desconectan_bts">Identificar números que se desconectan de la Radio Base (BTS) después del hecho</SelectItem>
@@ -229,7 +231,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                   <SelectValue placeholder="Seleccione coordinación" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="delitos_propiedad">Coordinacion de Delitos Contra la Propiedad</SelectItem>
+                  <SelectItem value="delitos_propiedad">Coordinacion de los Delitos Contra la Propiedad</SelectItem>
                   <SelectItem value="delitos_personas">Coordinacion de los Delitos Contra las Personas</SelectItem>
                   <SelectItem value="crimen_organizado">Coordinacion de los Delitos Contra la Delincuencia Organizada</SelectItem>
                   <SelectItem value="delitos_vehiculos">Coordinacion de los Delitos Contra el Hurto y Robo de Vehiculo Automotor</SelectItem>
@@ -288,14 +290,35 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
             )}
 
             <div>
-              <Label htmlFor="informacionLinea">Información de la Línea</Label>
+              <Label htmlFor="informacionLinea">Información Solicitada</Label>
               <Input
                 id="informacionLinea"
                 placeholder="Número de teléfono, IMEI, etc."
                 {...form.register("informacionLinea")}
               />
             </div>
+
+            <div>
+              <Label htmlFor="direc">Direccion Solicitada</Label>
+              <Input
+                id="direc"
+                placeholder="Direcion Exacta el Hecho."
+                {...form.register("direc")}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="delito">Delito</Label>
+              <Input
+                id="delito"
+                placeholder="Delitco cometido (Robo, Hurto, Robo)."
+                {...form.register("delito")}
+              />
+            </div>
+
           </div>
+            
+            
 
           <div>
             <Label htmlFor="descripcion">Reseña</Label>

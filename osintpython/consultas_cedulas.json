@@ -88,5 +88,345 @@
                 "request_date": "2025-07-24T16:40:58.568Z"
             }
         }
+    },
+    {
+        "timestamp": "2025-07-30T11:18:04.176274",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "12524768",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=12524768",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 12524768,
+                "fecha_nac": "1975-04-16",
+                "rif": "V125247683",
+                "cne": {
+                    "estado": "CARABOBO",
+                    "municipio": "VALENCIA",
+                    "parroquia": "MIGUEL PE?A",
+                    "centro_electoral": "ESCUELA NACIONAL MANUEL ALCAZAR"
+                },
+                "primer_apellido": "BLANCO",
+                "segundo_apellido": "RENGIFO",
+                "primer_nombre": "YANETT",
+                "segundo_nombre": "MARGARITA",
+                "request_date": "2025-07-30T15:18:04.128Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-07-30T18:44:47.028434",
+        "nacionalidad_consultada": "E",
+        "cedula_consultada": "8438030547",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=E&cedula=8438030547",
+        "error": "HTTPConnectionPool(host='api.cedula.com.ve', port=80): Max retries exceeded with url: /api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=E&cedula=8438030547 (Caused by NameResolutionError(\"<urllib3.connection.HTTPConnection object at 0x72bd82d3c470>: Failed to resolve 'api.cedula.com.ve' ([Errno -2] Name or service not known)\"))"
+    },
+    {
+        "timestamp": "2025-07-30T19:59:27.941573",
+        "nacionalidad_consultada": "E",
+        "cedula_consultada": "8438030547",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=E&cedula=8438030547",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2025-07-30T19:59:36.635467",
+        "nacionalidad_consultada": "E",
+        "cedula_consultada": "8438030547",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=E&cedula=8438030547",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2025-07-30T19:59:49.008130",
+        "nacionalidad_consultada": "E",
+        "cedula_consultada": "08438030547",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=E&cedula=08438030547",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2025-07-30T20:00:06.681583",
+        "nacionalidad_consultada": "E",
+        "cedula_consultada": "08438030547",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=E&cedula=08438030547",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2025-07-30T20:00:18.361211",
+        "nacionalidad_consultada": "E",
+        "cedula_consultada": "8438030547",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=E&cedula=8438030547",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2025-07-30T20:00:24.961815",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "8438030547",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=8438030547",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2025-07-30T20:02:30.148978",
+        "nacionalidad_consultada": "E",
+        "cedula_consultada": "0843830547",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=E&cedula=0843830547",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2025-07-30T20:03:18.455561",
+        "nacionalidad_consultada": "E",
+        "cedula_consultada": "843830547",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=E&cedula=843830547",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2025-08-01T11:45:45.438666",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "26281904",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=26281904",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 26281904,
+                "fecha_nac": "1996-09-21",
+                "rif": "V262819041",
+                "primer_apellido": "AVILA",
+                "segundo_apellido": "CRESPO",
+                "primer_nombre": "MANUEL",
+                "request_date": "2025-08-01T15:45:45.418Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-08-02T14:32:35.147629",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "14418665",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=14418665",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 14418665,
+                "fecha_nac": "1980-09-19",
+                "rif": "V144186652",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "JUAN DE VILLEGAS",
+                    "centro_electoral": "UNIDAD EDUCATIVA POPULAR FE Y ALEGRIA SAN FRANCISCO"
+                },
+                "primer_apellido": "JAIMES",
+                "segundo_apellido": "FLORES",
+                "primer_nombre": "ANDERSON",
+                "segundo_nombre": "FLAMINIO",
+                "request_date": "2025-08-02T18:32:35.080Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-08-02T18:19:50.055521",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "21273281",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=21273281",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 21273281,
+                "fecha_nac": "1993-05-04",
+                "rif": "V212732814",
+                "primer_apellido": "CEBALLOS",
+                "segundo_apellido": "SOCORRO",
+                "primer_nombre": "CARLOS",
+                "segundo_nombre": "EDUARDO",
+                "request_date": "2025-08-02T22:19:49.993Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-08-02T22:09:59.302539",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "24668069",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=24668069",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 24668069,
+                "fecha_nac": "1990-11-05",
+                "rif": "V246680694",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "JIMENEZ",
+                    "parroquia": "TINTORERO",
+                    "centro_electoral": "ESCUELA BOLIVARIANA LAS CAMPANAS"
+                },
+                "primer_apellido": "MENDOZA",
+                "segundo_apellido": "RODRIGUEZ",
+                "primer_nombre": "ARIANNYS",
+                "segundo_nombre": "DANIELA",
+                "request_date": "2025-08-03T02:09:59.265Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-08-02T23:05:19.551904",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "15094846",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=15094846",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 15094846,
+                "fecha_nac": "1982-03-06",
+                "rif": "V150948467",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "JIMENEZ",
+                    "parroquia": "TINTORERO",
+                    "centro_electoral": "UNIDAD EDUCATIVA NACIONAL MARIA CELESTINA GARCIA"
+                },
+                "primer_apellido": "TORREALBA",
+                "segundo_apellido": "RUIZ",
+                "primer_nombre": "JOSE",
+                "segundo_nombre": "LUIS",
+                "request_date": "2025-08-03T03:05:19.520Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-08-03T16:55:37.753951",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "21273281",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=21273281",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 21273281,
+                "fecha_nac": "1993-05-04",
+                "rif": "V212732814",
+                "primer_apellido": "CEBALLOS",
+                "segundo_apellido": "SOCORRO",
+                "primer_nombre": "CARLOS",
+                "segundo_nombre": "EDUARDO",
+                "request_date": "2025-08-03T20:55:37.700Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-08-04T14:10:15.051899",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "15094846",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=15094846",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 15094846,
+                "fecha_nac": "1982-03-06",
+                "rif": "V150948467",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "JIMENEZ",
+                    "parroquia": "TINTORERO",
+                    "centro_electoral": "UNIDAD EDUCATIVA NACIONAL MARIA CELESTINA GARCIA"
+                },
+                "primer_apellido": "TORREALBA",
+                "segundo_apellido": "RUIZ",
+                "primer_nombre": "JOSE",
+                "segundo_nombre": "LUIS",
+                "request_date": "2025-08-04T18:10:15.009Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-08-05T09:12:49.052778",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "21273281",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=21273281",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 21273281,
+                "fecha_nac": "1993-05-04",
+                "rif": "V212732814",
+                "primer_apellido": "CEBALLOS",
+                "segundo_apellido": "SOCORRO",
+                "primer_nombre": "CARLOS",
+                "segundo_nombre": "EDUARDO",
+                "request_date": "2025-08-05T13:12:49.027Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-08-06T17:22:15.943919",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "18735282",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=18735282",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 18735282,
+                "fecha_nac": "1988-03-27",
+                "rif": "V187352823",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "CRESPO",
+                    "parroquia": "JOSE MARIA BLANCO",
+                    "centro_electoral": "UNIDAD EDUCATIVA NACIONAL TACARIGUITA"
+                },
+                "primer_apellido": "FLORES",
+                "segundo_apellido": "SANTOS",
+                "primer_nombre": "YOHANNA",
+                "segundo_nombre": "PASTORA",
+                "request_date": "2025-08-06T21:22:16.298Z"
+            }
+        }
     }
 ]

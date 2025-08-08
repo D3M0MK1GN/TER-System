@@ -21,19 +21,22 @@ interface PlantillaWord {
   tamaño: number;
   createdAt: string;
 }
-
+// Array para almacenar los tipos de experticia
 const tiposExperticia = [
+  
   { value: "identificar_datos_numero", label: "Identificar datos de un número" },
+  { value: "determinar_historicos_trazas_bts", label: "Determinar Históricos de Trazas Telefónicas BTS" },
   { value: "determinar_tramite_venta_linea", label: "Determinar dónde fue tramitada la venta de línea" },
   { value: "determinar_linea_conexion_ip", label: "Determinar línea telefónica con conexión IP" },
   { value: "identificar_radio_bases_bts", label: "Identificar las Radio Bases (BTS)" },
   { value: "identificar_numeros_duraciones_bts", label: "Identificar números con duraciones específicas en la Radio Base (BTS)" },
   { value: "determinar_contaminacion_linea", label: "Determinar contaminación de línea" },
+  { value: "determinar_contacto_frecuente", label: "Determinar Contacto Frecuente" },
   { value: "determinar_sim_cards_numero", label: "Determinar SIM CARDS utilizados con un número telefónico" },
   { value: "determinar_comportamiento_social", label: "Determinar comportamiento social" },
   { value: "determinar_numeros_comun", label: "Determinar números en común" },
   { value: "determinar_ubicacion_llamadas", label: "Determinar ubicación mediante registros de llamadas" },
-  { value: "determinar_ubicacion_trazas", label: "Determinar ubicación mediante registros de trazas telefónicas" },
+  { value: "determinar_ubicacion_trazas", label: "Determinar ubicación mediante registros de trazas telefónicas (Recorrido)" },
   { value: "determinar_contaminacion_equipo_imei", label: "Determinar contaminación de equipo (IMEI)" },
   { value: "identificar_numeros_comun_bts", label: "Identificar números en común en dos o más Radio Base (BTS)" },
   { value: "identificar_numeros_desconectan_bts", label: "Identificar números que se desconectan de la Radio Base (BTS) después del hecho" },
@@ -268,6 +271,7 @@ export function PlantillasWordAdmin() {
                 </Select>
               </div>
             </div>
+
             
             <div>
               <Label htmlFor="fileInput">Archivo Word (.doc, .docx)</Label>
@@ -374,5 +378,10 @@ export function PlantillasWordAdmin() {
         </CardContent>
       </Card>
     </div>
-  );
+
+
+
+);
+
 }
+
