@@ -137,6 +137,40 @@ export function RequestTable({
     }
   };
 
+  const handleGenerateDocument = async () => {
+    if (!viewingSolicitud) return;
+    
+    try {
+      // Generar plantilla Word usando los datos de la solicitud existente
+      const response = await fetch(`/api/plantillas-word/by-expertise/${viewingSolicitud.tipoExperticia}/generate`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(viewingSolicitud),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = response.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || `Plantilla_${viewingSolicitud.numeroSolicitud}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else if (response.status === 404) {
+        console.log("No hay plantilla disponible para este tipo de experticia");
+      } else {
+        console.error("Error generando documento:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error descargando documento:", error);
+    }
+  };
+
   const formatExpertiseType = (tipo: string) => {
     const types = {
       identificar_datos_numero: "Identificar datos de un número",
@@ -492,15 +526,26 @@ export function RequestTable({
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>Detalles de la Solicitud</span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handlePrint}
-                className="no-print"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                Imprimir Reporte
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handlePrint}
+                  className="no-print"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Imprimir Reporte
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleGenerateDocument}
+                  className="no-print"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Generar Documento
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           

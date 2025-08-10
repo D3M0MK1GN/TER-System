@@ -52,7 +52,7 @@ export default function Requests() {
         document.body.removeChild(a);
 
         toast({
-          title: "Plantilla descargada",
+          title: "Plantilla Word descargada",
           description: "La plantilla Word se ha descargado con los datos de la solicitud.",
         });
       } else if (response.status === 404) {
@@ -60,6 +60,48 @@ export default function Requests() {
       }
     } catch (error) {
       // Silent error for download failures
+    }
+  };
+
+  const handleExcelDownload = async (requestData?: any) => {
+    try {
+      const response = await fetch(`/api/solicitudes/generate-excel`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData || {}),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = response.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || "planilla_datos.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast({
+          title: "Archivo Excel descargado",
+          description: "El archivo Excel se ha descargado con los datos de la solicitud.",
+        });
+      } else if (response.status === 404) {
+        toast({
+          title: "Error",
+          description: "Plantilla Excel no encontrada",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error descargando archivo Excel",
+        variant: "destructive",
+      });
     }
   };
 
@@ -102,10 +144,13 @@ export default function Requests() {
         description: "La solicitud ha sido creada exitosamente",
       });
       
-      // Download template after successful creation with request data
+      // Download templates after successful creation with request data
       if (variables.tipoExperticia) {
         handleTemplateDownload(variables.tipoExperticia, variables);
       }
+      
+      // Always download Excel with request data
+      handleExcelDownload(variables);
     },
     onError: (error: Error) => {
       toast({
@@ -312,3 +357,5 @@ export default function Requests() {
     </Layout>
   );
 }
+
+
