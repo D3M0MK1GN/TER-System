@@ -1420,21 +1420,39 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
     const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
     const solicitudShort = requestData.numeroSolicitud?.split('-').pop() || requestData.numeroSolicitud || ''; // Uso de optional chaining y nullish coalescing
 
+    
     const templateData = {
       // Uso de un único estilo de nombre para los placeholders
+      OFI: (requestData.coordinacionSolicitante.includes('delitos_propiedad')) 
+         ? 'CIDCPROP' 
+
+         : (requestData.coordinacionSolicitante.includes('delitos_personas')) 
+         ? 'CIDCPER' 
+          
+         : (requestData.coordinacionSolicitante.includes('crimen_organizado')) 
+         ? 'COLOCAR IDENTIFICADOR'
+
+         : (requestData.coordinacionSolicitante.includes('delitos_vehiculos')) 
+         ? 'CIRHV'
+        
+         : (requestData.coordinacionSolicitante.includes('homicidio')) 
+         ? 'CIDCPER'
+
+         : 'IDENTIFICAR OFICINA POR FAVOR!!!',  // Valor por defecto,
+
       SOLICITUD: solicitudShort,
       EXP: requestData.numeroExpediente || '',
       OPER: (requestData.operador || '').toUpperCase(),
       FECHA: currentDate,
       FISCAL: requestData.fiscal || '',
       DIR: requestData.direc || '',
+      INFO_E: requestData.informacionE || '',
+      INFO_R: requestData.informacionR || '',
+      DESDE: requestData.desde || '', // iNTRODUCIR
+      HASTA: requestData.hasta || '',      // INTRODUCIR
       DELITO: requestData.delito || '',
       
-      // Additional placeholders for alternative naming
-      /*dDESDE: requestData.numeroExpediente || '',
-      dHASTA: requestData.numeroExpediente || '',
-      operador: (requestData.operador || '').toUpperCase(),
-      fecha: currentDate,
+      /*
       informacionLinea: requestData.informacionLinea || '',
       descripcion: requestData.descripcion || '', */
     };

@@ -34,6 +34,28 @@ const requestFormSchema = insertSolicitudSchema.extend({
 
 type RequestFormData = z.infer<typeof requestFormSchema>;
 
+function parseInformacionLinea(informacionLinea: string): { informacionE: string; informacionR: string } {
+  const informacionE = '';
+  const informacionR = '';
+  
+  if (!informacionLinea || typeof informacionLinea !== 'string') {
+    return { informacionE, informacionR };
+  }
+  
+  // Buscar patrón "e:" seguido de cualquier texto hasta encontrar "r:" o fin de cadena
+  const eMatch = informacionLinea.match(/e:\s*([^r:]+?)(?=\s*r:|$)/i);
+  const extractedE = eMatch ? eMatch[1].trim() : '';
+  
+  // Buscar patrón "r:" seguido de cualquier texto hasta encontrar "e:" o fin de cadena
+  const rMatch = informacionLinea.match(/r:\s*([^e:]+?)(?=\s*e:|$)/i);
+  const extractedR = rMatch ? rMatch[1].trim() : '';
+  
+  return { 
+    informacionE: extractedE, 
+    informacionR: extractedR 
+  };
+}
+
 interface RequestFormProps {
   onSubmit: (data: RequestFormData) => void;
   onCancel: () => void;
@@ -65,6 +87,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
       coordinacionSolicitante: "",
       operador: "",
       informacionLinea: "",
+      fecha_de_solicitud: "",
       direc: "",
       delito: "",
       descripcion: "",
@@ -110,9 +133,27 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
     }
   };
 
+  // Extraer y enviar datos  
   const handleSubmit = (data: RequestFormData) => {
     // Call the parent onSubmit handler
-    onSubmit(data);
+        // Extraer información con prefijos "e:" y "r:" del campo informacionLinea
+    const { informacionE, informacionR } = parseInformacionLinea(data.informacionLinea || '');
+    
+    const {desde, hasta} = parseInformacionLinea(data.fecha_de_solicitud || '');
+    
+    // Agregar los valores parseados a los datos que se envían
+    const dataWithParsedInfo = {
+      ...data,
+      informacionE,
+      informacionR,
+      desde,
+      hasta
+    };
+    
+    //console.log('Información parseada:', { informacionE, informacionR });
+    //console.log('Datos completos a enviar:', dataWithParsedInfo);
+    // Llamar al handler del componente padre con los datos completos
+    onSubmit(dataWithParsedInfo);
   };
 
   return (
@@ -235,7 +276,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                   <SelectItem value="delitos_personas">Coordinacion de los Delitos Contra las Personas</SelectItem>
                   <SelectItem value="crimen_organizado">Coordinacion de los Delitos Contra la Delincuencia Organizada</SelectItem>
                   <SelectItem value="delitos_vehiculos">Coordinacion de los Delitos Contra el Hurto y Robo de Vehiculo Automotor</SelectItem>
-                  <SelectItem value="captura">Captura</SelectItem>
+                  <SelectItem value="homicidio">Homicidio</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.coordinacionSolicitante && (
@@ -288,6 +329,15 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                 )}
               </div>
             )}
+            
+            <div>
+              <Label htmlFor="delito">Delito</Label>
+              <Input
+                id="delito"
+                placeholder="Delitco cometido (Robo, Hurto, Robo)."
+                {...form.register("delito")}
+              />
+            </div>
 
             <div>
               <Label htmlFor="informacionLinea">Información Solicitada</Label>
@@ -299,26 +349,24 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
             </div>
 
             <div>
-              <Label htmlFor="direc">Direccion Solicitada</Label>
+              <Label htmlFor="fecha_de_solicitud">Fecha de Solicitud</Label>
               <Input
-                id="direc"
-                placeholder="Direcion Exacta el Hecho."
-                {...form.register("direc")}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="delito">Delito</Label>
-              <Input
-                id="delito"
-                placeholder="Delitco cometido (Robo, Hurto, Robo)."
-                {...form.register("delito")}
+                id="fecha_de_solicitud"
+                placeholder="e: 26/06/2001 r: 02/08/2001"
+                {...form.register("fecha_de_solicitud")}
               />
             </div>
 
           </div>
-            
-            
+
+          <div>
+              <Label htmlFor="direc">Direccion Solicitada</Label>
+              <Textarea
+                id="direc"
+                placeholder="Direcion Exacta el Hecho."
+                {...form.register("direc")}
+              />
+          </div>  
 
           <div>
             <Label htmlFor="descripcion">Reseña</Label>

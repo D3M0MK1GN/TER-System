@@ -45,9 +45,10 @@ export const solicitudes = pgTable("solicitudes", {
   tipoExperticia: text("tipo_experticia").notNull(),
   coordinacionSolicitante: text("coordinacion_solicitante").notNull(),
   operador: operadorEnum("operador").notNull(),
-  informacionLinea: text("informacion_linea"),
+  informacionLinea: text("informacion_linea"), // Linea de Codigo Redundante
   direc: text("direc"),
   delito: text("delito"),
+  fecha_de_solicitud: text("fecha_desde"),    
   descripcion: text("descripcion"),
   motivoRechazo: text("motivo_rechazo"),
   estado: estadoEnum("estado").default("enviada"),
