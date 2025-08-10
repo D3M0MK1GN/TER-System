@@ -34,26 +34,25 @@ const requestFormSchema = insertSolicitudSchema.extend({
 
 type RequestFormData = z.infer<typeof requestFormSchema>;
 
-function parseInformacionLinea(informacionLinea: string): { informacionE: string; informacionR: string } {
-  const informacionE = '';
-  const informacionR = '';
-  
-  if (!informacionLinea || typeof informacionLinea !== 'string') {
-    return { informacionE, informacionR };
+function parseWithPrefixes(input: string, prefixes: string[]): Record<string, string> {
+  if (!input || typeof input !== 'string') {
+    return {};
   }
   
-  // Buscar patrón "e:" seguido de cualquier texto hasta encontrar "r:" o fin de cadena
-  const eMatch = informacionLinea.match(/e:\s*([^r:]+?)(?=\s*r:|$)/i);
-  const extractedE = eMatch ? eMatch[1].trim() : '';
+  const result: Record<string, string> = {};
   
-  // Buscar patrón "r:" seguido de cualquier texto hasta encontrar "e:" o fin de cadena
-  const rMatch = informacionLinea.match(/r:\s*([^e:]+?)(?=\s*e:|$)/i);
-  const extractedR = rMatch ? rMatch[1].trim() : '';
+  prefixes.forEach(prefix => {
+    // Crear patrón dinámico que busca el prefijo seguido de contenido
+    // hasta encontrar otro prefijo o fin de cadena
+    const otherPrefixes = prefixes.filter(p => p !== prefix).join('|');
+    const pattern = otherPrefixes 
+      ? new RegExp(`${prefix}:\\s*([^]*?)(?=\\s*(?:${otherPrefixes}):|$)`, 'i')
+      : new RegExp(`${prefix}:\\s*([^]*)`, 'i');
+    const match = input.match(pattern);
+    result[prefix] = match ? match[1].trim() : '';
+  });
   
-  return { 
-    informacionE: extractedE, 
-    informacionR: extractedR 
-  };
+  return result;
 }
 
 interface RequestFormProps {
@@ -135,11 +134,15 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
 
   // Extraer y enviar datos  
   const handleSubmit = (data: RequestFormData) => {
-    // Call the parent onSubmit handler
-        // Extraer información con prefijos "e:" y "r:" del campo informacionLinea
-    const { informacionE, informacionR } = parseInformacionLinea(data.informacionLinea || '');
+    // Extraer información con prefijos "e:" y "r:" del campo informacionLinea
+    const informacionLineaData = parseWithPrefixes(data.informacionLinea || '', ['e', 'r']);
+    const informacionE = informacionLineaData.e || '';
+    const informacionR = informacionLineaData.r || '';
     
-    const {desde, hasta} = parseInformacionLinea(data.fecha_de_solicitud || '');
+    // Extraer información con prefijos "desde:" y "hasta:" del campo fecha_de_solicitud
+    const fechaData = parseWithPrefixes(data.fecha_de_solicitud || '', ['desde', 'hasta']);
+    const desde = fechaData.desde || '';
+    const hasta = fechaData.hasta || '';
     
     // Agregar los valores parseados a los datos que se envían
     const dataWithParsedInfo = {
@@ -150,8 +153,6 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
       hasta
     };
     
-    //console.log('Información parseada:', { informacionE, informacionR });
-    //console.log('Datos completos a enviar:', dataWithParsedInfo);
     // Llamar al handler del componente padre con los datos completos
     onSubmit(dataWithParsedInfo);
   };
@@ -331,19 +332,32 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
             )}
             
             <div>
-              <Label htmlFor="delito">Delito</Label>
-              <Input
-                id="delito"
-                placeholder="Delitco cometido (Robo, Hurto, Robo)."
-                {...form.register("delito")}
-              />
+              <Label htmlFor="delito">Tipo de Delito *</Label>
+              <Select
+                value={form.watch("delito")}
+                onValueChange={(value) => form.setValue("delito", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione el Delito" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Contra la Propiedad (Robo)">Contra la Propiedad (Robo)</SelectItem>
+                  <SelectItem value="Contra la Propiedad (Hurto)">Contra la Propiedad (Hurto)</SelectItem>
+                  <SelectItem value="Contra la Propiedad (Estafa)">Contra la Propiedad (Estafa)</SelectItem>
+                </SelectContent>
+              </Select>
+              {form.formState.errors.delito && (
+                <p className="text-sm text-red-600 mt-1">
+                  {form.formState.errors.delito.message}
+                </p>
+              )}
             </div>
 
             <div>
               <Label htmlFor="informacionLinea">Información Solicitada</Label>
               <Input
                 id="informacionLinea"
-                placeholder="Número de teléfono, IMEI, etc."
+                placeholder="Numeros, IMEI, etc. Ejm. e: 04121556598 r: 04121556599"
                 {...form.register("informacionLinea")}
               />
             </div>
@@ -352,7 +366,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
               <Label htmlFor="fecha_de_solicitud">Fecha de Solicitud</Label>
               <Input
                 id="fecha_de_solicitud"
-                placeholder="e: 26/06/2001 r: 02/08/2001"
+                placeholder="desde: 26-06-2001 hasta: 02-08-2001"
                 {...form.register("fecha_de_solicitud")}
               />
             </div>
