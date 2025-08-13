@@ -25,7 +25,7 @@ interface DashboardStats {
   pendientes: number;
   enviadas: number;
   respondidas: number;
-  rechazadas: number;
+  negativas: number;
   solicitudesPorOperador: { operador: string; total: number }[];
   actividadReciente: any[];
 }
@@ -275,13 +275,13 @@ export default function Dashboard() {
                   pendientes: stats.pendientes,
                   enviadas: stats.enviadas,
                   respondidas: stats.respondidas,
-                  rechazadas: stats.rechazadas
+                  negativas: stats.negativas
                 } : {
                   totalSolicitudes: 0,
                   pendientes: 0,
                   enviadas: 0,
                   respondidas: 0,
-                  rechazadas: 0
+                  negativas: 0
                 }} />
               </div>
 

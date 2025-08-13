@@ -20,6 +20,7 @@ import multer from "multer";
 import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import path from "path";
 import { processTextMessage, processFileMessage, getMimeType, isSupportedFileType } from "./gemini";
+import { registerDocumentRoutes } from "./routes_gest";
 
 // import { readFileSync, existsSync } from 'fs';
 import PizZip from 'pizzip';
@@ -1659,6 +1660,9 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
       res.status(500).json({ message: "Error guardando configuración del chatbot" });
     }
   });
+
+  // Registrar rutas de gestión de documentos (Word y Excel)
+  registerDocumentRoutes(app, authenticateToken, storage);
 
   const httpServer = createServer(app);
   return httpServer;

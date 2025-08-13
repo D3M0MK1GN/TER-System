@@ -4,9 +4,7 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from "
 import path from "path";
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const XLSX = require('xlsx');
+import ExcelJS from 'exceljs';
 
 // Al inicio del archivo routes_gest.ts
 const swiPdf = {
@@ -115,7 +113,10 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
   app.post("/api/solicitudes/generate-excel", authenticateToken, async (req: any, res) => {
     try {
       const requestData = req.body;
-      console.log("Generando Excel con datos:", requestData);
+      console.log("=== INICIO GENERACIÓN EXCEL ===");
+      console.log("Datos recibidos:", JSON.stringify(requestData, null, 2));
+      console.log("Tipo de datos:", typeof requestData);
+      console.log("Keys disponibles:", Object.keys(requestData || {}));
       
       // Verificar que existe la plantilla Excel
       const excelTemplatePath = path.join(process.cwd(), 'uploads', 'PLANILLA DATOS.xlsx');
@@ -130,7 +131,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       const solicitudShort = requestData.numeroSolicitud?.split('-').pop() || requestData.numeroSolicitud || '';
       
       // Determinar oficina basada en coordinación
-      const oficina = (requestData.coordinacionSolicitante.includes('delitos_propiedad')) 
+      /*const oficina = (requestData.coordinacionSolicitante.includes('delitos_propiedad')) 
          ? 'CIDCPROP' 
          : (requestData.coordinacionSolicitante.includes('delitos_personas')) 
          ? 'CIDCPER' 
@@ -140,35 +141,50 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
          ? 'CIRHV'
          : (requestData.coordinacionSolicitante.includes('homicidio')) 
          ? 'CIDCPER'
-         : 'OFICINA NO IDENTIFICADA';
+         : 'OFICINA NO IDENTIFICADA';*/
 
-      // Leer la plantilla Excel
-      console.log("Leyendo plantilla Excel...");
-      const workbook = XLSX.readFile(excelTemplatePath);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      console.log("Plantilla Excel leída exitosamente");
+      // Leer la plantilla Excel con ExcelJS para preservar formato
+      console.log("Leyendo plantilla Excel con ExcelJS...");
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(excelTemplatePath);
+      const worksheet = workbook.getWorksheet(1); // Primera hoja
+      
+      if (!worksheet) {
+        console.log("No se pudo acceder a la hoja de trabajo");
+        return res.status(500).json({ message: "Error accediendo a la hoja de trabajo Excel" });
+      }
+      
+      console.log("Plantilla Excel leída exitosamente con formato preservado");
 
       // Mapear datos a celdas específicas según la estructura real de la plantilla
       const dataMapping = {
         'B2': solicitudShort,                   // {SOLICITUD}
         'C2': currentDate,                      // {FECHA}
-        'D2': oficina,                          // {DM} - Despacho/Oficina
+        'D2': 'Delegacion Municipal Quibor',                          // {DM} - Despacho/Oficina
         'E2': requestData.numeroExpediente || '', // {EXP} - Expediente
         'F2': requestData.informacionR || '',   // {INFO_R} - Dato Solicitado
         'G2': requestData.desde || '',          // {DESDE}
         'H2': requestData.hasta || '',          // {HASTA}
         'J2': requestData.delito || '',         // {delito}
+        'K2': requestData.fiscal || '',
       };
 
-      // Aplicar los datos a las celdas
-      Object.entries(dataMapping).forEach(([cell, value]) => {
-        if (value !== undefined && value !== null) {
-          worksheet[cell] = { v: value, t: 's' }; // 's' indica que es string
+      //console.log("Mapeo de datos para Excel:", JSON.stringify(dataMapping, null, 2));
+
+      // Aplicar los datos a las celdas preservando el formato
+      Object.entries(dataMapping).forEach(([cellAddress, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          const cell = worksheet.getCell(cellAddress);
+          cell.value = String(value);
+          // El formato y estilo de la celda se preserva automáticamente
+        } else {
+          //console.log(`Saltando celda ${cellAddress} - valor vacío o nulo:`, value);
         }
       });
 
       // Generar el buffer del archivo Excel modificado
-      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      //console.log("Generando buffer Excel con formato preservado...");
+      const excelBuffer = await workbook.xlsx.writeBuffer();
 
       // Configurar respuesta para descarga
       const customFileName = `PLANILLA_DATOS-${requestData.numeroSolicitud || 'solicitud'}.xlsx`;

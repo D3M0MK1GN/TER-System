@@ -341,9 +341,17 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                   <SelectValue placeholder="Seleccione el Delito" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Contra la Propiedad">Contra la Propiedad</SelectItem>
                   <SelectItem value="Contra la Propiedad (Robo)">Contra la Propiedad (Robo)</SelectItem>
                   <SelectItem value="Contra la Propiedad (Hurto)">Contra la Propiedad (Hurto)</SelectItem>
                   <SelectItem value="Contra la Propiedad (Estafa)">Contra la Propiedad (Estafa)</SelectItem>
+                  <SelectItem value="Comtenplando en la Ley Sobre el Hurto y Robo de Vehiculos Automotor">Comtenplando en la Ley Sobre el Hurto y Robo de Vehiculos Automotor</SelectItem>
+                  <SelectItem value="Contra el Hurto y Robo de Vehiculo Automor (ROBO)">Contra el Hurto y Robo de Vehiculo Automor (ROBO)</SelectItem>
+                  <SelectItem value="Contra el Hurto y Robo de Vehiculo Automor (HURTO)">Contra el Hurto y Robo de Vehiculo Automor (HURTO)</SelectItem>
+                  <SelectItem value="Contra las Personas">Contra las Personas</SelectItem>
+                  <SelectItem value="Contra las Personas (Lesiones)">Contra las Personas (Lesiones)</SelectItem>
+                  <SelectItem value="Contra las Personas">Contra las Personas (Violencia)</SelectItem>
+                  <SelectItem value="Contra las Personas (Homicidio)">Contra las Personas (Homicidio)</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.delito && (

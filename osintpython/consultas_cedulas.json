@@ -428,5 +428,76 @@
                 "request_date": "2025-08-06T21:22:16.298Z"
             }
         }
+    },
+    {
+        "timestamp": "2025-08-12T14:19:56.720834",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "27737640",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=27737640",
+        "error": "HTTPConnectionPool(host='api.cedula.com.ve', port=80): Max retries exceeded with url: /api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=27737640 (Caused by NameResolutionError(\"<urllib3.connection.HTTPConnection object at 0x7971ecdfc2c0>: Failed to resolve 'api.cedula.com.ve' ([Errno -2] Name or service not known)\"))"
+    },
+    {
+        "timestamp": "2025-08-12T14:20:37.111218",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "27737640",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=27737640",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2025-08-12T14:21:00.904657",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28609925,
+                "fecha_nac": "2001-06-26",
+                "rif": "V286099250",
+                "primer_apellido": "JIMENEZ",
+                "segundo_apellido": "MENDOZA",
+                "primer_nombre": "RAUL",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2025-08-12T18:21:00.960Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-08-12T14:21:15.111961",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "27737640",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=27737640",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2025-08-12T14:21:33.645855",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "30025751",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=30025751",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 30025751,
+                "fecha_nac": "2003-05-17",
+                "rif": "V300257514",
+                "primer_apellido": "MENDOZA",
+                "segundo_apellido": "CORRO",
+                "primer_nombre": "YUSBELY",
+                "segundo_nombre": "DIVEANA",
+                "request_date": "2025-08-12T18:21:33.726Z"
+            }
+        }
     }
 ]
