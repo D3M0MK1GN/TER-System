@@ -97,6 +97,43 @@ export function UserTable({
     }
   };
 
+  const getDelegacionDisplay = (delegacion: string | null | undefined) => {
+    if (!delegacion) return "No asignada";
+    
+    const delegaciones: { [key: string]: string } = {
+      "delegacion_municipal_quibor": "Delegación Municipal Quibor",
+      "delegacion_municipal_barquisimeto": "Delegación Municipal Barquisimeto",
+      "delegacion_municipal_san_juan": "Delegación Municipal San Juan",
+      "delegacion_municipal_tocuyo": "Delegación Municipal Tocuyo",
+      "delegacion_municipal_cabudare": "Delegación Municipal Cabudare",
+      "delegacion_municipal_iribarren": "Delegación Municipal Iribarren",
+      "delegacion_municipal_palavecino": "Delegación Municipal Palavecino",
+      "delegacion_municipal_crespo": "Delegación Municipal Crespo",
+      "delegacion_municipal_morán": "Delegación Municipal Morán",
+      "delegacion_municipal_simón_planas": "Delegación Municipal Simón Planas",
+      "delegacion_municipal_andrés_eloy_blanco": "Delegación Municipal Andrés Eloy Blanco",
+      "delegacion_municipal_jiménez": "Delegación Municipal Jiménez",
+      "delegacion_municipal_torres": "Delegación Municipal Torres",
+      "delegacion_municipal_urdaneta": "Delegación Municipal Urdaneta",
+      "delegacion_municipal_sucre": "Delegación Municipal Sucre",
+      "delegacion_municipal_libertador": "Delegación Municipal Libertador",
+      "delegacion_municipal_chacao": "Delegación Municipal Chacao",
+      "delegacion_municipal_baruta": "Delegación Municipal Baruta",
+      "delegacion_municipal_el_hatillo": "Delegación Municipal El Hatillo",
+      "delegacion_municipal_maracaibo": "Delegación Municipal Maracaibo",
+      "delegacion_municipal_san_francisco": "Delegación Municipal San Francisco",
+      "delegacion_municipal_cabimas": "Delegación Municipal Cabimas",
+      "delegacion_municipal_valencia": "Delegación Municipal Valencia",
+      "delegacion_municipal_naguanagua": "Delegación Municipal Naguanagua",
+      "delegacion_municipal_girardot": "Delegación Municipal Girardot",
+      "delegacion_municipal_maracay": "Delegación Municipal Maracay",
+      "delegacion_municipal_san_cristóbal": "Delegación Municipal San Cristóbal",
+      "delegacion_municipal_libertador_merida": "Delegación Municipal Libertador Mérida"
+    };
+    
+    return delegaciones[delegacion] || delegacion;
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -181,6 +218,7 @@ export function UserTable({
               <TableHead className="min-w-[200px]">Email</TableHead>
               <TableHead className="min-w-[120px]">Rol</TableHead>
               <TableHead className="min-w-[150px]">Coordinación</TableHead>
+              <TableHead className="min-w-[180px]">Delegación</TableHead>
               <TableHead className="min-w-[140px]">Estado</TableHead>
               <TableHead className="min-w-[140px]">Dirección IP</TableHead>
               <TableHead className="min-w-[140px]">Último Acceso</TableHead>
@@ -190,7 +228,7 @@ export function UserTable({
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                   No se encontraron usuarios
                 </TableCell>
               </TableRow>
@@ -204,6 +242,11 @@ export function UserTable({
                   <TableCell>
                     <span className="text-sm text-gray-600">
                       {getCoordinacionDisplay(user.coordinacion)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-gray-600">
+                      {getDelegacionDisplay(user.delegacion)}
                     </span>
                   </TableCell>
                   <TableCell>{getStatusBadge(user)}</TableCell>

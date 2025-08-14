@@ -5,6 +5,37 @@ import { relations } from "drizzle-orm";
 
 export const statusEnum = pgEnum("status", ["activo", "suspendido", "bloqueado"]);
 
+export const delegacionEnum = pgEnum("delegacion", [
+  "delegacion_municipal_quibor",
+  "delegacion_municipal_barquisimeto", 
+  "delegacion_municipal_san_juan",
+  "delegacion_municipal_tocuyo",
+  "delegacion_municipal_cabudare",
+  "delegacion_municipal_iribarren",
+  "delegacion_municipal_palavecino",
+  "delegacion_municipal_crespo",
+  "delegacion_municipal_morán",
+  "delegacion_municipal_simón_planas",
+  "delegacion_municipal_andrés_eloy_blanco",
+  "delegacion_municipal_jiménez", 
+  "delegacion_municipal_torres",
+  "delegacion_municipal_urdaneta",
+  "delegacion_municipal_sucre",
+  "delegacion_municipal_libertador",
+  "delegacion_municipal_chacao",
+  "delegacion_municipal_baruta",
+  "delegacion_municipal_el_hatillo",
+  "delegacion_municipal_maracaibo",
+  "delegacion_municipal_san_francisco",
+  "delegacion_municipal_cabimas",
+  "delegacion_municipal_valencia",
+  "delegacion_municipal_naguanagua",
+  "delegacion_municipal_girardot",
+  "delegacion_municipal_maracay",
+  "delegacion_municipal_san_cristóbal",
+  "delegacion_municipal_libertador_merida"
+]);
+
 // Esquema para la Tabla usuarios de la Base de datos
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -14,6 +45,7 @@ export const users = pgTable("users", {
   email: text("email"),
   rol: text("rol").default("usuario"),
   coordinacion: text("coordinacion"),
+  delegacion: delegacionEnum("delegacion"),
   activo: boolean("activo").default(true),
   status: statusEnum("status").default("activo"),
   direccionIp: text("direccion_ip"),
@@ -47,7 +79,7 @@ export const solicitudes = pgTable("solicitudes", {
   operador: operadorEnum("operador").notNull(),
   informacionLinea: text("informacion_linea"), // Linea de Codigo Redundante
   direc: text("direc"),
-  delito: text("delito").notNull(),
+  delito: text("delito"),
   fecha_de_solicitud: text("fecha_de_solicitud"),    
   descripcion: text("descripcion"),
   motivoRechazo: text("motivo_rechazo"),

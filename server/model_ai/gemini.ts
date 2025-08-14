@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import { GoogleGenAI } from "@google/genai";
+import fetch from "node-fetch";
 /**
  * CHATBOT GEMINI AI - TER-SYSTEM
  * ==============================
@@ -10,6 +11,9 @@ import { GoogleGenAI } from "@google/genai";
 
 // Configuración de Google Gemini AI
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+// URL de la API Python para consultas OSINT
+const PYTHON_API_URL = "http://localhost:5001";
 
 // Constantes de configuración
 const CONFIG = {
@@ -40,6 +44,12 @@ análisis forense de informatica, comunicaciones y experticia técnica. Responde
  */
 export async function processTextMessage(message: string): Promise<string> {
     try {
+        // Verificar si es una consulta de cédula antes de procesar con IA
+        const cedulaResult = await detectAndProcessCedula(message);
+        if (cedulaResult) {
+            return cedulaResult;
+        }
+
         const response = await ai.models.generateContent({
             model: CONFIG.MODELS.TEXT,
             contents: `${TELECOM_CONTEXT}\n\nConsulta: ${message}`,
@@ -169,4 +179,156 @@ export function validateFile(filename: string, fileSize?: number): { valid: bool
     }
 
     return { valid: true };
+}
+
+/**
+ * FUNCIONES DE INTEGRACIÓN CON API PYTHON OSINT
+ * ==============================================
+ * 
+ * Detecta y procesa consultas de cédulas venezolanas mediante la API Python
+ */
+
+/**
+ * Detecta si un mensaje contiene una consulta de cédula venezolana
+ * @param message - Mensaje del usuario
+ * @returns Objeto con la información de la cédula si es detectada
+ */
+function detectCedulaQuery(message: string): { nacionalidad: string; cedula: string } | null {
+    // Patrones para detectar cédulas venezolanas
+    const patterns = [
+        // Formato: V-12345678 o E-12345678
+        /([VE])-?(\d{7,8})/gi,
+        // Formato: V12345678 o E12345678
+        /([VE])(\d{7,8})/gi,
+        // Formato: cedula V 12345678
+        /cedula\s+([VE])\s*-?\s*(\d{7,8})/gi,
+        // Formato: consulta V-12345678
+        /consulta\s+([VE])\s*-?\s*(\d{7,8})/gi,
+        // Formato: buscar V12345678
+        /buscar\s+([VE])\s*-?\s*(\d{7,8})/gi
+    ];
+
+    for (const pattern of patterns) {
+        const match = pattern.exec(message);
+        if (match) {
+            return {
+                nacionalidad: match[1].toUpperCase(),
+                cedula: match[2]
+            };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Procesa una consulta de cédula usando la API Python
+ * @param nacionalidad - V o E
+ * @param cedula - Número de cédula
+ * @returns Respuesta formateada para el chatbot
+ */
+async function consultarCedulaAPI(nacionalidad: string, cedula: string): Promise<string> {
+    try {
+        const response = await fetch(`${PYTHON_API_URL}/consulta-cedula`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                nacionalidad,
+                cedula
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error de API: ${response.status}`);
+        }
+
+        const data: any = await response.json();
+
+        if (data.success && data.data) {
+            return formatCedulaResponse(data.data, nacionalidad, cedula);
+        } else {
+            return `❌ **Error en consulta de cédula ${nacionalidad}-${cedula}**\n\n${data.error || 'No se pudo obtener información'}`;
+        }
+
+    } catch (error) {
+        console.error('Error consultando cédula:', error);
+        return `❌ **Error de conexión**\n\nNo se pudo conectar con el servicio de consulta de cédulas. Verifica que la API Python esté ejecutándose en el puerto 5001.`;
+    }
+}
+
+/**
+ * Formatea la respuesta de consulta de cédula para el chatbot
+ * @param data - Datos de la API de cédula
+ * @param nacionalidad - V o E
+ * @param cedula - Número de cédula
+ * @returns Respuesta formateada en markdown
+ */
+function formatCedulaResponse(data: any, nacionalidad: string, cedula: string): string {
+    let response = `🔍 **Consulta de Cédula ${nacionalidad}-${cedula}**\n\n`;
+
+    // Verificar si hay datos válidos
+    if (!data || typeof data !== 'object') {
+        return response + `❌ No se encontraron datos para la cédula consultada.`;
+    }
+
+    // Formatear información personal si está disponible
+    if (data.nombre || data.nombres) {
+        response += `👤 **Información Personal:**\n`;
+        response += `• Nombre: ${data.nombre || data.nombres || 'No disponible'}\n`;
+        if (data.apellido || data.apellidos) {
+            response += `• Apellidos: ${data.apellido || data.apellidos}\n`;
+        }
+        response += `\n`;
+    }
+
+    // Formatear información adicional
+    if (data.fecha_nacimiento || data.fechaNacimiento) {
+        response += `📅 **Fecha de Nacimiento:** ${data.fecha_nacimiento || data.fechaNacimiento}\n`;
+    }
+
+    if (data.edad) {
+        response += `🎂 **Edad:** ${data.edad} años\n`;
+    }
+
+    if (data.estado || data.lugar_nacimiento) {
+        response += `📍 **Lugar de Nacimiento:** ${data.estado || data.lugar_nacimiento}\n`;
+    }
+
+    if (data.sexo || data.genero) {
+        response += `⚤ **Sexo:** ${data.sexo || data.genero}\n`;
+    }
+
+    // Agregar disclaimer de uso
+    response += `\n⚠️ **Importante:** Esta información es para fines de investigación autorizada únicamente.\n`;
+    response += `🕒 **Consulta realizada:** ${new Date().toLocaleString('es-VE')}`;
+
+    return response;
+}
+
+/**
+ * Detecta y procesa consultas de cédula en mensajes del chatbot
+ * @param message - Mensaje del usuario
+ * @returns Respuesta de consulta de cédula o null si no es una consulta
+ */
+export async function detectAndProcessCedula(message: string): Promise<string | null> {
+    const cedulaQuery = detectCedulaQuery(message);
+    
+    if (!cedulaQuery) {
+        return null;
+    }
+
+    const { nacionalidad, cedula } = cedulaQuery;
+    
+    // Validar formato de cédula
+    if (!['V', 'E'].includes(nacionalidad)) {
+        return `❌ **Error de formato**\n\nLa nacionalidad debe ser V (venezolano) o E (extranjero)`;
+    }
+
+    if (!/^\d{7,8}$/.test(cedula)) {
+        return `❌ **Error de formato**\n\nEl número de cédula debe tener entre 7 y 8 dígitos`;
+    }
+
+    return await consultarCedulaAPI(nacionalidad, cedula);
 }
