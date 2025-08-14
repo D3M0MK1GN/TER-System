@@ -79,7 +79,7 @@ export const solicitudes = pgTable("solicitudes", {
   operador: operadorEnum("operador").notNull(),
   informacionLinea: text("informacion_linea"), // Linea de Codigo Redundante
   direc: text("direc"),
-  delito: text("delito"),
+  delito: text("delito").notNull(),
   fecha_de_solicitud: text("fecha_de_solicitud"),    
   descripcion: text("descripcion"),
   motivoRechazo: text("motivo_rechazo"),

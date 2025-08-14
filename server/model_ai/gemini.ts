@@ -28,9 +28,12 @@ const CONFIG = {
  * Prompt especializado para el contexto de telecomunicaciones
  * Optimiza las respuestas de IA para el dominio específico del sistema TER-System
  */
-const TELECOM_CONTEXT = `Eres un asistente especializado en telecomunicaciones tu nombre es Daemon. 
-Enfócate en: análisis de redes, BTS/radioespectro, operadores venezolanos (Digitel/Movistar/Movilnet), 
-análisis forense de informatica, comunicaciones y experticia técnica. Responde de manera clara y práctica y sencilla.`;
+const TELECOM_CONTEXT = 'eres un asistente virtual y si te pregunto como te llamas o te pregunto tu nombre tu respondes Me llamo Daemon estoy a su servicio y si te pregunto quien es tu creador o quiente programo responderas fui (palabra usada) por Raul Jimenez'
+
+//const msg = `Eres un asistente especializado en telecomunicaciones tu nombre es Daemon. 
+//Enfócate en: análisis de redes, BTS/radioespectro, operadores venezolanos (Digitel/Movistar/Movilnet), 
+//análisis forense de informatica, comunicaciones y experticia técnica. Responde de manera clara y práctica y sencilla.`;
+
 
 /**
  * PROCESAMIENTO DE MENSAJES DE TEXTO
@@ -248,8 +251,10 @@ async function consultarCedulaAPI(nacionalidad: string, cedula: string): Promise
 
         if (data.success && data.data) {
             return formatCedulaResponse(data.data, nacionalidad, cedula);
-        } else {
+        } else if (data.success === false) {
             return `❌ **Error en consulta de cédula ${nacionalidad}-${cedula}**\n\n${data.error || 'No se pudo obtener información'}`;
+        } else {
+            return formatCedulaResponse(data, nacionalidad, cedula);
         }
 
     } catch (error) {
@@ -268,39 +273,39 @@ async function consultarCedulaAPI(nacionalidad: string, cedula: string): Promise
 function formatCedulaResponse(data: any, nacionalidad: string, cedula: string): string {
     let response = `🔍 **Consulta de Cédula ${nacionalidad}-${cedula}**\n\n`;
 
-    // Verificar si hay datos válidos
-    if (!data || typeof data !== 'object') {
-        return response + `❌ No se encontraron datos para la cédula consultada.`;
+    if (!data) return response + `❌ No se encontraron datos para la cédula consultada.`;
+
+    // Extraer datos del objeto anidado
+    let extractedData = data;
+    if (data.data && typeof data.data === 'object') {
+        extractedData = data.data;
     }
 
-    // Formatear información personal si está disponible
-    if (data.nombre || data.nombres) {
-        response += `👤 **Información Personal:**\n`;
-        response += `• Nombre: ${data.nombre || data.nombres || 'No disponible'}\n`;
-        if (data.apellido || data.apellidos) {
-            response += `• Apellidos: ${data.apellido || data.apellidos}\n`;
+    // Campos de información personal
+    const fields = [
+        { keys: ['primer_nombre', 'nombre'], label: '👤 **Nombre:**' },
+        { keys: ['segundo_nombre'], label: '**Segundo Nombre:**' },
+        { keys: ['primer_apellido', 'apellido'], label: '**Primer Apellido:**' },
+        { keys: ['segundo_apellido'], label: '**Segundo Apellido:**' },
+        { keys: ['fecha_nac', 'fecha_nacimiento'], label: '📅 **Fecha de Nacimiento:**' },
+        { keys: ['rif'], label: '🆔 **RIF:**' },
+        { keys: ['nacionalidad'], label: '🏳️ **Nacionalidad:**' },
+        { keys: ['cedula'], label: '📋 **Cédula:**' }
+    ];
+
+    let hasValidData = false;
+    fields.forEach(field => {
+        const value = field.keys.find(key => extractedData[key]);
+        if (value && extractedData[value]) {
+            response += `${field.label} ${extractedData[value]}\n`;
+            hasValidData = true;
         }
-        response += `\n`;
+    });
+
+    if (!hasValidData) {
+        response += `❌ No se pudieron extraer datos válidos de la respuesta.\n`;
     }
 
-    // Formatear información adicional
-    if (data.fecha_nacimiento || data.fechaNacimiento) {
-        response += `📅 **Fecha de Nacimiento:** ${data.fecha_nacimiento || data.fechaNacimiento}\n`;
-    }
-
-    if (data.edad) {
-        response += `🎂 **Edad:** ${data.edad} años\n`;
-    }
-
-    if (data.estado || data.lugar_nacimiento) {
-        response += `📍 **Lugar de Nacimiento:** ${data.estado || data.lugar_nacimiento}\n`;
-    }
-
-    if (data.sexo || data.genero) {
-        response += `⚤ **Sexo:** ${data.sexo || data.genero}\n`;
-    }
-
-    // Agregar disclaimer de uso
     response += `\n⚠️ **Importante:** Esta información es para fines de investigación autorizada únicamente.\n`;
     response += `🕒 **Consulta realizada:** ${new Date().toLocaleString('es-VE')}`;
 
