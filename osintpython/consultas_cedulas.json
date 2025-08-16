@@ -587,5 +587,114 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2025-08-14T10:24:24.429858",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "9892318",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=9892318",
+        "error": "HTTPConnectionPool(host='api.cedula.com.ve', port=80): Max retries exceeded with url: /api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=9892318 (Caused by NameResolutionError(\"<urllib3.connection.HTTPConnection object at 0x7324f8d5b410>: Failed to resolve 'api.cedula.com.ve' ([Errno -2] Name or service not known)\"))",
+        "success": false
+    },
+    {
+        "timestamp": "2025-08-14T10:24:46.668078",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "9892318",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=9892318",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 9892318,
+                "fecha_nac": "1969-09-15",
+                "rif": "V098923183",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "LA CONCEPCION",
+                    "centro_electoral": "UNIDAD  NACIONAL SAN FRANCISCO JAVIER"
+                },
+                "primer_apellido": "HERNANDEZ",
+                "segundo_apellido": "BARRIOS",
+                "primer_nombre": "DOUGLAS",
+                "segundo_nombre": "ENRIQUE",
+                "request_date": "2025-08-14T14:24:46.651Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-08-14T11:29:13.142086",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "26136792",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=26136792",
+        "error": "HTTPConnectionPool(host='api.cedula.com.ve', port=80): Max retries exceeded with url: /api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=26136792 (Caused by NameResolutionError(\"<urllib3.connection.HTTPConnection object at 0x7324f8807650>: Failed to resolve 'api.cedula.com.ve' ([Errno -2] Name or service not known)\"))",
+        "success": false
+    },
+    {
+        "timestamp": "2025-08-14T11:29:39.509208",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28609925,
+                "fecha_nac": "2001-06-26",
+                "rif": "V286099250",
+                "primer_apellido": "JIMENEZ",
+                "segundo_apellido": "MENDOZA",
+                "primer_nombre": "RAUL",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2025-08-14T15:29:39.998Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-08-14T11:29:44.805258",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "26136792",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=26136792",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 26136792,
+                "fecha_nac": "1995-12-15",
+                "rif": "V261367927",
+                "primer_apellido": "VILLEGAS",
+                "segundo_apellido": "PINEDA",
+                "primer_nombre": "YONATHAN",
+                "segundo_nombre": "MIGUEL",
+                "request_date": "2025-08-14T15:29:45.296Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-08-14T11:30:37.829956",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "26136792",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=26136792",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 26136792,
+                "fecha_nac": "1995-12-15",
+                "rif": "V261367927",
+                "primer_apellido": "VILLEGAS",
+                "segundo_apellido": "PINEDA",
+                "primer_nombre": "YONATHAN",
+                "segundo_nombre": "MIGUEL",
+                "request_date": "2025-08-14T15:30:38.320Z"
+            }
+        }
     }
 ]

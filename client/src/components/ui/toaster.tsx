@@ -1,3 +1,4 @@
+// Mensaje Emergente
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -12,7 +13,7 @@ export function Toaster() {
   const { toasts } = useToast()
 
   return (
-    <ToastProvider>
+      <ToastProvider duration={1000}>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
@@ -28,6 +29,6 @@ export function Toaster() {
         )
       })}
       <ToastViewport />
-    </ToastProvider>
+    </ToastProvider >
   )
 }
