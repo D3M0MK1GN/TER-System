@@ -10,6 +10,7 @@ import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Requests from "@/pages/requests";
+import { Experticias } from "@/pages/experticias";
 import Templates from "@/pages/templates";
 import Reports from "@/pages/reports";
 import Users from "@/pages/users";
@@ -52,6 +53,11 @@ function Router() {
       <Route path="/solicitudes">
         <ProtectedRoute>
           <Requests />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/experticias">
+        <ProtectedRoute>
+          <Experticias />
         </ProtectedRoute>
       </Route>
       <Route path="/plantillas">

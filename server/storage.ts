@@ -7,6 +7,7 @@ import {
   plantillasWord,
   configuracionSistema,
   chatbotMensajes,
+  experticias,
   type User,
   type InsertUser,
   type Solicitud,
@@ -21,6 +22,8 @@ import {
   type InsertConfiguracionSistema,
   type ChatbotMensaje,
   type InsertChatbotMensaje,
+  type Experticia,
+  type InsertExperticia,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, ne, like, count, sql, lt, inArray, notInArray } from "drizzle-orm";
@@ -140,6 +143,19 @@ export interface IStorage {
   getChatbotMessagesByUser(userId: number, limit?: number): Promise<ChatbotMensaje[]>;
   getUsersWithChatbotStats(): Promise<{ usuario: User; mensajesUsados: number; limite: number; habilitado: boolean }[]>;
   bulkUpdateChatbotLimits(updates: { userId: number; limite: number; habilitado: boolean }[]): Promise<void>;
+
+  // Experticias
+  getExperticias(filters?: {
+    categoria?: string;
+    estado?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ experticias: Experticia[]; total: number }>;
+  getExperticia(id: number): Promise<Experticia | undefined>;
+  createExperticia(experticia: InsertExperticia): Promise<Experticia>;
+  updateExperticia(id: number, experticia: Partial<InsertExperticia>): Promise<Experticia | undefined>;
+  deleteExperticia(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1110,6 +1126,84 @@ export class DatabaseStorage implements IStorage {
     for (const update of updates) {
       await this.updateUserChatbotLimits(update.userId, update.limite, update.habilitado);
     }
+  }
+
+  // Experticias implementation
+  async getExperticias(filters?: {
+    categoria?: string;
+    estado?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ experticias: Experticia[]; total: number }> {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 10;
+    const offset = (page - 1) * limit;
+
+    let whereConditions: any[] = [];
+
+    if (filters?.categoria) {
+      whereConditions.push(eq(experticias.categoria, filters.categoria));
+    }
+
+    if (filters?.estado) {
+      whereConditions.push(eq(experticias.estado, filters.estado as any));
+    }
+
+    if (filters?.search) {
+      whereConditions.push(
+        or(
+          like(experticias.codigo, `%${filters.search}%`),
+          like(experticias.nombre, `%${filters.search}%`),
+          like(experticias.descripcion, `%${filters.search}%`)
+        )
+      );
+    }
+
+    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+    const [experticiasResult, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(experticias)
+        .where(whereClause)
+        .orderBy(desc(experticias.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(experticias)
+        .where(whereClause)
+    ]);
+
+    return {
+      experticias: experticiasResult,
+      total: totalResult[0]?.count || 0,
+    };
+  }
+
+  async getExperticia(id: number): Promise<Experticia | undefined> {
+    const [experticia] = await db.select().from(experticias).where(eq(experticias.id, id));
+    return experticia || undefined;
+  }
+
+  async createExperticia(insertExperticia: InsertExperticia): Promise<Experticia> {
+    const [experticia] = await db.insert(experticias).values(insertExperticia).returning();
+    return experticia;
+  }
+
+  async updateExperticia(id: number, updateData: Partial<InsertExperticia>): Promise<Experticia | undefined> {
+    const [experticia] = await db
+      .update(experticias)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(experticias.id, id))
+      .returning();
+    return experticia || undefined;
+  }
+
+  async deleteExperticia(id: number): Promise<boolean> {
+    const result = await db.delete(experticias).where(eq(experticias.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 

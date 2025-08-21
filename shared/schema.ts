@@ -67,6 +67,7 @@ export const users = pgTable("users", {
 
 export const operadorEnum = pgEnum("operador", ["digitel", "movistar", "movilnet"]);
 export const estadoEnum = pgEnum("estado", ["procesando", "enviada", "respondida", "rechazada"]);
+export const estadoExperticiasEnum = pgEnum("estado_experticias", ["activa", "inactiva", "en_desarrollo"]);
 
 
 export const solicitudes = pgTable("solicitudes", {
@@ -178,6 +179,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   plantillasWord: many(plantillasWord),
   chatbotMensajes: many(chatbotMensajes),
   configuracionSistema: many(configuracionSistema),
+
 }));
 
 export const solicitudesRelations = relations(solicitudes, ({ one, many }) => ({
@@ -224,6 +226,8 @@ export const plantillasWordRelations = relations(plantillasWord, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+
 
 // Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -276,9 +280,41 @@ export const insertConfiguracionSistemaSchema = createInsertSchema(configuracion
   updatedAt: true,
 });
 
+// Tabla de Experticias
+export const experticias = pgTable("experticias", {
+  id: serial("id").primaryKey(),
+  codigo: text("codigo").notNull().unique(),
+  nombre: text("nombre").notNull(),
+  descripcion: text("descripcion"),
+  categoria: text("categoria").default("telecomunicaciones"),
+  estado: estadoExperticiasEnum("estado").default("activa"),
+  requiereDocumento: boolean("requiere_documento").default(false),
+  tiempoEstimado: text("tiempo_estimado"),
+  responsable: text("responsable"),
+  frecuenciaUso: integer("frecuencia_uso").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  usuarioId: integer("usuario_id").references(() => users.id),
+});
+
 export const insertChatbotMensajeSchema = createInsertSchema(chatbotMensajes).omit({
   id: true,
   createdAt: true,
+});
+
+export const insertExperticiasSchema = createInsertSchema(experticias).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  codigo: z.string()
+    .min(1, "Código es requerido")
+    .max(100, "Código muy largo")
+    .transform(val => val.trim()),
+  nombre: z.string()
+    .min(1, "Nombre es requerido")
+    .max(200, "Nombre muy largo")
+    .transform(val => val.trim()),
 });
 
 // Types
@@ -296,6 +332,27 @@ export type ConfiguracionSistema = typeof configuracionSistema.$inferSelect;
 export type InsertConfiguracionSistema = z.infer<typeof insertConfiguracionSistemaSchema>;
 export type ChatbotMensaje = typeof chatbotMensajes.$inferSelect;
 export type InsertChatbotMensaje = z.infer<typeof insertChatbotMensajeSchema>;
+export type Experticia = typeof experticias.$inferSelect;
+export type InsertExperticia = z.infer<typeof insertExperticiasSchema>;
+
+// Relaciones que deben ir al final
+export const experticiasRelations = relations(experticias, ({ one }) => ({
+  usuario: one(users, {
+    fields: [experticias.usuarioId],
+    references: [users.id],
+  }),
+}));
+
+export const usersRelationsComplete = relations(users, ({ many }) => ({
+  solicitudes: many(solicitudes),
+  plantillasCorreo: many(plantillasCorreo),
+  historialSolicitudes: many(historialSolicitudes),
+  notificaciones: many(notificaciones),
+  plantillasWord: many(plantillasWord),
+  chatbotMensajes: many(chatbotMensajes),
+  configuracionSistema: many(configuracionSistema),
+  experticias: many(experticias),
+}));
 
 // Auth schemas
 export const loginSchema = z.object({

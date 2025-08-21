@@ -1,0 +1,62 @@
+arquitectura de software de 3 capas (Three-Tier Architecture) con características modernas:
+Arquitectura Principal: Three-Tier
+1. Capa de Presentación (Frontend)
+
+    Framework: React 18 con TypeScript
+    Patrón: Component-Based Architecture
+    Estado: React Query para server state + hooks locales
+    Routing: Client-side routing con Wouter
+    UI: Design System con Radix UI + Tailwind CSS
+
+2. Capa de Lógica de Negocio (Backend)
+
+    Framework: Node.js + Express.js
+    Patrón: RESTful API + Middleware Pattern
+    Autenticación: JWT-based con role-based access control
+    Validación: Zod schemas para input validation
+    Organización: Separación en routes, storage y types
+
+3. Capa de Datos (Database)
+
+    Base de Datos: PostgreSQL
+    ORM: Drizzle ORM con type safety
+    Esquema: Code-first approach con migraciones automáticas
+    Patrón: Repository Pattern (implementado en storage.ts)
+
+Patrones Arquitectónicos Implementados:
+MVC (Model-View-Controller)
+
+    Model: Esquemas Drizzle en shared/schema.ts
+    View: Componentes React en client/src
+    Controller: Routes de Express en server/routes.ts
+
+Repository Pattern
+
+    Interface: IStorage en server/storage.ts
+    Implementación: DatabaseStorage class
+
+Layered Architecture
+
+    Shared Layer: Tipos y esquemas compartidos
+    Business Logic: Validaciones y reglas de negocio
+    Data Access: Abstracción de base de datos
+
+Component-Based (Frontend)
+
+    Atomic Design: Componentes reutilizables
+    Feature-Based: Páginas organizadas por funcionalidad
+    Custom Hooks: Lógica compartida (useAuth, usePermissions)
+
+Características Arquitectónicas Modernas:
+
+    Type Safety: TypeScript end-to-end
+    API-First: RESTful con OpenAPI-style structure
+    Monorepo Structure: Frontend y backend en mismo repositorio
+    Authentication & Authorization: JWT + RBAC
+    Real-time Features: Notifications system
+    File Management: Upload/download de documentos
+    Responsive Design: Mobile-first approach
+
+Clasificación Final:
+
+Arquitectura Monolítica de 3 Capas con Patrones Modernos - Una aplicación full-stack bien estructurada que combina principios clásicos (3-tier, MVC) con enfoques modernos (component-based, type-safe, API-first).

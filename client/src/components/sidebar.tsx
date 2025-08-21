@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   Bot,
+  Atom,
 } from "lucide-react";
 
 const navItems = [
@@ -30,6 +31,12 @@ const navItems = [
     title: "Gestión de Solicitudes",
     href: "/solicitudes",
     icon: FileText,
+    permission: "canViewAllRequests" as const,
+  },
+  {
+    title: "Gestión de Experticias",
+    href: "/experticias",
+    icon: Atom,
     permission: "canViewAllRequests" as const,
   },
   {

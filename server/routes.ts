@@ -10,6 +10,7 @@ import {
   insertSolicitudSchema,
   insertPlantillaCorreoSchema,
   insertPlantillaWordSchema,
+  insertExperticiasSchema,
   loginSchema,
   type User,
 } from "@shared/schema";
@@ -1144,6 +1145,136 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
     res.status(500).json({ message: "Error generando plantilla personalizada" });
   }
 });// Final de word
+
+  // === EXPERTICIAS ROUTES ===
+  
+  // GET /api/experticias - Get all experticias with filtering
+  app.get("/api/experticias", authenticateToken, async (req: any, res) => {
+    try {
+      const {
+        categoria,
+        estado,
+        search,
+        page,
+        pageSize,
+      } = req.query;
+
+      const filters = {
+        categoria,
+        estado,
+        search,
+        page: page ? parseInt(page) : 1,
+        limit: pageSize ? parseInt(pageSize) : 10,
+      };
+
+      const result = await storage.getExperticias(filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching experticias:", error);
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
+
+  // GET /api/experticias/:id - Get single experticia
+  app.get("/api/experticias/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const experticia = await storage.getExperticia(id);
+      
+      if (!experticia) {
+        return res.status(404).json({ message: "Experticia no encontrada" });
+      }
+
+      res.json(experticia);
+    } catch (error) {
+      console.error("Error fetching experticia:", error);
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
+
+  // POST /api/experticias - Create new experticia
+  app.post("/api/experticias", authenticateToken, async (req: any, res) => {
+    try {
+      if (req.user.rol !== 'admin') {
+        return res.status(403).json({ message: "No tienes permisos para crear experticias" });
+      }
+
+      const validation = insertExperticiasSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Datos inválidos", 
+          errors: validation.error.errors 
+        });
+      }
+
+      const experticia = await storage.createExperticia({
+        ...validation.data,
+        usuarioId: req.user.id,
+      });
+
+      res.status(201).json(experticia);
+    } catch (error: any) {
+      console.error("Error creating experticia:", error);
+      if (error.code === '23505') { // Unique constraint violation
+        return res.status(409).json({ message: "Ya existe una experticia con ese código" });
+      }
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
+
+  // PUT /api/experticias/:id - Update experticia
+  app.put("/api/experticias/:id", authenticateToken, async (req: any, res) => {
+    try {
+      if (req.user.rol !== 'admin') {
+        return res.status(403).json({ message: "No tienes permisos para editar experticias" });
+      }
+
+      const id = parseInt(req.params.id);
+      const validation = insertExperticiasSchema.partial().safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Datos inválidos", 
+          errors: validation.error.errors 
+        });
+      }
+
+      const experticia = await storage.updateExperticia(id, validation.data);
+      
+      if (!experticia) {
+        return res.status(404).json({ message: "Experticia no encontrada" });
+      }
+
+      res.json(experticia);
+    } catch (error: any) {
+      console.error("Error updating experticia:", error);
+      if (error.code === '23505') { // Unique constraint violation
+        return res.status(409).json({ message: "Ya existe una experticia con ese código" });
+      }
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
+
+  // DELETE /api/experticias/:id - Delete experticia
+  app.delete("/api/experticias/:id", authenticateToken, async (req: any, res) => {
+    try {
+      if (req.user.rol !== 'admin') {
+        return res.status(403).json({ message: "No tienes permisos para eliminar experticias" });
+      }
+
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteExperticia(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Experticia no encontrada" });
+      }
+
+      res.json({ message: "Experticia eliminada exitosamente" });
+    } catch (error) {
+      console.error("Error deleting experticia:", error);
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
 
   // Registrar rutas de gestión de documentos (Word y Excel)
   registerDocumentRoutes(app, authenticateToken, storage);

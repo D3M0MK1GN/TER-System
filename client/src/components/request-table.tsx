@@ -141,8 +141,8 @@ export function RequestTable({
     if (!viewingSolicitud) return;
     
     try {
-      // Generar plantilla Word usando los datos de la solicitud existente
-      const response = await fetch(`/api/plantillas-word/by-expertise/${viewingSolicitud.tipoExperticia}/generate`, {
+      // **PASO 1: Generar plantilla Word usando los datos de la solicitud existente**
+      const wordPromise = fetch(`/api/plantillas-word/by-expertise/${viewingSolicitud.tipoExperticia}/generate`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -151,23 +151,55 @@ export function RequestTable({
         body: JSON.stringify(viewingSolicitud),
       });
 
-      if (response.ok) {
-        const blob = await response.blob();
+      // **PASO 2: Generar planilla Excel usando los mismos datos de la solicitud**
+      const excelPromise = fetch("/api/solicitudes/generate-excel", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(viewingSolicitud),
+      });
+
+      // **PASO 3: Ejecutar ambas peticiones en paralelo para mejor rendimiento**
+      const [wordResponse, excelResponse] = await Promise.all([wordPromise, excelPromise]);
+
+      // **PASO 4: Procesar descarga del documento Word**
+      if (wordResponse.ok) {
+        const blob = await wordResponse.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = response.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || `Plantilla_${viewingSolicitud.numeroSolicitud}.docx`;
+        a.download = wordResponse.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || `Plantilla_${viewingSolicitud.numeroSolicitud}.docx`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-      } else if (response.status === 404) {
-        console.log("No hay plantilla disponible para este tipo de experticia");
+      } else if (wordResponse.status === 404) {
+        console.log("No hay plantilla Word disponible para este tipo de experticia");
       } else {
-        console.error("Error generando documento:", response.statusText);
+        console.error("Error generando documento Word:", wordResponse.statusText);
       }
+
+      // **PASO 5: Procesar descarga de la planilla Excel**
+      if (excelResponse.ok) {
+        const blob = await excelResponse.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = excelResponse.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || `PLANILLA_DATOS-${viewingSolicitud.numeroSolicitud}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else if (excelResponse.status === 404) {
+        console.log("No hay plantilla Excel disponible");
+      } else {
+        console.error("Error generando planilla Excel:", excelResponse.statusText);
+      }
+
     } catch (error) {
-      console.error("Error descargando documento:", error);
+      console.error("Error descargando documentos:", error);
     }
   };
 
@@ -640,6 +672,14 @@ export function RequestTable({
                   </div>
                 </div>
 
+                {/* **NUEVA SECCIÓN: Dirección - agregada antes de Reseña** */}
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-2">Dirección</p>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-900">{viewingSolicitud.direc || 'No especificada'}</p>
+                  </div>
+                </div>
+
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-2">Reseña</p>
                   <div className="bg-gray-50 p-4 rounded-lg">
@@ -681,3 +721,4 @@ export function RequestTable({
     </div>
   );
 }
+      
