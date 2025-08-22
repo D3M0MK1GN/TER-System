@@ -12,6 +12,150 @@ const swiPdf = {
   // otros valores de configuración...
 };
 
+// Funciones reutilizables para generación de documentos
+export async function generateWordDocument(requestData: any, storage: any): Promise<Buffer | null> {
+  try {
+    const { tipoExperticia } = requestData;
+    
+    // 1. Validar existencia de plantilla y archivo
+    const plantilla = await storage.getPlantillaWordByTipoExperticia(tipoExperticia);
+    if (!plantilla || !existsSync(plantilla.archivo)) {
+      return null;
+    }
+    
+    // 2. Preparar datos para la plantilla
+    const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const solicitudShort = requestData.numeroSolicitud?.split('-').pop() || requestData.numeroSolicitud || '';
+
+    const templateData = {
+      OFI: (requestData.coordinacionSolicitante.includes('delitos_propiedad')) 
+         ? 'CIDCPROP' 
+         : (requestData.coordinacionSolicitante.includes('delitos_personas')) 
+         ? 'CIDCPER' 
+         : (requestData.coordinacionSolicitante.includes('crimen_organizado')) 
+         ? 'COLOCAR IDENTIFICADOR'
+         : (requestData.coordinacionSolicitante.includes('delitos_vehiculos')) 
+         ? 'CIRHV'
+         : (requestData.coordinacionSolicitante.includes('homicidio')) 
+         ? 'CIDCPER'
+         : 'IDENTIFICAR OFICINA POR FAVOR!!!',
+      SOLICITUD: solicitudShort,
+      EXP: requestData.numeroExpediente || '',
+      OPER: (requestData.operador || '').toUpperCase(),
+      FECHA: currentDate,
+      FISCAL: requestData.fiscal || '',
+      DIR: requestData.direc || '',
+      INFO_E: requestData.informacionE || '',
+      INFO_R: requestData.informacionR || '',
+      DESDE: requestData.desde || '',
+      HASTA: requestData.hasta || '',
+      DELITO: requestData.delito || '',
+    };
+
+    // 3. Generar documento
+    const content = readFileSync(plantilla.archivo, 'binary');
+    const zip = new PizZip(content);
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    });
+
+    doc.render(templateData);
+    return doc.getZip().generate({ type: 'nodebuffer' });
+    
+  } catch (error) {
+    console.error("Error generando documento Word:", error);
+    return null;
+  }
+}
+
+export async function generateExcelDocument(requestData: any): Promise<Buffer | null> {
+  try {
+    // Verificar que existe la plantilla Excel
+    const excelTemplatePath = path.join(process.cwd(), 'uploads', 'PLANILLA DATOS.xlsx');
+    if (!existsSync(excelTemplatePath)) {
+      return null;
+    }
+
+    // Preparar datos para la plantilla
+    const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const solicitudShort = requestData.numeroSolicitud?.split('-').pop() || requestData.numeroSolicitud || '';
+    
+    // Leer la plantilla Excel con ExcelJS
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(excelTemplatePath);
+    const worksheet = workbook.getWorksheet(1);
+    
+    if (!worksheet) {
+      return null;
+    }
+
+    // Generar mapeo de datos específico según el tipo de experticia
+    let dataMappings = [];
+    
+    if (requestData.tipoExperticia === 'identificar_radio_bases_bts') {
+      // Para BTS: dos filas con los mismos datos, excepto columna F
+      dataMappings = [
+        {
+          'B2': solicitudShort,
+          'C2': currentDate,
+          'D2': 'Delegacion Municipal Quibor',
+          'E2': requestData.numeroExpediente || '',
+          'F2': requestData.informacionE || '',
+          'G2': requestData.desde || '',
+          'H2': requestData.hasta || '',
+          'J2': requestData.delito || '',
+          'K2': requestData.fiscal || '',
+        },
+        {
+          'B3': solicitudShort,
+          'C3': currentDate,
+          'D3': 'Delegacion Municipal Quibor',
+          'E3': requestData.numeroExpediente || '',
+          'F3': requestData.direc || '',
+          'G3': requestData.desde || '',
+          'H3': requestData.hasta || '',
+          'J3': requestData.delito || '',
+          'K3': requestData.fiscal || '',
+        }
+      ];
+    } else {
+      // Para otros tipos de experticia: comportamiento normal (una sola fila)
+      dataMappings = [
+        {
+          'B2': solicitudShort,
+          'C2': currentDate,
+          'D2': 'Delegacion Municipal Quibor',
+          'E2': requestData.numeroExpediente || '',
+          'F2': requestData.informacionE || '',
+          'G2': requestData.desde || '',
+          'H2': requestData.hasta || '',
+          'J2': requestData.delito || '',
+          'K2': requestData.fiscal || '',
+        }
+      ];
+    }
+
+    // Aplicar los datos a las celdas preservando el formato
+    dataMappings.forEach(dataMapping => {
+      Object.entries(dataMapping).forEach(([cellAddress, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          const cell = worksheet.getCell(cellAddress);
+          cell.value = String(value);
+        }
+      });
+    });
+
+    // Generar el buffer del archivo Excel modificado
+    const arrayBuffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(arrayBuffer);
+    
+  } catch (error) {
+    console.error("Error generando archivo Excel:", error);
+    return null;
+  }
+}
+
 export function registerDocumentRoutes(app: Express, authenticateToken: any, storage: any) {
   
   // Configuration route for PDF/Word format selection
@@ -156,35 +300,71 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       
       console.log("Plantilla Excel leída exitosamente con formato preservado");
 
-      // Mapear datos a celdas específicas según la estructura real de la plantilla
-      const dataMapping = {
-        'B2': solicitudShort,                   // {SOLICITUD}
-        'C2': currentDate,                      // {FECHA}
-        'D2': 'Delegacion Municipal Quibor',                          // {DM} - Despacho/Oficina
-        'E2': requestData.numeroExpediente || '', // {EXP} - Expediente
-        'F2': requestData.informacionR || '',   // {INFO_R} - Dato Solicitado
-        'G2': requestData.desde || '',          // {DESDE}
-        'H2': requestData.hasta || '',          // {HASTA}
-        'J2': requestData.delito || '',         // {delito}
-        'K2': requestData.fiscal || '',
-      };
+      // Generar mapeo de datos específico según el tipo de experticia
+      let dataMappings = [];
+      
+      if (requestData.tipoExperticia === 'identificar_radio_bases_bts') {
+        // Para BTS: dos filas con los mismos datos, excepto columna F
+        dataMappings = [
+          {
+            'B2': solicitudShort,                   // {SOLICITUD}
+            'C2': currentDate,                      // {FECHA}
+            'D2': 'Delegacion Municipal Quibor',    // {DM} - Despacho/Oficina
+            'E2': requestData.numeroExpediente || '', // {EXP} - Expediente
+            'F2': requestData.informacionE || '',   // {INFO_E} - Dato Solicitado
+            'G2': requestData.desde || '',          // {DESDE}
+            'H2': requestData.hasta || '',          // {HASTA}
+            'J2': requestData.delito || '',         // {delito}
+            'K2': requestData.fiscal || '',
+          },
+          {
+            'B3': solicitudShort,                   // {SOLICITUD}
+            'C3': currentDate,                      // {FECHA}
+            'D3': 'Delegacion Municipal Quibor',    // {DM} - Despacho/Oficina
+            'E3': requestData.numeroExpediente || '', // {EXP} - Expediente
+            'F3': requestData.direc || '',          // {DIREC} - Dirección
+            'G3': requestData.desde || '',          // {DESDE}
+            'H3': requestData.hasta || '',          // {HASTA}
+            'J3': requestData.delito || '',         // {delito}
+            'K3': requestData.fiscal || '',
+          }
+        ];
+      } else {
+        // Para otros tipos de experticia: comportamiento normal (una sola fila)
+        dataMappings = [
+          {
+            'B2': solicitudShort,                   // {SOLICITUD}
+            'C2': currentDate,                      // {FECHA}
+            'D2': 'Delegacion Municipal Quibor',    // {DM} - Despacho/Oficina
+            'E2': requestData.numeroExpediente || '', // {EXP} - Expediente
+            'F2': requestData.informacionE || '',   // {INFO_E} - Dato Solicitado
+            'G2': requestData.desde || '',          // {DESDE}
+            'H2': requestData.hasta || '',          // {HASTA}
+            'J2': requestData.delito || '',         // {delito}
+            'K2': requestData.fiscal || '',
+          }
+        ];
+      }
 
-      //console.log("Mapeo de datos para Excel:", JSON.stringify(dataMapping, null, 2));
+      console.log("Mapeo de datos para Excel:", JSON.stringify(dataMappings, null, 2));
 
       // Aplicar los datos a las celdas preservando el formato
-      Object.entries(dataMapping).forEach(([cellAddress, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          const cell = worksheet.getCell(cellAddress);
-          cell.value = String(value);
-          // El formato y estilo de la celda se preserva automáticamente
-        } else {
-          //console.log(`Saltando celda ${cellAddress} - valor vacío o nulo:`, value);
-        }
+      dataMappings.forEach(dataMapping => {
+        Object.entries(dataMapping).forEach(([cellAddress, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            const cell = worksheet.getCell(cellAddress);
+            cell.value = String(value);
+            // El formato y estilo de la celda se preserva automáticamente
+          } else {
+            //console.log(`Saltando celda ${cellAddress} - valor vacío o nulo:`, value);
+          }
+        });
       });
 
       // Generar el buffer del archivo Excel modificado
       //console.log("Generando buffer Excel con formato preservado...");
-      const excelBuffer = await workbook.xlsx.writeBuffer();
+      const arrayBuffer = await workbook.xlsx.writeBuffer();
+      const excelBuffer = Buffer.from(arrayBuffer);
 
       // Configurar respuesta para descarga
       const customFileName = `PLANILLA_DATOS-${requestData.numeroSolicitud || 'solicitud'}.xlsx`;

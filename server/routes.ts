@@ -21,7 +21,7 @@ import multer from "multer";
 import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import path from "path";
 import { processTextMessage, processFileMessage, getMimeType, isSupportedFileType } from "./model_ai/gemini";
-import { registerDocumentRoutes } from "./routes_gest";
+import { registerDocumentRoutes, generateWordDocument, generateExcelDocument } from "./routes_gest";
 import { generateUserGuideHTML } from "../tools/user_gui";
 import { registerChatbotRoutes } from "./model_ai/routesAI";
 
@@ -451,6 +451,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await Promise.all(promises);
+
+      // Generar documentos automáticamente después de crear la solicitud
+      try {
+        // Preparar datos para generación de documentos
+        const documentData = {
+          ...solicitudData,
+          // Incluir datos parseados si existen en el body original
+          informacionE: requestData.informacionE || '',
+          informacionR: requestData.informacionR || '',
+          desde: requestData.desde || '',
+          hasta: requestData.hasta || ''
+        };
+        
+        // Intentar generar documento Word y Excel en paralelo
+        const [wordBuffer, excelBuffer] = await Promise.all([
+          generateWordDocument(documentData, storage),
+          generateExcelDocument(documentData)
+        ]);
+              
+      } catch (docError) {
+        console.error("Error en generación automática de documentos:", docError);
+        // No fallar la creación de solicitud si los documentos no se pueden generar
+      }
 
       res.status(201).json(solicitud);
     } catch (error) {
@@ -1107,7 +1130,7 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
     
     // Colocar Condicional Aquí
     if (swiPdf.downloadAsPdf) { // Suponiendo que 'esPDF' es una propiedad en requestData que indica si es PDF
-      console.log("PDF ListoS");
+      
       // Aquí podrías agregar la lógica para generar un PDF si fuera necesario,
       // o simplemente terminar la ejecución si solo se espera imprimir "PDF"
       return res.status(200).json({ message: "Se solicitó la generación de PDF." });
@@ -1134,7 +1157,6 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
       }
       // 3. Configurar y enviar la respuesta (consolidado) (Nombre)
       const customFileName = `${plantilla.nombre}-${requestData.numeroSolicitud || 'plantilla'}.docx`;
-      console.log("WORD ListoS");
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', `attachment; filename="${customFileName}"`);
       res.send(busArhivo);

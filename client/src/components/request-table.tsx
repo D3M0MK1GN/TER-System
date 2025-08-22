@@ -699,6 +699,11 @@ export function RequestTable({
                     <p className="text-sm font-medium text-gray-600 mb-2">Información de Línea</p>
                     <p className="text-gray-900">{viewingSolicitud.informacionLinea || 'No disponible'}</p>
                   </div>
+                    
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Fecha de Solicitud</p>
+                    <p className="text-gray-900">{viewingSolicitud.fecha_de_solicitud || 'No disponible'}</p>
+                  </div>
                   
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-2">Fecha de Actualización</p>
