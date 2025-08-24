@@ -5,6 +5,7 @@ import path from "path";
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import ExcelJS from 'exceljs';
+import { parseWithPrefixes } from '../tools/utils_I';
 
 // Al inicio del archivo routes_gest.ts
 const swiPdf = {
@@ -28,15 +29,15 @@ export async function generateWordDocument(requestData: any, storage: any): Prom
     const solicitudShort = requestData.numeroSolicitud?.split('-').pop() || requestData.numeroSolicitud || '';
 
     const templateData = {
-      OFI: (requestData.coordinacionSolicitante.includes('delitos_propiedad')) 
+      OFI: (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('delitos_propiedad')) 
          ? 'CIDCPROP' 
-         : (requestData.coordinacionSolicitante.includes('delitos_personas')) 
+         : (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('delitos_personas')) 
          ? 'CIDCPER' 
-         : (requestData.coordinacionSolicitante.includes('crimen_organizado')) 
+         : (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('crimen_organizado')) 
          ? 'COLOCAR IDENTIFICADOR'
-         : (requestData.coordinacionSolicitante.includes('delitos_vehiculos')) 
+         : (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('delitos_vehiculos')) 
          ? 'CIRHV'
-         : (requestData.coordinacionSolicitante.includes('homicidio')) 
+         : (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('homicidio')) 
          ? 'CIDCPER'
          : 'IDENTIFICAR OFICINA POR FAVOR!!!',
       SOLICITUD: solicitudShort,
@@ -45,10 +46,10 @@ export async function generateWordDocument(requestData: any, storage: any): Prom
       FECHA: currentDate,
       FISCAL: requestData.fiscal || '',
       DIR: requestData.direc || '',
-      INFO_E: requestData.informacionE || '',
-      INFO_R: requestData.informacionR || '',
-      DESDE: requestData.desde || '',
-      HASTA: requestData.hasta || '',
+      INFO_E: requestData.informacionLinea || '',
+      INFO_R: requestData.descripcion || '',
+      DESDE: requestData.fechaSolicitud || '',
+      HASTA: requestData.fechaRespuesta || '',
       DELITO: requestData.delito || '',
     };
 
@@ -101,9 +102,9 @@ export async function generateExcelDocument(requestData: any): Promise<Buffer | 
           'C2': currentDate,
           'D2': 'Delegacion Municipal Quibor',
           'E2': requestData.numeroExpediente || '',
-          'F2': requestData.informacionE || '',
-          'G2': requestData.desde || '',
-          'H2': requestData.hasta || '',
+          'F2': requestData.informacionLinea || '',
+          'G2': requestData.fechaSolicitud || '',
+          'H2': requestData.fechaRespuesta || '',
           'J2': requestData.delito || '',
           'K2': requestData.fiscal || '',
         },
@@ -113,8 +114,8 @@ export async function generateExcelDocument(requestData: any): Promise<Buffer | 
           'D3': 'Delegacion Municipal Quibor',
           'E3': requestData.numeroExpediente || '',
           'F3': requestData.direc || '',
-          'G3': requestData.desde || '',
-          'H3': requestData.hasta || '',
+          'G3': requestData.fechaSolicitud || '',
+          'H3': requestData.fechaRespuesta || '',
           'J3': requestData.delito || '',
           'K3': requestData.fiscal || '',
         }
@@ -127,9 +128,9 @@ export async function generateExcelDocument(requestData: any): Promise<Buffer | 
           'C2': currentDate,
           'D2': 'Delegacion Municipal Quibor',
           'E2': requestData.numeroExpediente || '',
-          'F2': requestData.informacionE || '',
-          'G2': requestData.desde || '',
-          'H2': requestData.hasta || '',
+          'F2': requestData.informacionLinea || '',
+          'G2': requestData.fechaSolicitud || '',
+          'H2': requestData.fechaRespuesta || '',
           'J2': requestData.delito || '',
           'K2': requestData.fiscal || '',
         }
@@ -186,15 +187,15 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
 
       const templateData = {
         // Uso de un único estilo de nombre para los placeholders
-        OFI: (requestData.coordinacionSolicitante.includes('delitos_propiedad')) 
+        OFI: (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('delitos_propiedad')) 
            ? 'CIDCPROP' 
-           : (requestData.coordinacionSolicitante.includes('delitos_personas')) 
+           : (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('delitos_personas')) 
            ? 'CIDCPER' 
-           : (requestData.coordinacionSolicitante.includes('crimen_organizado')) 
+           : (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('crimen_organizado')) 
            ? 'COLOCAR IDENTIFICADOR'
-           : (requestData.coordinacionSolicitante.includes('delitos_vehiculos')) 
+           : (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('delitos_vehiculos')) 
            ? 'CIRHV'
-           : (requestData.coordinacionSolicitante.includes('homicidio')) 
+           : (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('homicidio')) 
            ? 'CIDCPER'
            : 'IDENTIFICAR OFICINA POR FAVOR!!!',  // Valor por defecto,
 
@@ -204,10 +205,10 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         FECHA: currentDate,
         FISCAL: requestData.fiscal || '',
         DIR: requestData.direc || '',
-        INFO_E: requestData.informacionE || '',
-        INFO_R: requestData.informacionR || '',
-        DESDE: requestData.desde || '',
-        HASTA: requestData.hasta || '',
+        INFO_E: requestData.informacionLinea || '',
+        INFO_R: requestData.descripcion || '',
+        DESDE: requestData.fechaSolicitud || '',
+        HASTA: requestData.fechaRespuesta || '',
         DELITO: requestData.delito || '',
       };
 
@@ -274,6 +275,12 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
       const solicitudShort = requestData.numeroSolicitud?.split('-').pop() || requestData.numeroSolicitud || '';
       
+      // Parsear información de línea para extraer e: y r:
+      const parsedLinea = parseWithPrefixes(requestData.informacionLinea || '', ['e', 'r']);
+      
+      // Parsear fecha de solicitud para extraer desde: y hasta:
+      const parsedFechas = parseWithPrefixes(requestData.fecha_de_solicitud || '', ['desde', 'hasta']);
+      
       // Determinar oficina basada en coordinación
       /*const oficina = (requestData.coordinacionSolicitante.includes('delitos_propiedad')) 
          ? 'CIDCPROP' 
@@ -311,9 +318,9 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
             'C2': currentDate,                      // {FECHA}
             'D2': 'Delegacion Municipal Quibor',    // {DM} - Despacho/Oficina
             'E2': requestData.numeroExpediente || '', // {EXP} - Expediente
-            'F2': requestData.informacionE || '',   // {INFO_E} - Dato Solicitado
-            'G2': requestData.desde || '',          // {DESDE}
-            'H2': requestData.hasta || '',          // {HASTA}
+            'F2': requestData.direc || '',          // {DIREC} - Dirección (primera fila)
+            'G2': parsedFechas.desde || '',          // {DESDE}
+            'H2': parsedFechas.hasta || '',          // {HASTA}
             'J2': requestData.delito || '',         // {delito}
             'K2': requestData.fiscal || '',
           },
@@ -322,9 +329,9 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
             'C3': currentDate,                      // {FECHA}
             'D3': 'Delegacion Municipal Quibor',    // {DM} - Despacho/Oficina
             'E3': requestData.numeroExpediente || '', // {EXP} - Expediente
-            'F3': requestData.direc || '',          // {DIREC} - Dirección
-            'G3': requestData.desde || '',          // {DESDE}
-            'H3': requestData.hasta || '',          // {HASTA}
+            'F3': parsedLinea.e || parsedLinea.r || requestData.informacionLinea || '',   // {INFO_E} - Información de línea (segunda fila)
+            'G3': parsedFechas.desde || '',          // {DESDE}
+            'H3': parsedFechas.hasta || '',          // {HASTA}
             'J3': requestData.delito || '',         // {delito}
             'K3': requestData.fiscal || '',
           }
@@ -337,9 +344,9 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
             'C2': currentDate,                      // {FECHA}
             'D2': 'Delegacion Municipal Quibor',    // {DM} - Despacho/Oficina
             'E2': requestData.numeroExpediente || '', // {EXP} - Expediente
-            'F2': requestData.informacionE || '',   // {INFO_E} - Dato Solicitado
-            'G2': requestData.desde || '',          // {DESDE}
-            'H2': requestData.hasta || '',          // {HASTA}
+            'F2': requestData.informacionLinea || '',   // {INFO_E} - Dato Solicitado
+            'G2': parsedFechas.desde || '',          // {DESDE}
+            'H2': parsedFechas.hasta || '',          // {HASTA}
             'J2': requestData.delito || '',         // {delito}
             'K2': requestData.fiscal || '',
           }

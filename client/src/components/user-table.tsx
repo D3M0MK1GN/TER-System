@@ -137,7 +137,7 @@ export function UserTable({
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()));
+                         (user.credencial && user.credencial.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === "all" || 
                          (statusFilter === "activo" && user.activo && user.status === "activo") ||
@@ -176,7 +176,7 @@ export function UserTable({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Buscar por nombre, usuario o email..."
+            placeholder="Buscar por nombre, usuario o credencial..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -215,10 +215,11 @@ export function UserTable({
             <TableRow>
               <TableHead className="min-w-[120px]">Usuario</TableHead>
               <TableHead className="min-w-[150px]">Nombre</TableHead>
-              <TableHead className="min-w-[200px]">Email</TableHead>
+              <TableHead className="min-w-[120px]">Cred</TableHead>
+              <TableHead className="min-w-[120px]">Tlf</TableHead>
               <TableHead className="min-w-[120px]">Rol</TableHead>
-              <TableHead className="min-w-[150px]">Coordinación</TableHead>
-              <TableHead className="min-w-[180px]">Delegación</TableHead>
+              <TableHead className="min-w-[145px]">Coordinación</TableHead>
+              <TableHead className="min-w-[170px]">Delegación</TableHead>
               <TableHead className="min-w-[140px]">Estado</TableHead>
               <TableHead className="min-w-[140px]">Dirección IP</TableHead>
               <TableHead className="min-w-[140px]">Último Acceso</TableHead>
@@ -237,7 +238,8 @@ export function UserTable({
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.username}</TableCell>
                   <TableCell>{user.nombre}</TableCell>
-                  <TableCell>{user.email || "No especificado"}</TableCell>
+                  <TableCell>{user.credencial || "No especificado"}</TableCell>
+                  <TableCell>{user.numeroTelefonico || "No especificado"}</TableCell>
                   <TableCell>{getRoleBadge(user.rol || "usuario")}</TableCell>
                   <TableCell>
                     <span className="text-sm text-gray-600">

@@ -19,20 +19,20 @@ const createUserFormSchema = (isEdit: boolean) => {
       .min(2, "El nombre debe tener al menos 2 caracteres")
       .max(100, "El nombre es muy largo")
       .transform(val => val.trim()),
-    email: z.string()
-      .email("Email inválido")
-      .max(255, "Email muy largo")
+    credencial: z.string()
+      .max(255, "Credencial muy larga")
       .optional()
       .or(z.literal(""))
-      .transform(val => val ? val.trim().toLowerCase() : val),
+      .transform(val => val ? val.trim() : val),
+    numeroTelefonico: z.string()
+      .max(20, "Número telefónico muy largo")
+      .optional()
+      .or(z.literal(""))
+      .transform(val => val ? val.trim() : val),
     rol: z.string().min(1, "Debe seleccionar un rol"),
     coordinacion: z.string().optional().or(z.literal("")),
     delegacion: z.string().optional().or(z.literal("")),
     status: z.string().min(1, "Debe seleccionar un estado"),
-    direccionIp: z.string()
-      .optional()
-      .or(z.literal(""))
-      .transform(val => val ? val.trim() : val),
     password: isEdit 
       ? z.string().optional().or(z.literal(""))
       : z.string()
@@ -83,12 +83,12 @@ export function UserForm({ onSubmit, onCancel, user, initialData, isLoading, isE
     defaultValues: {
       username: userData?.username || "",
       nombre: userData?.nombre || "",
-      email: userData?.email || "",
+      credencial: userData?.credencial || "",
+      numeroTelefonico: userData?.numeroTelefonico || "",
       rol: userData?.rol || "usuario",
       coordinacion: userData?.coordinacion || "",
       delegacion: userData?.delegacion || "",
       status: userData?.status || "activo",
-      direccionIp: userData?.direccionIp || "",
       password: "",
       tiempoSuspension: userData?.tiempoSuspension ? new Date(userData.tiempoSuspension).toISOString().slice(0, 16) : "",
       motivoSuspension: userData?.motivoSuspension || "",
@@ -126,6 +126,55 @@ export function UserForm({ onSubmit, onCancel, user, initialData, isLoading, isE
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        {/* Campo de delegación - primero */}
+        <FormField
+          control={form.control}
+          name="delegacion"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Delegación</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una delegación" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="delegacion_municipal_quibor">Delegación Municipal Quibor</SelectItem>
+                  <SelectItem value="delegacion_municipal_barquisimeto">Delegación Municipal Barquisimeto</SelectItem>
+                  <SelectItem value="delegacion_municipal_san_juan">Delegación Municipal San Juan</SelectItem>
+                  <SelectItem value="delegacion_municipal_tocuyo">Delegación Municipal Tocuyo</SelectItem>
+                  <SelectItem value="delegacion_municipal_cabudare">Delegación Municipal Cabudare</SelectItem>
+                  <SelectItem value="delegacion_municipal_iribarren">Delegación Municipal Iribarren</SelectItem>
+                  <SelectItem value="delegacion_municipal_palavecino">Delegación Municipal Palavecino</SelectItem>
+                  <SelectItem value="delegacion_municipal_crespo">Delegación Municipal Crespo</SelectItem>
+                  <SelectItem value="delegacion_municipal_morán">Delegación Municipal Morán</SelectItem>
+                  <SelectItem value="delegacion_municipal_simón_planas">Delegación Municipal Simón Planas</SelectItem>
+                  <SelectItem value="delegacion_municipal_andrés_eloy_blanco">Delegación Municipal Andrés Eloy Blanco</SelectItem>
+                  <SelectItem value="delegacion_municipal_jiménez">Delegación Municipal Jiménez</SelectItem>
+                  <SelectItem value="delegacion_municipal_torres">Delegación Municipal Torres</SelectItem>
+                  <SelectItem value="delegacion_municipal_urdaneta">Delegación Municipal Urdaneta</SelectItem>
+                  <SelectItem value="delegacion_municipal_sucre">Delegación Municipal Sucre</SelectItem>
+                  <SelectItem value="delegacion_municipal_libertador">Delegación Municipal Libertador</SelectItem>
+                  <SelectItem value="delegacion_municipal_chacao">Delegación Municipal Chacao</SelectItem>
+                  <SelectItem value="delegacion_municipal_baruta">Delegación Municipal Baruta</SelectItem>
+                  <SelectItem value="delegacion_municipal_el_hatillo">Delegación Municipal El Hatillo</SelectItem>
+                  <SelectItem value="delegacion_municipal_maracaibo">Delegación Municipal Maracaibo</SelectItem>
+                  <SelectItem value="delegacion_municipal_san_francisco">Delegación Municipal San Francisco</SelectItem>
+                  <SelectItem value="delegacion_municipal_cabimas">Delegación Municipal Cabimas</SelectItem>
+                  <SelectItem value="delegacion_municipal_valencia">Delegación Municipal Valencia</SelectItem>
+                  <SelectItem value="delegacion_municipal_naguanagua">Delegación Municipal Naguanagua</SelectItem>
+                  <SelectItem value="delegacion_municipal_girardot">Delegación Municipal Girardot</SelectItem>
+                  <SelectItem value="delegacion_municipal_maracay">Delegación Municipal Maracay</SelectItem>
+                  <SelectItem value="delegacion_municipal_san_cristóbal">Delegación Municipal San Cristóbal</SelectItem>
+                  <SelectItem value="delegacion_municipal_libertador_merida">Delegación Municipal Libertador Mérida</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="username"
@@ -156,12 +205,26 @@ export function UserForm({ onSubmit, onCancel, user, initialData, isLoading, isE
 
         <FormField
           control={form.control}
-          name="email"
+          name="credencial"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email (Opcional)</FormLabel>
+              <FormLabel>Credencial</FormLabel>
               <FormControl>
-                <Input {...field} type="email" placeholder="correo@ejemplo.com" />
+                <Input {...field} placeholder="Ingresa la credencial: 62644" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="numeroTelefonico"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Número Telefónico</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Ingresa el número telefónico" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -218,54 +281,6 @@ export function UserForm({ onSubmit, onCancel, user, initialData, isLoading, isE
           />
         )}
 
-        {/* Campo de delegación - siempre visible */}
-        <FormField
-          control={form.control}
-          name="delegacion"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Delegación</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una delegación" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="delegacion_municipal_quibor">Delegación Municipal Quibor</SelectItem>
-                  <SelectItem value="delegacion_municipal_barquisimeto">Delegación Municipal Barquisimeto</SelectItem>
-                  <SelectItem value="delegacion_municipal_san_juan">Delegación Municipal San Juan</SelectItem>
-                  <SelectItem value="delegacion_municipal_tocuyo">Delegación Municipal Tocuyo</SelectItem>
-                  <SelectItem value="delegacion_municipal_cabudare">Delegación Municipal Cabudare</SelectItem>
-                  <SelectItem value="delegacion_municipal_iribarren">Delegación Municipal Iribarren</SelectItem>
-                  <SelectItem value="delegacion_municipal_palavecino">Delegación Municipal Palavecino</SelectItem>
-                  <SelectItem value="delegacion_municipal_crespo">Delegación Municipal Crespo</SelectItem>
-                  <SelectItem value="delegacion_municipal_morán">Delegación Municipal Morán</SelectItem>
-                  <SelectItem value="delegacion_municipal_simón_planas">Delegación Municipal Simón Planas</SelectItem>
-                  <SelectItem value="delegacion_municipal_andrés_eloy_blanco">Delegación Municipal Andrés Eloy Blanco</SelectItem>
-                  <SelectItem value="delegacion_municipal_jiménez">Delegación Municipal Jiménez</SelectItem>
-                  <SelectItem value="delegacion_municipal_torres">Delegación Municipal Torres</SelectItem>
-                  <SelectItem value="delegacion_municipal_urdaneta">Delegación Municipal Urdaneta</SelectItem>
-                  <SelectItem value="delegacion_municipal_sucre">Delegación Municipal Sucre</SelectItem>
-                  <SelectItem value="delegacion_municipal_libertador">Delegación Municipal Libertador</SelectItem>
-                  <SelectItem value="delegacion_municipal_chacao">Delegación Municipal Chacao</SelectItem>
-                  <SelectItem value="delegacion_municipal_baruta">Delegación Municipal Baruta</SelectItem>
-                  <SelectItem value="delegacion_municipal_el_hatillo">Delegación Municipal El Hatillo</SelectItem>
-                  <SelectItem value="delegacion_municipal_maracaibo">Delegación Municipal Maracaibo</SelectItem>
-                  <SelectItem value="delegacion_municipal_san_francisco">Delegación Municipal San Francisco</SelectItem>
-                  <SelectItem value="delegacion_municipal_cabimas">Delegación Municipal Cabimas</SelectItem>
-                  <SelectItem value="delegacion_municipal_valencia">Delegación Municipal Valencia</SelectItem>
-                  <SelectItem value="delegacion_municipal_naguanagua">Delegación Municipal Naguanagua</SelectItem>
-                  <SelectItem value="delegacion_municipal_girardot">Delegación Municipal Girardot</SelectItem>
-                  <SelectItem value="delegacion_municipal_maracay">Delegación Municipal Maracay</SelectItem>
-                  <SelectItem value="delegacion_municipal_san_cristóbal">Delegación Municipal San Cristóbal</SelectItem>
-                  <SelectItem value="delegacion_municipal_libertador_merida">Delegación Municipal Libertador Mérida</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <FormField
           control={form.control}
@@ -329,23 +344,6 @@ export function UserForm({ onSubmit, onCancel, user, initialData, isLoading, isE
             />
           </>
         )}
-
-        <FormField
-          control={form.control}
-          name="direccionIp"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Dirección IP (Opcional)</FormLabel>
-              <FormControl>
-                <Input 
-                  {...field} 
-                  placeholder="Se detectará automáticamente si se deja vacío" 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <FormField
           control={form.control}

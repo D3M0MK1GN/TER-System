@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
+import { parseWithPrefixes } from '../../../tools/utils_I.ts';
 
 const requestFormSchema = insertSolicitudSchema.extend({
   numeroSolicitud: z.string().min(1, "Número de solicitud es requerido"),
@@ -33,27 +34,6 @@ const requestFormSchema = insertSolicitudSchema.extend({
 });
 
 type RequestFormData = z.infer<typeof requestFormSchema>;
-
-function parseWithPrefixes(input: string, prefixes: string[]): Record<string, string> {
-  if (!input || typeof input !== 'string') {
-    return {};
-  }
-  
-  const result: Record<string, string> = {};
-  
-  prefixes.forEach(prefix => {
-    // Crear patrón dinámico que busca el prefijo seguido de contenido
-    // hasta encontrar otro prefijo o fin de cadena
-    const otherPrefixes = prefixes.filter(p => p !== prefix).join('|');
-    const pattern = otherPrefixes 
-      ? new RegExp(`${prefix}:\\s*([^]*?)(?=\\s*(?:${otherPrefixes}):|$)`, 'i')
-      : new RegExp(`${prefix}:\\s*([^]*)`, 'i');
-    const match = input.match(pattern);
-    result[prefix] = match ? match[1].trim() : '';
-  });
-  
-  return result;
-}
 
 interface RequestFormProps {
   onSubmit: (data: RequestFormData) => void;
