@@ -69,7 +69,7 @@ export const users = pgTable("users", {
 
 export const operadorEnum = pgEnum("operador", ["digitel", "movistar", "movilnet"]);
 export const estadoEnum = pgEnum("estado", ["procesando", "enviada", "respondida", "rechazada"]);
-export const estadoExperticiasEnum = pgEnum("estado_experticias", ["activa", "inactiva", "en_desarrollo"]);
+export const estadoExperticiasEnum = pgEnum("estado_experticias", ["completada", "negativa", "procesando", "qr_ausente"]);
 
 
 export const solicitudes = pgTable("solicitudes", {
@@ -289,7 +289,7 @@ export const experticias = pgTable("experticias", {
   nombre: text("nombre").notNull(),
   descripcion: text("descripcion"),
   categoria: text("categoria").default("telecomunicaciones"),
-  estado: estadoExperticiasEnum("estado").default("activa"),
+  estado: estadoExperticiasEnum("estado").default("procesando"),
   requiereDocumento: boolean("requiere_documento").default(false),
   tiempoEstimado: text("tiempo_estimado"),
   responsable: text("responsable"),

@@ -696,5 +696,61 @@
                 "request_date": "2025-08-14T15:30:38.320Z"
             }
         }
+    },
+    {
+        "timestamp": "2025-08-24T17:23:07.073854",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "19431053",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=19431053",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 19431053,
+                "fecha_nac": "1988-04-08",
+                "rif": "V194310532",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "LA CONCEPCION",
+                    "centro_electoral": "CENTRO DE EDUCACION INICIAL HAIDEE RAMIREZ"
+                },
+                "primer_apellido": "ALVARADO",
+                "segundo_apellido": "SALCEDO",
+                "primer_nombre": "REISBERTH",
+                "segundo_nombre": "ARTURO",
+                "request_date": "2025-08-24T21:23:07.020Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-08-24T17:26:51.905387",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "18332606",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=18332606",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 18332606,
+                "fecha_nac": "1987-03-14",
+                "rif": "V183326062",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "PALAVECINO",
+                    "parroquia": "JOSE G. BASTIDAS",
+                    "centro_electoral": "ESCUELA BASICA NACIONAL LOS RASTROJOS"
+                },
+                "primer_apellido": "EVIES",
+                "segundo_apellido": "BRACHO",
+                "primer_nombre": "ROSSELYN",
+                "segundo_nombre": "SUSANA",
+                "request_date": "2025-08-24T21:26:51.851Z"
+            }
+        },
+        "success": true
     }
 ]

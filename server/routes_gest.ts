@@ -318,7 +318,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
             'C2': currentDate,                      // {FECHA}
             'D2': 'Delegacion Municipal Quibor',    // {DM} - Despacho/Oficina
             'E2': requestData.numeroExpediente || '', // {EXP} - Expediente
-            'F2': requestData.direc || '',          // {DIREC} - Dirección (primera fila)
+            'F2': parsedLinea.r || requestData.informacionR || '',  // {INFO_R} - Información de línea R (primera fila)
             'G2': parsedFechas.desde || '',          // {DESDE}
             'H2': parsedFechas.hasta || '',          // {HASTA}
             'J2': requestData.delito || '',         // {delito}
@@ -329,7 +329,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
             'C3': currentDate,                      // {FECHA}
             'D3': 'Delegacion Municipal Quibor',    // {DM} - Despacho/Oficina
             'E3': requestData.numeroExpediente || '', // {EXP} - Expediente
-            'F3': parsedLinea.e || parsedLinea.r || requestData.informacionLinea || '',   // {INFO_E} - Información de línea (segunda fila)
+            'F3': parsedLinea.e || requestData.informacionE || '',   // {INFO_E} - Información de línea E (segunda fila)
             'G3': parsedFechas.desde || '',          // {DESDE}
             'H3': parsedFechas.hasta || '',          // {HASTA}
             'J3': requestData.delito || '',         // {delito}

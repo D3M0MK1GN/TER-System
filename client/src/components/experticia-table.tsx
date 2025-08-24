@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Edit, Trash2, Search, Plus, ChevronLeft, ChevronRight, Atom, Calendar, User, FileText, Clock } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Plus, ChevronLeft, ChevronRight, BarChart3, CheckCircle, XCircle, Clock, QrCode, Calendar, User, FileText } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { type Experticia } from "@shared/schema";
@@ -32,7 +32,8 @@ const statusColors = {
   en_desarrollo: "bg-yellow-100 text-yellow-800",
 };
 
-const formatStatus = (estado: string) => {
+const formatStatus = (estado: string | null) => {
+  if (!estado) return "N/A";
   const names = {
     activa: "Activa",
     inactiva: "Inactiva",
@@ -73,57 +74,69 @@ export function ExperticiasTable({
   return (
     <div className="space-y-6">
       {/* Header with Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center space-x-2">
-              <Atom className="h-5 w-5 text-blue-600" />
-              <div>
+            <div className="flex flex-col space-y-1 md:flex-row md:items-center md:justify-between md:space-y-0">
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
                 <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{total}</p>
               </div>
+              <p className="text-2xl font-bold text-gray-900">{total}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center space-x-2">
-              <Atom className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-600">Activas</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {experticias.filter(e => e.estado === 'activa').length}
-                </p>
+            <div className="flex flex-col space-y-1 md:flex-row md:items-center md:justify-between md:space-y-0">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <p className="text-sm font-medium text-gray-600">Completadas</p>
               </div>
+              <p className="text-2xl font-bold text-gray-900">
+                {experticias.filter(e => e.estado === 'activa').length}
+              </p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center space-x-2">
-              <Atom className="h-5 w-5 text-yellow-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-600">En Desarrollo</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {experticias.filter(e => e.estado === 'en_desarrollo').length}
-                </p>
+            <div className="flex flex-col space-y-1 md:flex-row md:items-center md:justify-between md:space-y-0">
+              <div className="flex items-center space-x-2">
+                <XCircle className="h-5 w-5 text-red-600" />
+                <p className="text-sm font-medium text-gray-600">Negativas</p>
               </div>
+              <p className="text-2xl font-bold text-gray-900">
+                {experticias.filter(e => e.estado === 'inactiva').length}
+              </p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center space-x-2">
-              <Atom className="h-5 w-5 text-red-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-600">Inactivas</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {experticias.filter(e => e.estado === 'inactiva').length}
-                </p>
+            <div className="flex flex-col space-y-1 md:flex-row md:items-center md:justify-between md:space-y-0">
+              <div className="flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-yellow-600" />
+                <p className="text-sm font-medium text-gray-600">Procesando</p>
               </div>
+              <p className="text-2xl font-bold text-gray-900">
+                {experticias.filter(e => e.estado === 'en_desarrollo').length}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col space-y-1 md:flex-row md:items-center md:justify-between md:space-y-0">
+              <div className="flex items-center space-x-2">
+                <QrCode className="h-5 w-5 text-orange-600" />
+                <p className="text-sm font-medium text-gray-600">QR Ausente</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">0</p>
             </div>
           </CardContent>
         </Card>
@@ -204,7 +217,7 @@ export function ExperticiasTable({
                   <TableRow key={experticia.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-2">
-                        <Atom className="h-4 w-4 text-gray-400" />
+                        <FileText className="h-4 w-4 text-gray-400" />
                         <span className="font-mono text-sm">{experticia.codigo}</span>
                       </div>
                     </TableCell>
@@ -308,19 +321,19 @@ export function ExperticiasTable({
 
       {/* View Details Modal */}
       <Dialog open={!!viewingExperticia} onOpenChange={() => setViewingExperticia(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[75vh] overflow-y-auto">
+          <DialogHeader className="pb-4">
             <DialogTitle className="flex items-center space-x-2">
-              <Atom className="h-5 w-5" />
+              <Eye className="h-5 w-5" />
               <span>Detalles de Experticia</span>
             </DialogTitle>
           </DialogHeader>
           {viewingExperticia && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6 px-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Código</label>
-                  <p className="font-mono">{viewingExperticia.codigo}</p>
+                  <p className="font-mono text-sm md:text-base">{viewingExperticia.codigo}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Estado</label>
@@ -332,35 +345,35 @@ export function ExperticiasTable({
               
               <div>
                 <label className="text-sm font-medium text-gray-600">Nombre</label>
-                <p className="font-medium">{viewingExperticia.nombre}</p>
+                <p className="font-medium text-sm md:text-base">{viewingExperticia.nombre}</p>
               </div>
 
               {viewingExperticia.descripcion && (
                 <div>
                   <label className="text-sm font-medium text-gray-600">Descripción</label>
-                  <p className="text-gray-800">{viewingExperticia.descripcion}</p>
+                  <p className="text-gray-800 text-sm md:text-base">{viewingExperticia.descripcion}</p>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Categoría</label>
-                  <p className="capitalize">{viewingExperticia.categoria ?? "N/A"}</p>
+                  <p className="capitalize text-sm md:text-base">{viewingExperticia.categoria ?? "N/A"}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Tiempo Estimado</label>
-                  <p>{viewingExperticia.tiempoEstimado ?? "No definido"}</p>
+                  <p className="text-sm md:text-base">{viewingExperticia.tiempoEstimado ?? "No definido"}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Frecuencia de Uso</label>
-                  <p>{viewingExperticia.frecuenciaUso ?? 0} veces</p>
+                  <p className="text-sm md:text-base">{viewingExperticia.frecuenciaUso ?? 0} veces</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Requiere Documento</label>
-                  <p>{viewingExperticia.requiereDocumento ? "Sí" : "No"}</p>
+                  <p className="text-sm md:text-base">{viewingExperticia.requiereDocumento ? "Sí" : "No"}</p>
                 </div>
               </div>
 
