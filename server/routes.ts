@@ -24,6 +24,7 @@ import { processTextMessage, processFileMessage, getMimeType, isSupportedFileTyp
 import { registerDocumentRoutes, generateWordDocument, generateExcelDocument } from "./routes_gest";
 import { generateUserGuideHTML } from "../tools/user_gui";
 import { registerChatbotRoutes } from "./model_ai/routesAI";
+import { registerStatsRoutes } from "./routes-stats";
 
 // import { readFileSync, existsSync } from 'fs';
 import PizZip from 'pizzip';
@@ -1297,14 +1298,19 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
       res.status(500).json({ message: "Error interno del servidor" });
     }
   });
-
+  
   // Registrar rutas de gestión de documentos (Word y Excel)
   registerDocumentRoutes(app, authenticateToken, storage);
 
   // Registrar rutas del chatbot AI
   registerChatbotRoutes(app, authenticateToken, requireAdmin, storage);
 
+  // Registrar rutas de estadísticas
+  registerStatsRoutes(app, authenticateToken);
+
   const httpServer = createServer(app);
   return httpServer;
 }
+
+
 
