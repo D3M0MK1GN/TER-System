@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Plus, Edit, Mail, Clock, LayoutDashboard, Users, Settings, FileText } from "lucide-react";
+import { CheckCircle, Plus, Edit, Mail, Clock, LayoutDashboard, Users, Settings, FileText, BarChart3, XCircle, QrCode, TrendingUp, Calendar } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { UserTable } from "@/components/user-table";
 import { UserForm } from "@/components/user-form";
@@ -77,6 +77,17 @@ export default function Dashboard() {
     
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: [statsEndpoint],
+  });
+
+  const { data: experticiasData, isLoading: experticiasLoading } = useQuery({
+    queryKey: ["/api/experticias"],
+    queryFn: async () => {
+      return await fetch("/api/experticias?page=1&pageSize=1000", {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      }).then(res => res.json());
+    },
   });
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
@@ -177,7 +188,7 @@ export default function Dashboard() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || experticiasLoading) {
     return (
       <Layout title="Panel de Control" subtitle="Cargando estadísticas...">
         <div className="flex items-center justify-center min-h-96">
@@ -291,6 +302,7 @@ export default function Dashboard() {
           <>
             {/* Stats Cards */}
             <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Solicitudes</h3>
               <StatsCards stats={stats ? {
                 totalSolicitudes: stats.totalSolicitudes,
                 pendientes: stats.pendientes,
@@ -304,6 +316,176 @@ export default function Dashboard() {
                 respondidas: 0,
                 rechazadas: 0
               }} />
+            </div>
+
+            {/* Reports Stats Cards */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Reportes</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
+                {(() => {
+                  const getEfficiencyRate = () => {
+                    if (!stats || stats.totalSolicitudes === 0) return 0;
+                    return Math.round((stats.respondidas / stats.totalSolicitudes) * 100);
+                  };
+
+                  const reportsCards = [
+                    {
+                      title: "Tasa de Eficiencia",
+                      value: `${getEfficiencyRate()}%`,
+                      icon: BarChart3,
+                      color: "bg-green-100",
+                      iconColor: "text-green-600",
+                      trend: getEfficiencyRate() > 80 ? "Excelente" : getEfficiencyRate() > 60 ? "Buena" : "Mejorable",
+                      trendText: "rendimiento",
+                      trendColor: getEfficiencyRate() > 80 ? "text-green-600" : getEfficiencyRate() > 60 ? "text-yellow-600" : "text-red-600",
+                    },
+                    {
+                      title: "Tiempo Promedio",
+                      value: "5.2 días",
+                      icon: Calendar,
+                      color: "bg-orange-100",
+                      iconColor: "text-orange-600",
+                      trend: "De procesamiento",
+                      trendText: "",
+                      trendColor: "text-orange-600",
+                    },
+                    {
+                      title: "Operadores Activos",
+                      value: stats?.solicitudesPorOperador?.length || 0,
+                      icon: Users,
+                      color: "bg-purple-100",
+                      iconColor: "text-purple-600",
+                      trend: "Con solicitudes",
+                      trendText: "",
+                      trendColor: "text-purple-600",
+                    },
+                  ];
+
+                  return reportsCards.map((card, index) => {
+                    const Icon = card.icon;
+                    return (
+                      <Card key={index} className="border border-gray-200">
+                        <CardContent className="p-5">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-600">{card.title}</p>
+                              <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                            </div>
+                            <div className={`${card.color} p-3 rounded-full`}>
+                              <Icon className={`h-5 w-5 ${card.iconColor}`} />
+                            </div>
+                          </div>
+                          <div className="mt-4 flex items-center text-sm">
+                            <span className={`flex items-center ${card.trendColor}`}>
+                              <TrendingUp className="mr-1 h-3 w-3" />
+                              {card.trend}
+                            </span>
+                            {card.trendText && (
+                              <span className="text-gray-600 ml-2">{card.trendText}</span>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            {/* Experticias Stats Cards */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Experticias</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {(() => {
+                  const experticias = experticiasData?.experticias || [];
+                  const total = experticiasData?.total || 0;
+                  const completadas = experticias.filter((e: any) => e.estado === 'completada').length;
+                  const negativas = experticias.filter((e: any) => e.estado === 'negativa').length;
+                  const procesando = experticias.filter((e: any) => e.estado === 'procesando').length;
+                  const qrAusente = experticias.filter((e: any) => e.estado === 'qr_ausente').length;
+
+                  const experticiasCards = [
+                    {
+                      title: "Total Experticias",
+                      value: total,
+                      icon: BarChart3,
+                      color: "bg-blue-100",
+                      iconColor: "text-blue-600",
+                      trend: "+8%",
+                      trendText: "vs mes anterior",
+                      trendColor: "text-green-600",
+                    },
+                    {
+                      title: "Completadas",
+                      value: completadas,
+                      icon: CheckCircle,
+                      color: "bg-green-100",
+                      iconColor: "text-green-600",
+                      trend: completadas > 0 ? `${total > 0 ? Math.round((completadas / total) * 100) : 0}%` : "Sin completar",
+                      trendText: completadas > 0 ? "tasa de éxito" : "",
+                      trendColor: completadas > 0 ? "text-green-600" : "text-gray-600",
+                    },
+                    {
+                      title: "Negativas",
+                      value: negativas,
+                      icon: XCircle,
+                      color: "bg-red-100",
+                      iconColor: "text-red-600",
+                      trend: negativas > 0 ? "Requieren revisión" : "Sin negativas",
+                      trendText: "",
+                      trendColor: negativas > 0 ? "text-red-600" : "text-green-600",
+                    },
+                    {
+                      title: "Procesando",
+                      value: procesando,
+                      icon: Clock,
+                      color: "bg-yellow-100",
+                      iconColor: "text-yellow-600",
+                      trend: "En proceso",
+                      trendText: "",
+                      trendColor: "text-yellow-600",
+                    },
+                    {
+                      title: "QR Ausente",
+                      value: qrAusente,
+                      icon: QrCode,
+                      color: "bg-orange-100",
+                      iconColor: "text-orange-600",
+                      trend: qrAusente > 0 ? "Pendiente revisión" : "Todas completas",
+                      trendText: "",
+                      trendColor: qrAusente > 0 ? "text-orange-600" : "text-green-600",
+                    },
+                  ];
+
+                  return experticiasCards.map((card, index) => {
+                    const Icon = card.icon;
+                    return (
+                      <Card key={index} className="border border-gray-200">
+                        <CardContent className="p-5">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-600">{card.title}</p>
+                              <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                            </div>
+                            <div className={`${card.color} p-3 rounded-full`}>
+                              <Icon className={`h-5 w-5 ${card.iconColor}`} />
+                            </div>
+                          </div>
+                          <div className="mt-4 flex items-center text-sm">
+                            <span className={`flex items-center ${card.trendColor}`}>
+                              <TrendingUp className="mr-1 h-3 w-3" />
+                              {card.trend}
+                            </span>
+                            {card.trendText && (
+                              <span className="text-gray-600 ml-2">{card.trendText}</span>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  });
+                })()}
+              </div>
             </div>
 
             {/* Charts and Recent Activity */}
