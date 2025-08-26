@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -46,6 +46,87 @@ interface UserFormData {
   tiempoSuspension?: string;
   motivoSuspension?: string;
 }
+
+// 🚀 Optimized memoized components for dashboard performance
+const NavigationButton = memo(function NavigationButton({ 
+  isActive, 
+  onClick, 
+  icon: Icon, 
+  title, 
+  subtitle, 
+  color 
+}: {
+  isActive: boolean;
+  onClick: () => void;
+  icon: any;
+  title: string;
+  subtitle: string;
+  color: string;
+}) {
+  return (
+    <button 
+      className={`flex items-center space-x-2 px-3 py-2 text-left rounded-lg transition-colors ${
+        isActive
+          ? `bg-${color}-50 border border-${color}-200 text-${color}-700` 
+          : 'hover:bg-gray-50 border border-transparent'
+      }`}
+      onClick={onClick}
+    >
+      <div className={`p-1.5 rounded bg-${color}-100`}>
+        <Icon className={`h-4 w-4 text-${color}-600`} />
+      </div>
+      <div>
+        <h3 className="text-sm font-medium text-gray-900">{title}</h3>
+        <p className="text-xs text-gray-500">{subtitle}</p>
+      </div>
+    </button>
+  );
+});
+
+const ReportCard = memo(function ReportCard({ 
+  title, 
+  value, 
+  icon: Icon, 
+  color, 
+  iconColor, 
+  trend, 
+  trendText, 
+  trendColor 
+}: {
+  title: string;
+  value: string | number;
+  icon: any;
+  color: string;
+  iconColor: string;
+  trend: string;
+  trendText: string;
+  trendColor: string;
+}) {
+  return (
+    <Card className="border border-gray-200">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">{title}</p>
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
+          </div>
+          <div className={`${color} p-3 rounded-full`}>
+            <Icon className={`h-5 w-5 ${iconColor}`} />
+          </div>
+        </div>
+        <div className="mt-4 flex items-center text-sm">
+          <span className={`flex items-center ${trendColor}`}>
+            <TrendingUp className="mr-1 h-3 w-3" />
+            {trend}
+          </span>
+          {trendText && (
+            <span className="text-gray-600 ml-2">{trendText}</span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -198,6 +279,93 @@ export default function Dashboard() {
     }
   };
 
+  // 🚀 Memoized calculations for performance optimization
+  const reportStatsData = useMemo(() => {
+    if (!stats) return null;
+    
+    const getCombinedEfficiencyRate = () => stats.tasaEficienciaCombinada || 0;
+    const getAverageTime = () => {
+      if (stats.tiempoPromedioDias === 0) return "Sin datos";
+      return `${stats.tiempoPromedioDias} días`;
+    };
+
+    return [
+      {
+        title: "Tasa de Eficiencia",
+        value: `${getCombinedEfficiencyRate()}%`,
+        icon: BarChart3,
+        color: "bg-green-100",
+        iconColor: "text-green-600",
+        trend: getCombinedEfficiencyRate() > 80 ? "Excelente" : getCombinedEfficiencyRate() > 60 ? "Buena" : "Mejorable",
+        trendText: "solicitudes + experticias",
+        trendColor: getCombinedEfficiencyRate() > 80 ? "text-green-600" : getCombinedEfficiencyRate() > 60 ? "text-yellow-600" : "text-red-600",
+      },
+      {
+        title: "Tiempo Promedio",
+        value: getAverageTime(),
+        icon: Calendar,
+        color: "bg-orange-100",
+        iconColor: "text-orange-600",
+        trend: stats.tiempoPromedioDias && stats.tiempoPromedioDias < 7 ? "Eficiente" : stats.tiempoPromedioDias && stats.tiempoPromedioDias < 14 ? "Moderado" : "Lento",
+        trendText: "de procesamiento",
+        trendColor: stats.tiempoPromedioDias && stats.tiempoPromedioDias < 7 ? "text-green-600" : stats.tiempoPromedioDias && stats.tiempoPromedioDias < 14 ? "text-yellow-600" : "text-red-600",
+      },
+      {
+        title: "Usuarios Activos",
+        value: activeUsersData?.activeUsers || 0,
+        icon: Users,
+        color: "bg-purple-100",
+        iconColor: "text-purple-600",
+        trend: "En línea",
+        trendText: "",
+        trendColor: "text-purple-600",
+      },
+    ];
+  }, [stats, activeUsersData]);
+
+  const navigationConfig = useMemo(() => [
+    {
+      key: 'dashboard',
+      isActive: !showUserManagement && !showPlantillasWordAdmin && !showChatbotAdmin,
+      icon: LayoutDashboard,
+      title: "Dashboard",
+      subtitle: "Estadísticas del sistema",
+      color: "blue",
+      onClick: () => setView('dashboard'),
+      requiresPermission: false,
+    },
+    {
+      key: 'users',
+      isActive: showUserManagement,
+      icon: Users,
+      title: "Administrador de Usuarios", 
+      subtitle: "Gestionar usuarios",
+      color: "green",
+      onClick: () => setView('users'),
+      requiresPermission: true,
+    },
+    {
+      key: 'plantillas-word',
+      isActive: showPlantillasWordAdmin,
+      icon: FileText,
+      title: "Plantillas Word",
+      subtitle: "Gestionar plantillas de documentos",
+      color: "purple", 
+      onClick: () => setView('plantillas-word'),
+      requiresPermission: true,
+    },
+    {
+      key: 'chatbot-admin',
+      isActive: showChatbotAdmin,
+      icon: Settings,
+      title: "Administrar Chatbot",
+      subtitle: "Gestionar límites y acceso al chatbot",
+      color: "orange",
+      onClick: () => setView('chatbot-admin'),
+      requiresPermission: true,
+    },
+  ], [showUserManagement, showPlantillasWordAdmin, showChatbotAdmin, setView]);
+
   if (isLoading || experticiasLoading) {
     return (
       <Layout title="Panel de Control" subtitle="Cargando estadísticas...">
@@ -226,166 +394,43 @@ export default function Dashboard() {
   return (
     <Layout title="Panel de Control" subtitle="Gestion del Sistema">
       <div className="p-6">
-        {/* Quick Access Buttons */}
+        {/* 🚀 Optimized Quick Access Buttons */}
         <div className="mb-6 flex gap-3">
-          {/* Dashboard Button */}
-          <button 
-            className={`flex items-center space-x-2 px-3 py-2 text-left rounded-lg transition-colors ${
-              !showUserManagement && !showPlantillasWordAdmin && !showChatbotAdmin
-                ? 'bg-blue-50 border border-blue-200 text-blue-700' 
-                : 'hover:bg-gray-50 border border-transparent'
-            }`}
-            onClick={() => setView('dashboard')}
-          >
-            <div className={`p-1.5 rounded ${!showUserManagement && !showPlantillasWordAdmin && !showChatbotAdmin ? 'bg-blue-100' : 'bg-blue-100'}`}>
-              <LayoutDashboard className="h-4 w-4 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-900">Dashboard</h3>
-              <p className="text-xs text-gray-500">Estadísticas del sistema</p>
-            </div>
-          </button>
-          
-          {/* User Management Button - Only visible for administrators */}
-          {permissions.canManageUsers && (
-            <button 
-              className={`flex items-center space-x-2 px-3 py-2 text-left rounded-lg transition-colors ${
-                showUserManagement 
-                  ? 'bg-green-50 border border-green-200 text-green-700' 
-                  : 'hover:bg-gray-50 border border-transparent'
-              }`}
-              onClick={() => setView('users')}
-            >
-              <div className={`p-1.5 rounded ${showUserManagement ? 'bg-green-100' : 'bg-green-100'}`}>
-                <Users className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-900">Administrador de Usuarios</h3>
-                <p className="text-xs text-gray-500">Gestionar usuarios</p>
-              </div>
-            </button>
-          )}
-          
-          {/* Plantillas Word Admin Button - Only visible for administrators */}
-          {permissions.canManageUsers && (
-            <button 
-              className={`flex items-center space-x-2 px-3 py-2 text-left rounded-lg transition-colors ${
-                showPlantillasWordAdmin 
-                  ? 'bg-purple-50 border border-purple-200 text-purple-700' 
-                  : 'hover:bg-gray-50 border border-transparent'
-              }`}
-              onClick={() => setView('plantillas-word')}
-            >
-              <div className={`p-1.5 rounded ${showPlantillasWordAdmin ? 'bg-purple-100' : 'bg-purple-100'}`}>
-                <FileText className="h-4 w-4 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-900">Plantillas Word</h3>
-                <p className="text-xs text-gray-500">Gestionar plantillas de documentos</p>
-              </div>
-            </button>
-          )}
-
-          {/* Chatbot Admin Button - Only visible for administrators */}
-          {permissions.canManageUsers && (
-            <button 
-              className={`flex items-center space-x-2 px-3 py-2 text-left rounded-lg transition-colors ${
-                showChatbotAdmin 
-                  ? 'bg-orange-50 border border-orange-200 text-orange-700' 
-                  : 'hover:bg-gray-50 border border-transparent'
-              }`}
-              onClick={() => setView('chatbot-admin')}
-            >
-              <div className={`p-1.5 rounded ${showChatbotAdmin ? 'bg-orange-100' : 'bg-orange-100'}`}>
-                <Settings className="h-4 w-4 text-orange-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-900">Administrar Chatbot</h3>
-                <p className="text-xs text-gray-500">Gestionar límites y acceso al chatbot</p>
-              </div>
-            </button>
-          )}
+          {navigationConfig.map((nav) => (
+            (!nav.requiresPermission || permissions.canManageUsers) && (
+              <NavigationButton
+                key={nav.key}
+                isActive={nav.isActive}
+                onClick={nav.onClick}
+                icon={nav.icon}
+                title={nav.title}
+                subtitle={nav.subtitle}
+                color={nav.color}
+              />
+            )
+          ))}
         </div>
         
         {/* Main Content */}
         {!showUserManagement && !showPlantillasWordAdmin && !showChatbotAdmin ? (
           <>
-            {/* Reports Stats Cards */}
+            {/* 🚀 Optimized Reports Stats Cards */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Reportes</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
-                {(() => {
-                  const getCombinedEfficiencyRate = () => {
-                    if (!stats) return 0;
-                    return stats.tasaEficienciaCombinada || 0;
-                  };
-
-                  const getAverageTime = () => {
-                    if (!stats || stats.tiempoPromedioDias === 0) return "Sin datos";
-                    return `${stats.tiempoPromedioDias} días`;
-                  };
-
-                  const reportsCards = [
-                    {
-                      title: "Tasa de Eficiencia",
-                      value: `${getCombinedEfficiencyRate()}%`,
-                      icon: BarChart3,
-                      color: "bg-green-100",
-                      iconColor: "text-green-600",
-                      trend: getCombinedEfficiencyRate() > 80 ? "Excelente" : getCombinedEfficiencyRate() > 60 ? "Buena" : "Mejorable",
-                      trendText: "solicitudes + experticias",
-                      trendColor: getCombinedEfficiencyRate() > 80 ? "text-green-600" : getCombinedEfficiencyRate() > 60 ? "text-yellow-600" : "text-red-600",
-                    },
-                    {
-                      title: "Tiempo Promedio",
-                      value: getAverageTime(),
-                      icon: Calendar,
-                      color: "bg-orange-100",
-                      iconColor: "text-orange-600",
-                      trend: stats?.tiempoPromedioDias && stats.tiempoPromedioDias < 7 ? "Eficiente" : stats?.tiempoPromedioDias && stats.tiempoPromedioDias < 14 ? "Moderado" : "Lento",
-                      trendText: "de procesamiento",
-                      trendColor: stats?.tiempoPromedioDias && stats.tiempoPromedioDias < 7 ? "text-green-600" : stats?.tiempoPromedioDias && stats.tiempoPromedioDias < 14 ? "text-yellow-600" : "text-red-600",
-                    },
-                    {
-                      title: "Usuarios Activos",
-                      value: activeUsersData?.activeUsers || 0,
-                      icon: Users,
-                      color: "bg-purple-100",
-                      iconColor: "text-purple-600",
-                      trend: "En línea",
-                      trendText: "",
-                      trendColor: "text-purple-600",
-                    },
-                  ];
-
-                  return reportsCards.map((card, index) => {
-                    const Icon = card.icon;
-                    return (
-                      <Card key={index} className="border border-gray-200">
-                        <CardContent className="p-5">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                              <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                            </div>
-                            <div className={`${card.color} p-3 rounded-full`}>
-                              <Icon className={`h-5 w-5 ${card.iconColor}`} />
-                            </div>
-                          </div>
-                          <div className="mt-4 flex items-center text-sm">
-                            <span className={`flex items-center ${card.trendColor}`}>
-                              <TrendingUp className="mr-1 h-3 w-3" />
-                              {card.trend}
-                            </span>
-                            {card.trendText && (
-                              <span className="text-gray-600 ml-2">{card.trendText}</span>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  });
-                })()}
+                {reportStatsData?.map((card, index) => (
+                  <ReportCard
+                    key={index}
+                    title={card.title}
+                    value={card.value}
+                    icon={card.icon}
+                    color={card.color}
+                    iconColor={card.iconColor}
+                    trend={card.trend}
+                    trendText={card.trendText}
+                    trendColor={card.trendColor}
+                  />
+                ))}
               </div>
             </div>
 

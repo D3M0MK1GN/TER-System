@@ -422,20 +422,23 @@ export class DatabaseStorage implements IStorage {
     solicitudesPorOperador: { operador: string; total: number }[];
     actividadReciente: any[];
   }> {
+    // Optimización: Reducir de 7 consultas a 3 consultas
     const [
-      totalSolicitudes,
-      pendientes,
-      enviadas,
-      respondidas,
-      rechazadas,
+      estadosStats,
       solicitudesPorOperador,
       actividadReciente,
     ] = await Promise.all([
-      db.select({ count: count() }).from(solicitudes),
-      db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.estado, "procesando")),
-      db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.estado, "enviada")),
-      db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.estado, "respondida")),
-      db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.estado, "rechazada")),
+      // 1. Consulta consolidada para todos los conteos por estado
+      db
+        .select({
+          totalSolicitudes: count(),
+          pendientes: count(sql`CASE WHEN ${solicitudes.estado} = 'procesando' THEN 1 END`),
+          enviadas: count(sql`CASE WHEN ${solicitudes.estado} = 'enviada' THEN 1 END`),
+          respondidas: count(sql`CASE WHEN ${solicitudes.estado} = 'respondida' THEN 1 END`),
+          rechazadas: count(sql`CASE WHEN ${solicitudes.estado} = 'rechazada' THEN 1 END`),
+        })
+        .from(solicitudes),
+      // 2. Consulta por operador (ya optimizada)
       db
         .select({
           operador: solicitudes.operador,
@@ -443,6 +446,7 @@ export class DatabaseStorage implements IStorage {
         })
         .from(solicitudes)
         .groupBy(solicitudes.operador),
+      // 3. Actividad reciente (ya optimizada)
       db
         .select()
         .from(solicitudes)
@@ -450,12 +454,13 @@ export class DatabaseStorage implements IStorage {
         .limit(10),
     ]);
 
+    const stats = estadosStats[0];
     return {
-      totalSolicitudes: totalSolicitudes[0].count,
-      pendientes: pendientes[0].count,
-      enviadas: enviadas[0].count,
-      respondidas: respondidas[0].count,
-      rechazadas: rechazadas[0].count,
+      totalSolicitudes: stats.totalSolicitudes,
+      pendientes: stats.pendientes,
+      enviadas: stats.enviadas,
+      respondidas: stats.respondidas,
+      rechazadas: stats.rechazadas,
       solicitudesPorOperador: solicitudesPorOperador,
       actividadReciente: actividadReciente,
     };
@@ -488,21 +493,24 @@ export class DatabaseStorage implements IStorage {
       };
     }
 
-    // Filter by coordinacion to show all requests for this user's coordination
+    // Optimización: Filtro por coordinación - Reducir de 7 consultas a 3 consultas
     const [
-      totalSolicitudes,
-      pendientes,
-      enviadas,
-      respondidas,
-      rechazadas,
+      estadosStats,
       solicitudesPorOperador,
       actividadReciente,
     ] = await Promise.all([
-      db.select({ count: count() }).from(solicitudes).where(eq(solicitudes.coordinacionSolicitante, user.coordinacion)),
-      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.coordinacionSolicitante, user.coordinacion), eq(solicitudes.estado, "procesando"))),
-      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.coordinacionSolicitante, user.coordinacion), eq(solicitudes.estado, "enviada"))),
-      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.coordinacionSolicitante, user.coordinacion), eq(solicitudes.estado, "respondida"))),
-      db.select({ count: count() }).from(solicitudes).where(and(eq(solicitudes.coordinacionSolicitante, user.coordinacion), eq(solicitudes.estado, "rechazada"))),
+      // 1. Consulta consolidada para todos los conteos por estado (filtrada por coordinación)
+      db
+        .select({
+          totalSolicitudes: count(),
+          pendientes: count(sql`CASE WHEN ${solicitudes.estado} = 'procesando' THEN 1 END`),
+          enviadas: count(sql`CASE WHEN ${solicitudes.estado} = 'enviada' THEN 1 END`),
+          respondidas: count(sql`CASE WHEN ${solicitudes.estado} = 'respondida' THEN 1 END`),
+          rechazadas: count(sql`CASE WHEN ${solicitudes.estado} = 'rechazada' THEN 1 END`),
+        })
+        .from(solicitudes)
+        .where(eq(solicitudes.coordinacionSolicitante, user.coordinacion)),
+      // 2. Consulta por operador filtrada por coordinación
       db
         .select({
           operador: solicitudes.operador,
@@ -511,6 +519,7 @@ export class DatabaseStorage implements IStorage {
         .from(solicitudes)
         .where(eq(solicitudes.coordinacionSolicitante, user.coordinacion))
         .groupBy(solicitudes.operador),
+      // 3. Actividad reciente filtrada por coordinación
       db
         .select()
         .from(solicitudes)
@@ -519,12 +528,13 @@ export class DatabaseStorage implements IStorage {
         .limit(10),
     ]);
 
+    const stats = estadosStats[0];
     return {
-      totalSolicitudes: totalSolicitudes[0].count,
-      pendientes: pendientes[0].count,
-      enviadas: enviadas[0].count,
-      respondidas: respondidas[0].count,
-      rechazadas: rechazadas[0].count,
+      totalSolicitudes: stats.totalSolicitudes,
+      pendientes: stats.pendientes,
+      enviadas: stats.enviadas,
+      respondidas: stats.respondidas,
+      rechazadas: stats.rechazadas,
       solicitudesPorOperador: solicitudesPorOperador,
       actividadReciente: actividadReciente,
     };

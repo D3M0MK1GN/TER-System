@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { tokenCleanupManager } from "../tools/clean";
 import "./types";
 
 const app = express();
@@ -114,5 +115,8 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Iniciar el sistema de limpieza automática de tokens
+    tokenCleanupManager.start();
   });
 })();

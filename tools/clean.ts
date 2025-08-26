@@ -25,7 +25,7 @@ import { eq, and, isNotNull, sql, count } from 'drizzle-orm';
  * 
  * @returns Promise<number> Número de usuarios con sesiones activas
  */
-export async function getActiveUsersCount(): Promise<number> {
+async function getActiveUsersCount(): Promise<number> {
   try {
     const now = new Date();
     
@@ -60,7 +60,7 @@ export async function getActiveUsersCount(): Promise<number> {
  * 
  * @returns Promise<number> Número de tokens limpiados
  */
-export async function cleanupExpiredTokens(): Promise<number> {
+async function cleanupExpiredTokens(): Promise<number> {
   try {
     const now = new Date();
     
@@ -111,7 +111,7 @@ export async function cleanupExpiredTokens(): Promise<number> {
  * 
  * @returns NodeJS.Timeout El interval para poder cancelarlo después
  */
-export function startTokenCleanupProcess(): NodeJS.Timeout {
+function startTokenCleanupProcess(): NodeJS.Timeout {
   console.log('🚀 Iniciando proceso automático de limpieza de tokens (cada hora)');
   
   // 🆕 Background task to clean up expired session tokens every hour
@@ -137,7 +137,7 @@ export function startTokenCleanupProcess(): NodeJS.Timeout {
  * 
  * @param interval El interval a cancelar
  */
-export function stopTokenCleanupProcess(interval: NodeJS.Timeout): void {
+function stopTokenCleanupProcess(interval: NodeJS.Timeout): void {
   clearInterval(interval);
   console.log('🛑 Proceso de limpieza automática detenido');
 }

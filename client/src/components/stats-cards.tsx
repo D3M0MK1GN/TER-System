@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Clock, CheckCircle, Users, TrendingUp, Send, X } from "lucide-react";
 
@@ -11,7 +12,7 @@ interface StatsCardsProps {
   };
 }
 
-export function StatsCards({ stats }: StatsCardsProps) {
+const StatsCards = memo(function StatsCards({ stats }: StatsCardsProps) {
   const cards = [
     {
       title: "Total Solicitudes",
@@ -96,4 +97,5 @@ export function StatsCards({ stats }: StatsCardsProps) {
       })}
     </div>
   );
-}
+});
+export { StatsCards };
