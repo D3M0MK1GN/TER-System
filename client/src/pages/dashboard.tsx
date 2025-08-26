@@ -29,6 +29,10 @@ interface DashboardStats {
   rechazadas: number;
   solicitudesPorOperador: { operador: string; total: number }[];
   actividadReciente: any[];
+  tiempoPromedioDias: number;
+  totalExperticias: number;
+  experticiasCompletadas: number;
+  tasaEficienciaCombinada: number;
 }
 
 interface UserFormData {
@@ -77,11 +81,12 @@ export default function Dashboard() {
     
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: [statsEndpoint],
+    refetchInterval: 40000, // Refresh every 40 seconds
   });
 
   const { data: activeUsersData } = useQuery<{ activeUsers: number }>({
     queryKey: ["/api/users/active-count"],
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 20000, // Refresh every 20 seconds
   });
 
   const { data: experticiasData, isLoading: experticiasLoading } = useQuery({
@@ -310,31 +315,36 @@ export default function Dashboard() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Reportes</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
                 {(() => {
-                  const getEfficiencyRate = () => {
-                    if (!stats || stats.totalSolicitudes === 0) return 0;
-                    return Math.round((stats.respondidas / stats.totalSolicitudes) * 100);
+                  const getCombinedEfficiencyRate = () => {
+                    if (!stats) return 0;
+                    return stats.tasaEficienciaCombinada || 0;
+                  };
+
+                  const getAverageTime = () => {
+                    if (!stats || stats.tiempoPromedioDias === 0) return "Sin datos";
+                    return `${stats.tiempoPromedioDias} días`;
                   };
 
                   const reportsCards = [
                     {
                       title: "Tasa de Eficiencia",
-                      value: `${getEfficiencyRate()}%`,
+                      value: `${getCombinedEfficiencyRate()}%`,
                       icon: BarChart3,
                       color: "bg-green-100",
                       iconColor: "text-green-600",
-                      trend: getEfficiencyRate() > 80 ? "Excelente" : getEfficiencyRate() > 60 ? "Buena" : "Mejorable",
-                      trendText: "rendimiento",
-                      trendColor: getEfficiencyRate() > 80 ? "text-green-600" : getEfficiencyRate() > 60 ? "text-yellow-600" : "text-red-600",
+                      trend: getCombinedEfficiencyRate() > 80 ? "Excelente" : getCombinedEfficiencyRate() > 60 ? "Buena" : "Mejorable",
+                      trendText: "solicitudes + experticias",
+                      trendColor: getCombinedEfficiencyRate() > 80 ? "text-green-600" : getCombinedEfficiencyRate() > 60 ? "text-yellow-600" : "text-red-600",
                     },
                     {
                       title: "Tiempo Promedio",
-                      value: "5.2 días",
+                      value: getAverageTime(),
                       icon: Calendar,
                       color: "bg-orange-100",
                       iconColor: "text-orange-600",
-                      trend: "De procesamiento",
-                      trendText: "",
-                      trendColor: "text-orange-600",
+                      trend: stats?.tiempoPromedioDias && stats.tiempoPromedioDias < 7 ? "Eficiente" : stats?.tiempoPromedioDias && stats.tiempoPromedioDias < 14 ? "Moderado" : "Lento",
+                      trendText: "de procesamiento",
+                      trendColor: stats?.tiempoPromedioDias && stats.tiempoPromedioDias < 7 ? "text-green-600" : stats?.tiempoPromedioDias && stats.tiempoPromedioDias < 14 ? "text-yellow-600" : "text-red-600",
                     },
                     {
                       title: "Usuarios Activos",
