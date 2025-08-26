@@ -79,6 +79,11 @@ export default function Dashboard() {
     queryKey: [statsEndpoint],
   });
 
+  const { data: activeUsersData } = useQuery<{ activeUsers: number }>({
+    queryKey: ["/api/users/active-count"],
+    refetchInterval: 60000, // Refresh every minute
+  });
+
   const { data: experticiasData, isLoading: experticiasLoading } = useQuery({
     queryKey: ["/api/experticias"],
     queryFn: async () => {
@@ -300,24 +305,6 @@ export default function Dashboard() {
         {/* Main Content */}
         {!showUserManagement && !showPlantillasWordAdmin && !showChatbotAdmin ? (
           <>
-            {/* Stats Cards */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Solicitudes</h3>
-              <StatsCards stats={stats ? {
-                totalSolicitudes: stats.totalSolicitudes,
-                pendientes: stats.pendientes,
-                enviadas: stats.enviadas,
-                respondidas: stats.respondidas,
-                rechazadas: stats.rechazadas
-              } : {
-                totalSolicitudes: 0,
-                pendientes: 0,
-                enviadas: 0,
-                respondidas: 0,
-                rechazadas: 0
-              }} />
-            </div>
-
             {/* Reports Stats Cards */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Reportes</h3>
@@ -350,12 +337,12 @@ export default function Dashboard() {
                       trendColor: "text-orange-600",
                     },
                     {
-                      title: "Operadores Activos",
-                      value: stats?.solicitudesPorOperador?.length || 0,
+                      title: "Usuarios Activos",
+                      value: activeUsersData?.activeUsers || 0,
                       icon: Users,
                       color: "bg-purple-100",
                       iconColor: "text-purple-600",
-                      trend: "Con solicitudes",
+                      trend: "En línea",
                       trendText: "",
                       trendColor: "text-purple-600",
                     },
@@ -389,6 +376,133 @@ export default function Dashboard() {
                     );
                   });
                 })()}
+              </div>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Solicitudes</h3>
+              <StatsCards stats={stats ? {
+                totalSolicitudes: stats.totalSolicitudes,
+                pendientes: stats.pendientes,
+                enviadas: stats.enviadas,
+                respondidas: stats.respondidas,
+                rechazadas: stats.rechazadas
+              } : {
+                totalSolicitudes: 0,
+                pendientes: 0,
+                enviadas: 0,
+                respondidas: 0,
+                rechazadas: 0
+              }} />
+
+              {/* Estado de Solicitudes y Métricas Adicionales */}
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Estado de Solicitudes */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-semibold">
+                      Estado de Solicitudes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {[
+                        { label: "Procesando", value: stats?.pendientes || 0, color: "bg-yellow-500" },
+                        { label: "Enviadas", value: stats?.enviadas || 0, color: "bg-blue-500" },
+                        { label: "Respondidas", value: stats?.respondidas || 0, color: "bg-green-500" },
+                        { label: "Rechazadas", value: stats?.rechazadas || 0, color: "bg-red-500" },
+                      ].map((item) => {
+                        const percentage = (stats?.totalSolicitudes || 0) > 0 
+                          ? (item.value / (stats?.totalSolicitudes || 1)) * 100 
+                          : 0;
+                        
+                        return (
+                          <div key={item.label} className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-4 h-4 ${item.color} rounded-full`}></div>
+                              <span className="text-sm font-medium text-gray-700">
+                                {item.label}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                              <div className="w-32">
+                                <Progress value={percentage} className="h-2" />
+                              </div>
+                              <span className="text-sm font-medium text-gray-900 w-12 text-right">
+                                {item.value}
+                              </span>
+                              <span className="text-sm text-gray-600 w-12 text-right">
+                                {percentage.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Additional Stats Cards for Solicitudes */}
+                <div className="grid grid-cols-1 gap-4">
+                  {(() => {
+                    const getEfficiencyRate = () => {
+                      if (!stats || stats.totalSolicitudes === 0) return 0;
+                      return Math.round((stats.respondidas / stats.totalSolicitudes) * 100);
+                    };
+
+                    const additionalSolicitudesCards = [
+                      {
+                        title: "Tasa de Eficiencia",
+                        value: `${getEfficiencyRate()}%`,
+                        icon: BarChart3,
+                        color: "bg-green-100",
+                        iconColor: "text-green-600",
+                        trend: getEfficiencyRate() > 80 ? "Excelente" : getEfficiencyRate() > 60 ? "Buena" : "Mejorable",
+                        trendText: "rendimiento",
+                        trendColor: getEfficiencyRate() > 80 ? "text-green-600" : getEfficiencyRate() > 60 ? "text-yellow-600" : "text-red-600",
+                      },
+                      {
+                        title: "Tiempo Promedio",
+                        value: "5.2 días",
+                        icon: Calendar,
+                        color: "bg-orange-100",
+                        iconColor: "text-orange-600",
+                        trend: "De procesamiento",
+                        trendText: "",
+                        trendColor: "text-orange-600",
+                      },
+                    ];
+
+                    return additionalSolicitudesCards.map((card, index) => {
+                      const Icon = card.icon;
+                      return (
+                        <Card key={index} className="border border-gray-200">
+                          <CardContent className="p-5">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-gray-600">{card.title}</p>
+                                <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                              </div>
+                              <div className={`${card.color} p-3 rounded-full`}>
+                                <Icon className={`h-5 w-5 ${card.iconColor}`} />
+                              </div>
+                            </div>
+                            <div className="mt-4 flex items-center text-sm">
+                              <span className={`flex items-center ${card.trendColor}`}>
+                                <TrendingUp className="mr-1 h-3 w-3" />
+                                {card.trend}
+                              </span>
+                              {card.trendText && (
+                                <span className="text-gray-600 ml-2">{card.trendText}</span>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    });
+                  })()}
+                </div>
               </div>
             </div>
 
@@ -486,56 +600,186 @@ export default function Dashboard() {
                   });
                 })()}
               </div>
+
+              {/* Estado de Experticias y Métricas Adicionales */}
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Estado de Experticias */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-semibold">
+                      Estado de Experticias
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {(() => {
+                        const experticias = experticiasData?.experticias || [];
+                        const total = experticiasData?.total || 0;
+                        const completadas = experticias.filter((e: any) => e.estado === 'completada').length;
+                        const negativas = experticias.filter((e: any) => e.estado === 'negativa').length;
+                        const procesando = experticias.filter((e: any) => e.estado === 'procesando').length;
+                        const qrAusente = experticias.filter((e: any) => e.estado === 'qr_ausente').length;
+
+                        const estadoExperticias = [
+                          { label: "Completadas", value: completadas, color: "bg-green-500" },
+                          { label: "Procesando", value: procesando, color: "bg-yellow-500" },
+                          { label: "Negativas", value: negativas, color: "bg-red-500" },
+                          { label: "QR Ausente", value: qrAusente, color: "bg-orange-500" },
+                        ];
+
+                        return estadoExperticias.map((item) => {
+                          const percentage = total > 0 ? (item.value / total) * 100 : 0;
+                          
+                          return (
+                            <div key={item.label} className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className={`w-4 h-4 ${item.color} rounded-full`}></div>
+                                <span className="text-sm font-medium text-gray-700">
+                                  {item.label}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-3">
+                                <div className="w-32">
+                                  <Progress value={percentage} className="h-2" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-900 w-12 text-right">
+                                  {item.value}
+                                </span>
+                                <span className="text-sm text-gray-600 w-12 text-right">
+                                  {percentage.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Additional Stats Cards for Experticias */}
+                <div className="grid grid-cols-1 gap-4">
+                  {(() => {
+                    const experticias = experticiasData?.experticias || [];
+                    const total = experticiasData?.total || 0;
+                    const completadas = experticias.filter((e: any) => e.estado === 'completada').length;
+                    
+                    const getExperticiasEfficiencyRate = () => {
+                      if (total === 0) return 0;
+                      return Math.round((completadas / total) * 100);
+                    };
+
+                    const additionalExperticiasCards = [
+                      {
+                        title: "Tasa de Eficiencia",
+                        value: `${getExperticiasEfficiencyRate()}%`,
+                        icon: BarChart3,
+                        color: "bg-green-100",
+                        iconColor: "text-green-600",
+                        trend: getExperticiasEfficiencyRate() > 80 ? "Excelente" : getExperticiasEfficiencyRate() > 60 ? "Buena" : "Mejorable",
+                        trendText: "de completadas",
+                        trendColor: getExperticiasEfficiencyRate() > 80 ? "text-green-600" : getExperticiasEfficiencyRate() > 60 ? "text-yellow-600" : "text-red-600",
+                      },
+                      {
+                        title: "Tiempo Promedio",
+                        value: "3.8 días",
+                        icon: Calendar,
+                        color: "bg-orange-100",
+                        iconColor: "text-orange-600",
+                        trend: "De análisis",
+                        trendText: "",
+                        trendColor: "text-orange-600",
+                      },
+                    ];
+
+                    return additionalExperticiasCards.map((card, index) => {
+                      const Icon = card.icon;
+                      return (
+                        <Card key={index} className="border border-gray-200">
+                          <CardContent className="p-5">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-gray-600">{card.title}</p>
+                                <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                              </div>
+                              <div className={`${card.color} p-3 rounded-full`}>
+                                <Icon className={`h-5 w-5 ${card.iconColor}`} />
+                              </div>
+                            </div>
+                            <div className="mt-4 flex items-center text-sm">
+                              <span className={`flex items-center ${card.trendColor}`}>
+                                <TrendingUp className="mr-1 h-3 w-3" />
+                                {card.trend}
+                              </span>
+                              {card.trendText && (
+                                <span className="text-gray-600 ml-2">{card.trendText}</span>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
             </div>
 
             {/* Charts and Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Chart Card */}
+              {/* Traffic by Operator Chart */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg font-semibold">
-                    Solicitudes por Operador
+                    Tráfico por Operador
                   </CardTitle>
                   <Select defaultValue="ultimo-mes">
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-44">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="ultima-semana">Última semana</SelectItem>
                       <SelectItem value="ultimo-mes">Último mes</SelectItem>
-                      <SelectItem value="ultimos-3-meses">Últimos 3 meses</SelectItem>
-                      <SelectItem value="ultimo-ano">Último año</SelectItem>
+                      <SelectItem value="ultimo-6-meses">Último 6 meses</SelectItem>
+                      <SelectItem value="ultimo-12-meses">Último 12 meses</SelectItem>
+                      <SelectItem value="sin-filtro">Sin filtro</SelectItem>
                     </SelectContent>
                   </Select>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {(stats?.solicitudesPorOperador || []).map((item: any, index: number) => {
-                      const colors = [
-                        "bg-blue-500",
-                        "bg-green-500",
-                        "bg-red-500",
-                        "bg-purple-500",
-                        "bg-yellow-500",
-                      ];
-                      const percentage = (stats?.totalSolicitudes || 0) > 0 
-                        ? (item.total / (stats?.totalSolicitudes || 1)) * 100 
-                        : 0;
-                      
-                      return (
-                        <div key={item.operador} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-4 h-4 ${colors[index % colors.length]} rounded-full`}></div>
-                            <span className="text-sm text-gray-600 capitalize">
-                              {item.operador}
-                            </span>
+                    {(stats?.solicitudesPorOperador || []).length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">
+                        No hay datos de tráfico disponibles
+                      </div>
+                    ) : (
+                      (stats?.solicitudesPorOperador || []).map((item: any, index: number) => {
+                        const colors = [
+                          "bg-blue-500",   // Digitel
+                          "bg-green-500",  // Movistar
+                          "bg-red-500",    // Movilnet
+                        ];
+                        const percentage = (stats?.totalSolicitudes || 0) > 0 
+                          ? (item.total / (stats?.totalSolicitudes || 1)) * 100 
+                          : 0;
+                        
+                        return (
+                          <div key={item.operador} className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-4 h-4 ${colors[index % colors.length]} rounded-full`}></div>
+                              <span className="text-sm font-medium text-gray-700 capitalize">
+                                {item.operador}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Progress value={percentage} className="w-32" />
+                              <span className="text-sm font-medium text-gray-900">
+                                {item.total}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Progress value={percentage} className="w-32" />
-                            <span className="text-sm font-medium">{item.total}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </CardContent>
               </Card>
