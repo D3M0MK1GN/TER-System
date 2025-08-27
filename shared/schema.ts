@@ -288,10 +288,10 @@ export const experticias = pgTable("experticias", {
   numeroDictamen: text("numero_dictamen").notNull().unique(),
   experto: text("experto").notNull(),
   numeroComunicacion: text("numero_comunicacion").notNull(),
-  fechaComunicacion: timestamp("fecha_comunicacion"),
+  fechaComunicacion: text("fecha_comunicacion"),
   motivo: text("motivo").notNull(),
   operador: operadorEnum("operador").notNull(),
-  fechaRespuesta: timestamp("fecha_respuesta"),
+  fechaRespuesta: text("fecha_respuesta"),
   usoHorario: text("uso_horario"),
   archivoAdjunto: text("archivo_adjunto"), // Ruta del archivo adjunto
   tipoExperticia: text("tipo_experticia").notNull(),

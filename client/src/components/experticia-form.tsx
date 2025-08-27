@@ -6,12 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Atom, Calendar as CalendarIcon, Upload } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { Atom, Upload } from "lucide-react";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
 import { type z } from "zod";
 
@@ -33,10 +28,10 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
       numeroDictamen: experticia?.numeroDictamen || "",
       experto: experticia?.experto || "",
       numeroComunicacion: experticia?.numeroComunicacion || "",
-      fechaComunicacion: experticia?.fechaComunicacion || undefined,
+      fechaComunicacion: experticia?.fechaComunicacion?.toString() || "",
       motivo: experticia?.motivo || "",
       operador: experticia?.operador || undefined,
-      fechaRespuesta: experticia?.fechaRespuesta || undefined,
+      fechaRespuesta: experticia?.fechaRespuesta?.toString() || "",
       usoHorario: experticia?.usoHorario ?? "",
       archivoAdjunto: experticia?.archivoAdjunto ?? "",
       tipoExperticia: experticia?.tipoExperticia || "",
@@ -148,77 +143,44 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                 control={form.control}
                 name="fechaComunicacion"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>C.Fecha</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP", { locale: es })
-                            ) : (
-                              <span>Seleccionar fecha</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value ?? undefined}
-                          onSelect={field.onChange}
-                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <Input 
+                        placeholder="Fecha de comunicación" 
+                        {...field}
+                        value={field.value?.toString() || ''}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="fechaRespuesta"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>R.Fecha</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP", { locale: es })
-                            ) : (
-                              <span>Seleccionar fecha</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value ?? undefined}
-                          onSelect={field.onChange}
-                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <Input 
+                        placeholder="Fecha de respuesta" 
+                        {...field}
+                        value={field.value?.toString() || ''}
+                        onKeyDown={(e) => {
+                          const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+                          const allowedChars = /[0-9\/\-\s]/;
+                          
+                          if (allowedKeys.includes(e.key)) {
+                            return; // Permitir teclas de navegación
+                          }
+                          
+                          if (!allowedChars.test(e.key)) {
+                            e.preventDefault(); // Bloquear letras y otros caracteres
+                          }
+                        }}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -306,7 +268,8 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                     <FormControl>
                       <Input 
                         placeholder="ej: GMT-4 (Venezuela)" 
-                        {...field} 
+                        {...field}
+                        value={field.value || ""} 
                       />
                     </FormControl>
                     <FormMessage />
@@ -347,7 +310,8 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                   <FormControl>
                     <Input 
                       placeholder="Número o identificación del abonado" 
-                      {...field} 
+                      {...field}
+                      value={field.value || ""} 
                     />
                   </FormControl>
                   <FormMessage />
@@ -365,6 +329,7 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                     <Textarea 
                       placeholder="Información adicional del abonado (nombre, dirección, etc.)"
                       {...field}
+                      value={field.value || ""}
                       rows={3}
                     />
                   </FormControl>
@@ -390,7 +355,7 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                   <FormControl>
                     <Input 
                       type="file"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                      accept=".xls,.xlsx"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -401,7 +366,7 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                     />
                   </FormControl>
                   <p className="text-sm text-gray-600">
-                    Formatos permitidos: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG
+                    Formatos permitidos: XLS, XLSX
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -418,6 +383,7 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                     <Textarea 
                       placeholder="Conclusiones y resultados de la experticia..."
                       {...field}
+                      value={field.value || ""}
                       rows={4}
                     />
                   </FormControl>
