@@ -1175,7 +1175,7 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
   app.get("/api/experticias", authenticateToken, async (req: any, res) => {
     try {
       const {
-        categoria,
+        operador,
         estado,
         search,
         page,
@@ -1183,7 +1183,7 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
       } = req.query;
 
       const filters = {
-        categoria,
+        operador,
         estado,
         search,
         page: page ? parseInt(page) : 1,
@@ -1311,6 +1311,3 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
   const httpServer = createServer(app);
   return httpServer;
 }
-
-
-

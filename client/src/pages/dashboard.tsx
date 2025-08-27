@@ -414,25 +414,27 @@ export default function Dashboard() {
         {/* Main Content */}
         {!showUserManagement && !showPlantillasWordAdmin && !showChatbotAdmin ? (
           <>
-            {/* 🚀 Optimized Reports Stats Cards */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Reportes</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
-                {reportStatsData?.map((card, index) => (
-                  <ReportCard
-                    key={index}
-                    title={card.title}
-                    value={card.value}
-                    icon={card.icon}
-                    color={card.color}
-                    iconColor={card.iconColor}
-                    trend={card.trend}
-                    trendText={card.trendText}
-                    trendColor={card.trendColor}
-                  />
-                ))}
+            {/* 🚀 Optimized Reports Stats Cards - Solo para Admin y Supervisor */}
+            {permissions.canViewAllReports && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Reportes</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
+                  {reportStatsData?.map((card, index) => (
+                    <ReportCard
+                      key={index}
+                      title={card.title}
+                      value={card.value}
+                      icon={card.icon}
+                      color={card.color}
+                      iconColor={card.iconColor}
+                      trend={card.trend}
+                      trendText={card.trendText}
+                      trendColor={card.trendColor}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Stats Cards */}
             <div className="mb-8">
@@ -561,9 +563,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Experticias Stats Cards */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Experticias</h3>
+            {/* Experticias Stats Cards - Solo para Admin y Supervisor */}
+            {permissions.canViewAllReports && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Experticias</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {(() => {
                   const experticias = experticiasData?.experticias || [];
@@ -778,6 +781,7 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Charts and Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

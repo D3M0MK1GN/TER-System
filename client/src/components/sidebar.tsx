@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   FileText,
   Mail,
-  BarChart3,
   User,
   LogOut,
   Antenna,
@@ -46,12 +45,6 @@ const navItems = [
     permission: "canViewEmailTemplates" as const,
   },
   {
-    title: "Reportes",
-    href: "/reportes",
-    icon: BarChart3,
-    permission: "canViewAllReports" as const,
-  },
-  {
     title: "Chatbot",
     href: "/chatbot",
     icon: Bot,
@@ -72,10 +65,6 @@ export function Sidebar() {
       if (item.permission === "canViewAllRequests" && item.href === "/solicitudes") {
         // For requests, both admins and supervisors can view all, users can view their own
         return permissions.canViewAllRequests || permissions.canViewDashboard;
-      }
-      if (item.permission === "canViewAllReports" && item.href === "/reportes") {
-        // For reports, both admins and supervisors can view all, users can view their own
-        return permissions.canViewAllReports || permissions.canViewDashboard;
       }
       if (item.permission === "canViewEmailTemplates" && item.href === "/plantillas") {
         // For email templates, only admins can access this section

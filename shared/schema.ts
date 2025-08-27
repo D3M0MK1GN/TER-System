@@ -285,15 +285,21 @@ export const insertConfiguracionSistemaSchema = createInsertSchema(configuracion
 // Tabla de Experticias
 export const experticias = pgTable("experticias", {
   id: serial("id").primaryKey(),
-  codigo: text("codigo").notNull().unique(),
-  nombre: text("nombre").notNull(),
-  descripcion: text("descripcion"),
-  categoria: text("categoria").default("telecomunicaciones"),
+  numeroDictamen: text("numero_dictamen").notNull().unique(),
+  experto: text("experto").notNull(),
+  numeroComunicacion: text("numero_comunicacion").notNull(),
+  fechaComunicacion: timestamp("fecha_comunicacion"),
+  motivo: text("motivo").notNull(),
+  operador: operadorEnum("operador").notNull(),
+  fechaRespuesta: timestamp("fecha_respuesta"),
+  usoHorario: text("uso_horario"),
+  archivoAdjunto: text("archivo_adjunto"), // Ruta del archivo adjunto
+  tipoExperticia: text("tipo_experticia").notNull(),
+  abonado: text("abonado"),
+  datosAbonado: text("datos_abonado"),
+  conclusion: text("conclusion"),
+  expediente: text("expediente").notNull(),
   estado: estadoExperticiasEnum("estado").default("procesando"),
-  requiereDocumento: boolean("requiere_documento").default(false),
-  tiempoEstimado: text("tiempo_estimado"),
-  responsable: text("responsable"),
-  frecuenciaUso: integer("frecuencia_uso").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   usuarioId: integer("usuario_id").references(() => users.id),
@@ -309,13 +315,27 @@ export const insertExperticiasSchema = createInsertSchema(experticias).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
-  codigo: z.string()
-    .min(1, "Código es requerido")
-    .max(100, "Código muy largo")
+  numeroDictamen: z.string()
+    .min(1, "Número de dictamen es requerido")
+    .max(100, "Número de dictamen muy largo")
     .transform(val => val.trim()),
-  nombre: z.string()
-    .min(1, "Nombre es requerido")
-    .max(200, "Nombre muy largo")
+  experto: z.string()
+    .min(1, "Experto es requerido")
+    .max(200, "Nombre del experto muy largo")
+    .transform(val => val.trim()),
+  numeroComunicacion: z.string()
+    .min(1, "Número de comunicación es requerido")
+    .max(100, "Número de comunicación muy largo")
+    .transform(val => val.trim()),
+  motivo: z.string()
+    .min(1, "Motivo es requerido")
+    .transform(val => val.trim()),
+  tipoExperticia: z.string()
+    .min(1, "Tipo de experticia es requerido")
+    .transform(val => val.trim()),
+  expediente: z.string()
+    .min(1, "Expediente es requerido")
+    .max(100, "Expediente muy largo")
     .transform(val => val.trim()),
 });
 

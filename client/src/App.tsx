@@ -12,7 +12,6 @@ import Dashboard from "@/pages/dashboard";
 import Requests from "@/pages/requests";
 import { Experticias } from "@/pages/experticias";
 import Templates from "@/pages/templates";
-import Reports from "@/pages/reports";
 import Users from "@/pages/users";
 import ChatbotPage from "@/pages/chatbot";
 import NotFound from "@/pages/not-found";
@@ -63,11 +62,6 @@ function Router() {
       <Route path="/plantillas">
         <ProtectedRoute requirePermission="canViewEmailTemplates">
           <Templates />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/reportes">
-        <ProtectedRoute requirePermission="canViewDashboard">
-          <Reports />
         </ProtectedRoute>
       </Route>
       <Route path="/chatbot">

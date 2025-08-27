@@ -27,17 +27,19 @@ interface ExperticiasTableProps {
 }
 
 const statusColors = {
-  activa: "bg-green-100 text-green-800",
-  inactiva: "bg-red-100 text-red-800",
-  en_desarrollo: "bg-yellow-100 text-yellow-800",
+  completada: "bg-green-100 text-green-800",
+  negativa: "bg-red-100 text-red-800",
+  procesando: "bg-yellow-100 text-yellow-800",
+  qr_ausente: "bg-orange-100 text-orange-800",
 };
 
 const formatStatus = (estado: string | null) => {
   if (!estado) return "N/A";
   const names = {
-    activa: "Activa",
-    inactiva: "Inactiva",
-    en_desarrollo: "En Desarrollo",
+    completada: "Completada",
+    negativa: "Negativa",
+    procesando: "Procesando",
+    qr_ausente: "QR Ausente",
   };
   return names[estado as keyof typeof names] || estado;
 };
@@ -57,8 +59,8 @@ export function ExperticiasTable({
   permissions,
 }: ExperticiasTableProps) {
   const [filters, setFilters] = useState({
-    categoria: "all",
-    estado: "all",
+    operador: "all",
+    estado: "all", 
     search: "",
   });
   const [viewingExperticia, setViewingExperticia] = useState<Experticia | null>(null);
@@ -95,7 +97,7 @@ export function ExperticiasTable({
                 <p className="text-sm font-medium text-gray-600">Completadas</p>
               </div>
               <p className="text-2xl font-bold text-gray-900">
-                {experticias.filter(e => e.estado === 'activa').length}
+                {experticias.filter(e => e.estado === 'completada').length}
               </p>
             </div>
           </CardContent>
@@ -109,7 +111,7 @@ export function ExperticiasTable({
                 <p className="text-sm font-medium text-gray-600">Negativas</p>
               </div>
               <p className="text-2xl font-bold text-gray-900">
-                {experticias.filter(e => e.estado === 'inactiva').length}
+                {experticias.filter(e => e.estado === 'negativa').length}
               </p>
             </div>
           </CardContent>
@@ -123,7 +125,7 @@ export function ExperticiasTable({
                 <p className="text-sm font-medium text-gray-600">Procesando</p>
               </div>
               <p className="text-2xl font-bold text-gray-900">
-                {experticias.filter(e => e.estado === 'en_desarrollo').length}
+                {experticias.filter(e => e.estado === 'procesando').length}
               </p>
             </div>
           </CardContent>
@@ -136,7 +138,9 @@ export function ExperticiasTable({
                 <QrCode className="h-5 w-5 text-orange-600" />
                 <p className="text-sm font-medium text-gray-600">QR Ausente</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">0</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {experticias.filter(e => e.estado === 'qr_ausente').length}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -168,16 +172,15 @@ export function ExperticiasTable({
               />
             </div>
 
-            <Select value={filters.categoria} onValueChange={(value) => handleFilterChange("categoria", value === "all" ? "" : value)}>
+            <Select value={filters.operador} onValueChange={(value) => handleFilterChange("operador", value === "all" ? "" : value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Todas las categorías" />
+                <SelectValue placeholder="Todos los operadores" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas las categorías</SelectItem>
-                <SelectItem value="telecomunicaciones">Telecomunicaciones</SelectItem>
-                <SelectItem value="informatica">Informática</SelectItem>
-                <SelectItem value="documentos">Documentos</SelectItem>
-                <SelectItem value="audio">Audio</SelectItem>
+                <SelectItem value="all">Todos los operadores</SelectItem>
+                <SelectItem value="digitel">Digitel</SelectItem>
+                <SelectItem value="movistar">Movistar</SelectItem>
+                <SelectItem value="movilnet">Movilnet</SelectItem>
               </SelectContent>
             </Select>
 
@@ -187,9 +190,10 @@ export function ExperticiasTable({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="activa">Activa</SelectItem>
-                <SelectItem value="inactiva">Inactiva</SelectItem>
-                <SelectItem value="en_desarrollo">En Desarrollo</SelectItem>
+                <SelectItem value="completada">Completada</SelectItem>
+                <SelectItem value="negativa">Negativa</SelectItem>
+                <SelectItem value="procesando">Procesando</SelectItem>
+                <SelectItem value="qr_ausente">QR Ausente</SelectItem>
               </SelectContent>
             </Select>
 
@@ -203,12 +207,13 @@ export function ExperticiasTable({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Categoría</TableHead>
+                  <TableHead>Nº Dictamen</TableHead>
+                  <TableHead>Expediente</TableHead>
+                  <TableHead>Operador</TableHead>
+                  <TableHead>Tipo Experticia</TableHead>
+                  <TableHead>Nº Comunicación</TableHead>
+                  <TableHead>Fecha</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Tiempo Estimado</TableHead>
-                  <TableHead>Freq. Uso</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -218,35 +223,40 @@ export function ExperticiasTable({
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-2">
                         <FileText className="h-4 w-4 text-gray-400" />
-                        <span className="font-mono text-sm">{experticia.codigo}</span>
+                        <span className="font-mono text-sm">{experticia.numeroDictamen}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-sm">{experticia.expediente}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {experticia.operador}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="max-w-xs">
-                        <p className="font-medium truncate">{experticia.nombre}</p>
-                        {experticia.descripcion && (
-                          <p className="text-sm text-gray-500 truncate">{experticia.descripcion}</p>
-                        )}
+                        <span className="font-medium truncate">{experticia.tipoExperticia}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="capitalize">{experticia.categoria ?? "N/A"}</span>
+                      <span className="font-mono text-sm">{experticia.numeroComunicacion}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm">
+                          {experticia.fechaComunicacion 
+                            ? new Date(experticia.fechaComunicacion).toLocaleDateString('es-ES')
+                            : "Sin fecha"
+                          }
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge className={statusColors[experticia.estado as keyof typeof statusColors]}>
                         {formatStatus(experticia.estado)}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        <span>{experticia.tiempoEstimado ?? "No definido"}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-center">
-                        <span className="font-medium">{experticia.frecuenciaUso ?? 0}</span>
-                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end space-x-1">
@@ -330,59 +340,117 @@ export function ExperticiasTable({
           </DialogHeader>
           {viewingExperticia && (
             <div className="space-y-6 px-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Código</label>
-                  <p className="font-mono text-sm md:text-base">{viewingExperticia.codigo}</p>
+              {/* Información básica */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900">Información Básica</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Nº Dictamen</label>
+                    <p className="font-mono text-sm md:text-base">{viewingExperticia.numeroDictamen}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Expediente</label>
+                    <p className="font-mono text-sm md:text-base">{viewingExperticia.expediente}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Experto</label>
+                    <p className="text-sm md:text-base">{viewingExperticia.experto}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Nº Comunicación</label>
+                    <p className="font-mono text-sm md:text-base">{viewingExperticia.numeroComunicacion}</p>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Estado</label>
-                  <Badge className={statusColors[viewingExperticia.estado as keyof typeof statusColors]}>
-                    {formatStatus(viewingExperticia.estado)}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-600">Nombre</label>
-                <p className="font-medium text-sm md:text-base">{viewingExperticia.nombre}</p>
               </div>
 
-              {viewingExperticia.descripcion && (
+              {/* Fechas */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900">Fechas</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Fecha Comunicación</label>
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm">{viewingExperticia.fechaComunicacion ? new Date(viewingExperticia.fechaComunicacion).toLocaleDateString('es-ES') : "Sin fecha"}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Fecha Respuesta</label>
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm">{viewingExperticia.fechaRespuesta ? new Date(viewingExperticia.fechaRespuesta).toLocaleDateString('es-ES') : "Sin fecha"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detalles de la experticia */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900">Detalles de la Experticia</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Operador</label>
+                    <Badge variant="outline" className="capitalize">
+                      {viewingExperticia.operador}
+                    </Badge>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Tipo de Experticia</label>
+                    <p className="text-sm md:text-base">{viewingExperticia.tipoExperticia}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Estado</label>
+                    <Badge className={statusColors[viewingExperticia.estado as keyof typeof statusColors]}>
+                      {formatStatus(viewingExperticia.estado)}
+                    </Badge>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Uso Horario</label>
+                    <p className="text-sm md:text-base">{viewingExperticia.usoHorario || "No especificado"}</p>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Descripción</label>
-                  <p className="text-gray-800 text-sm md:text-base">{viewingExperticia.descripcion}</p>
+                  <label className="text-sm font-medium text-gray-600">Motivo</label>
+                  <p className="text-gray-800 text-sm md:text-base">{viewingExperticia.motivo}</p>
+                </div>
+              </div>
+
+              {/* Información del abonado */}
+              {(viewingExperticia.abonado || viewingExperticia.datosAbonado) && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium text-gray-900">Información del Abonado</h4>
+                  {viewingExperticia.abonado && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Abonado</label>
+                      <p className="text-sm md:text-base">{viewingExperticia.abonado}</p>
+                    </div>
+                  )}
+                  {viewingExperticia.datosAbonado && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Datos del Abonado</label>
+                      <p className="text-gray-800 text-sm md:text-base">{viewingExperticia.datosAbonado}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Categoría</label>
-                  <p className="capitalize text-sm md:text-base">{viewingExperticia.categoria ?? "N/A"}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Tiempo Estimado</label>
-                  <p className="text-sm md:text-base">{viewingExperticia.tiempoEstimado ?? "No definido"}</p>
-                </div>
+              {/* Archivo y conclusión */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900">Documentación y Resultados</h4>
+                {viewingExperticia.archivoAdjunto && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Archivo Adjunto</label>
+                    <p className="text-sm md:text-base">{viewingExperticia.archivoAdjunto}</p>
+                  </div>
+                )}
+                {viewingExperticia.conclusion && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Conclusión</label>
+                    <p className="text-gray-800 text-sm md:text-base">{viewingExperticia.conclusion}</p>
+                  </div>
+                )}
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Frecuencia de Uso</label>
-                  <p className="text-sm md:text-base">{viewingExperticia.frecuenciaUso ?? 0} veces</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Requiere Documento</label>
-                  <p className="text-sm md:text-base">{viewingExperticia.requiereDocumento ? "Sí" : "No"}</p>
-                </div>
-              </div>
-
-              {viewingExperticia.responsable && (
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Responsable</label>
-                  <p>{viewingExperticia.responsable}</p>
-                </div>
-              )}
 
               <Separator />
 

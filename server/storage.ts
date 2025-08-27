@@ -146,7 +146,7 @@ export interface IStorage {
 
   // Experticias
   getExperticias(filters?: {
-    categoria?: string;
+    operador?: string;
     estado?: string;
     search?: string;
     page?: number;
@@ -1140,7 +1140,7 @@ export class DatabaseStorage implements IStorage {
 
   // Experticias implementation
   async getExperticias(filters?: {
-    categoria?: string;
+    operador?: string;
     estado?: string;
     search?: string;
     page?: number;
@@ -1152,8 +1152,8 @@ export class DatabaseStorage implements IStorage {
 
     let whereConditions: any[] = [];
 
-    if (filters?.categoria) {
-      whereConditions.push(eq(experticias.categoria, filters.categoria));
+    if (filters?.operador) {
+      whereConditions.push(eq(experticias.operador, filters.operador as any));
     }
 
     if (filters?.estado) {
@@ -1163,9 +1163,11 @@ export class DatabaseStorage implements IStorage {
     if (filters?.search) {
       whereConditions.push(
         or(
-          like(experticias.codigo, `%${filters.search}%`),
-          like(experticias.nombre, `%${filters.search}%`),
-          like(experticias.descripcion, `%${filters.search}%`)
+          like(experticias.numeroDictamen, `%${filters.search}%`),
+          like(experticias.expediente, `%${filters.search}%`),
+          like(experticias.numeroComunicacion, `%${filters.search}%`),
+          like(experticias.experto, `%${filters.search}%`),
+          like(experticias.tipoExperticia, `%${filters.search}%`)
         )
       );
     }
