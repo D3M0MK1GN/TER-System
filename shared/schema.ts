@@ -72,6 +72,7 @@ export const users = pgTable("users", {
 export const operadorEnum = pgEnum("operador", ["digitel", "movistar", "movilnet"]);
 export const estadoEnum = pgEnum("estado", ["procesando", "enviada", "respondida", "rechazada"]);
 export const estadoExperticiasEnum = pgEnum("estado_experticias", ["completada", "negativa", "procesando", "qr_ausente"]);
+export const tipoPlantillaWordEnum = pgEnum("tipo_plantilla_word", ["solicitud", "experticia"]);
 
 
 export const solicitudes = pgTable("solicitudes", {
@@ -130,6 +131,7 @@ export const plantillasWord = pgTable("plantillas_word", {
   id: serial("id").primaryKey(),
   nombre: text("nombre").notNull(),
   tipoExperticia: text("tipo_experticia").notNull(),
+  tipoPlantilla: tipoPlantillaWordEnum("tipo_plantilla").default("solicitud"),
   archivo: text("archivo").notNull(), // Ruta del archivo o contenido base64
   nombreArchivo: text("nombre_archivo").notNull(), // Nombre original del archivo
   tamaño: integer("tamaño"), // Tamaño en bytes

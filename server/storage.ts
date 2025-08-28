@@ -93,6 +93,7 @@ export interface IStorage {
   getPlantillasWord(tipoExperticia?: string): Promise<PlantillaWord[]>;
   getPlantillaWordById(id: number): Promise<PlantillaWord | undefined>;
   getPlantillaWordByTipoExperticia(tipoExperticia: string): Promise<PlantillaWord | undefined>;
+  getPlantillaWordByTipoExperticiaTipoPlantilla(tipoExperticia: string, tipoPlantilla: string): Promise<PlantillaWord | undefined>;
   createPlantillaWord(plantilla: InsertPlantillaWord): Promise<PlantillaWord>;
   updatePlantillaWord(id: number, plantilla: Partial<InsertPlantillaWord>): Promise<PlantillaWord | undefined>;
   deletePlantillaWord(id: number): Promise<boolean>;
@@ -922,6 +923,17 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(plantillasWord)
       .where(eq(plantillasWord.tipoExperticia, tipoExperticia as any));
+    return plantilla || undefined;
+  }
+
+  async getPlantillaWordByTipoExperticiaTipoPlantilla(tipoExperticia: string, tipoPlantilla: string): Promise<PlantillaWord | undefined> {
+    const [plantilla] = await db
+      .select()
+      .from(plantillasWord)
+      .where(and(
+        eq(plantillasWord.tipoExperticia, tipoExperticia as any),
+        eq(plantillasWord.tipoPlantilla, tipoPlantilla as any)
+      ));
     return plantilla || undefined;
   }
 

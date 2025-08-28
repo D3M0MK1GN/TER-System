@@ -17,6 +17,7 @@ interface PlantillaWord {
   id: number;
   nombre: string;
   tipoExperticia: string;
+  tipoPlantilla: string;
   nombreArchivo: string;
   tamaño: number;
   createdAt: string;
@@ -50,9 +51,11 @@ export function PlantillasWordAdmin() {
   const [formData, setFormData] = useState({
     nombre: "",
     tipoExperticia: "",
+    tipoPlantilla: "solicitud",
   });
   const [isUploading, setIsUploading] = useState(false);
   const [downloadAsPdf, setDownloadAsPdf] = useState(false);
+  const [filtroTipoPlantilla, setFiltroTipoPlantilla] = useState("todos");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -128,6 +131,7 @@ export function PlantillasWordAdmin() {
       uploadFormData.append("archivo", selectedFile);
       uploadFormData.append("nombre", formData.nombre);
       uploadFormData.append("tipoExperticia", formData.tipoExperticia);
+      uploadFormData.append("tipoPlantilla", formData.tipoPlantilla);
 
       const response = await fetch("/api/plantillas-word", {
         method: "POST",
@@ -147,7 +151,7 @@ export function PlantillasWordAdmin() {
       
       // Reset form
       setSelectedFile(null);
-      setFormData({ nombre: "", tipoExperticia: "" });
+      setFormData({ nombre: "", tipoExperticia: "", tipoPlantilla: "solicitud" });
       (document.getElementById("fileInput") as HTMLInputElement).value = "";
 
       toast({
@@ -222,6 +226,12 @@ export function PlantillasWordAdmin() {
     updateConfigMutation.mutate(checked);
   };
 
+  // Filtrar plantillas según el tipo seleccionado
+  const plantillasFiltradas = plantillas.filter((plantilla: PlantillaWord) => {
+    if (filtroTipoPlantilla === "todos") return true;
+    return plantilla.tipoPlantilla === filtroTipoPlantilla;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -272,6 +282,23 @@ export function PlantillasWordAdmin() {
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="tipoPlantilla">Tipo de Plantilla</Label>
+              <Select
+                value={formData.tipoPlantilla}
+                onValueChange={(value) => setFormData({ ...formData, tipoPlantilla: value })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona tipo de plantilla" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="solicitud">Planilla Solicitud</SelectItem>
+                  <SelectItem value="experticia">Planilla Experticia</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             
             <div>
               <Label htmlFor="fileInput">Archivo Word (.doc, .docx)</Label>
@@ -317,19 +344,36 @@ export function PlantillasWordAdmin() {
               </span>
             </div>
           </div>
+          <div className="flex items-center gap-4 mt-4">
+            <Label htmlFor="filtroTipo">Filtrar por tipo:</Label>
+            <Select
+              value={filtroTipoPlantilla}
+              onValueChange={setFiltroTipoPlantilla}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas las plantillas</SelectItem>
+                <SelectItem value="solicitud">Planilla Solicitud</SelectItem>
+                <SelectItem value="experticia">Planilla Experticia</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">Cargando plantillas...</div>
-          ) : plantillas.length === 0 ? (
+          ) : plantillasFiltradas.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No hay plantillas disponibles
+              {filtroTipoPlantilla === "todos" ? "No hay plantillas disponibles" : `No hay plantillas de tipo ${filtroTipoPlantilla === "solicitud" ? "Solicitud" : "Experticia"}`}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
+                  <TableHead>Tipo de Plantilla</TableHead>
                   <TableHead>Tipo de Experticia</TableHead>
                   <TableHead>Archivo</TableHead>
                   <TableHead>Tamaño</TableHead>
@@ -338,9 +382,14 @@ export function PlantillasWordAdmin() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {plantillas.map((plantilla: PlantillaWord) => (
+                {plantillasFiltradas.map((plantilla: PlantillaWord) => (
                   <TableRow key={plantilla.id}>
                     <TableCell className="font-medium">{plantilla.nombre}</TableCell>
+                    <TableCell>
+                      <Badge variant={plantilla.tipoPlantilla === 'experticia' ? 'default' : 'secondary'}>
+                        {plantilla.tipoPlantilla === 'experticia' ? 'Planilla Experticia' : 'Planilla Solicitud'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
                         {getTipoExperticiaBadge(plantilla.tipoExperticia)}

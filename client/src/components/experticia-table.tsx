@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { DetailField } from "@/components/ui/detail-field";
-import { Eye, Edit, Trash2, Search, Plus, ChevronLeft, ChevronRight, BarChart3, CheckCircle, XCircle, Clock, QrCode, Calendar, FileText, Download } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Plus, ChevronLeft, ChevronRight, BarChart3, CheckCircle, XCircle, Clock, QrCode, Calendar, FileText, Download, Printer } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { type Experticia } from "@shared/schema";
@@ -76,6 +76,43 @@ export function ExperticiasTable({
     search: "",
   });
   const [viewingExperticia, setViewingExperticia] = useState<Experticia | null>(null);
+
+  // Función para imprimir el reporte
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Función para generar documento Word de experticia
+  const handleGenerateDocument = async () => {
+    if (!viewingExperticia) return;
+    
+    try {
+      const response = await fetch(`/api/plantillas-word/experticia/${viewingExperticia.tipoExperticia}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(viewingExperticia),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `experticia-${viewingExperticia.numeroDictamen}.docx`;
+        document.body.appendChild(link);
+        link.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(link);
+      } else {
+        console.error('Error generando documento');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value };
@@ -321,9 +358,31 @@ export function ExperticiasTable({
       <Dialog open={!!viewingExperticia} onOpenChange={() => setViewingExperticia(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader className="pb-4">
-            <DialogTitle className="flex items-center space-x-2">
-              <Eye className="h-5 w-5" />
-              <span>Detalles de Experticia</span>
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Eye className="h-5 w-5" />
+                <span>Detalles de Experticia</span>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handlePrint}
+                  className="no-print"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Imprimir Reporte
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleGenerateDocument}
+                  className="no-print"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Generar Documento
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           {viewingExperticia && (

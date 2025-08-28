@@ -926,17 +926,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No se proporcionó archivo" });
       }
 
-      const { nombre, tipoExperticia } = req.body;
+      const { nombre, tipoExperticia, tipoPlantilla } = req.body;
       
       // Validate request body
-      if (!nombre || !tipoExperticia) {
-        return res.status(400).json({ message: "Nombre y tipo de experticia son requeridos" });
+      if (!nombre || !tipoExperticia || !tipoPlantilla) {
+        return res.status(400).json({ message: "Nombre, tipo de experticia y tipo de plantilla son requeridos" });
       }
 
-      // Check if a template already exists for this expertise type
-      const existingTemplate = await storage.getPlantillaWordByTipoExperticia(tipoExperticia);
+      // Check if a template already exists for this combination of expertise type and template type
+      const existingTemplate = await storage.getPlantillaWordByTipoExperticiaTipoPlantilla(tipoExperticia, tipoPlantilla);
       if (existingTemplate) {
-        return res.status(400).json({ message: "Ya existe una plantilla para este tipo de experticia" });
+        return res.status(400).json({ message: `Ya existe una plantilla de tipo ${tipoPlantilla} para este tipo de experticia` });
       }
 
       // Generate unique filename
@@ -951,6 +951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const plantillaData = {
         nombre,
         tipoExperticia,
+        tipoPlantilla,
         archivo: filePath,
         nombreArchivo: req.file.originalname,
         tamaño: req.file.size,
@@ -1169,6 +1170,73 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
   }
 });// Final de word
 
+// Ruta para generar documentos de experticia
+app.post("/api/plantillas-word/experticia/:tipoExperticia/generate", authenticateToken, async (req: any, res) => {
+  try {
+    const { tipoExperticia } = req.params;
+    const requestData = req.body;
+
+    // Buscar plantilla específica para experticia
+    const plantilla = await storage.getPlantillaWordByTipoExperticiaTipoPlantilla(tipoExperticia, "experticia");
+    if (!plantilla) {
+      return res.status(404).json({ message: "No hay plantilla de experticia disponible para este tipo" });
+    }
+    if (!existsSync(plantilla.archivo)) {
+      return res.status(404).json({ message: "Archivo de plantilla de experticia no encontrado" });
+    }
+
+    // Preparar datos para la plantilla de experticia
+    const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    
+    const templateData = {
+      DICTAMEN: requestData.numeroDictamen || '',
+      EXPERTO: requestData.experto || '',
+      COMUNICACION: requestData.numeroComunicacion || '',
+      FECHA_COMUNICACION: requestData.fechaComunicacion || '',
+      MOTIVO: requestData.motivo || '',
+      OPERADOR: (requestData.operador || '').toUpperCase(),
+      FECHA_RESPUESTA: requestData.fechaRespuesta || '',
+      USO_HORARIO: requestData.usoHorario || '',
+      ABONADO: requestData.abonado || '',
+      DATOS_ABONADO: requestData.datosAbonado || '',
+      CONCLUSION: requestData.conclusion || '',
+      EXPEDIENTE: requestData.expediente || '',
+      FECHA: currentDate,
+    };
+
+    let busArchivo: Buffer;
+    
+    if (swiPdf.downloadAsPdf) {
+      return res.status(200).json({ message: "Se solicitó la generación de PDF para experticia." });
+    } else {
+      try {
+        const content = readFileSync(plantilla.archivo, 'binary');
+        const zip = new PizZip(content);
+        const doc = new Docxtemplater(zip, {
+          paragraphLoop: true,
+          linebreaks: true,
+        });
+
+        doc.render(templateData);
+        busArchivo = doc.getZip().generate({ type: 'nodebuffer' });
+
+      } catch (renderError: any) {
+        console.error("Error al renderizar plantilla de experticia:", renderError);
+        busArchivo = readFileSync(plantilla.archivo);
+      }
+      
+      const customFileName = `${plantilla.nombre}-${requestData.numeroDictamen || 'experticia'}.docx`;
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${customFileName}"`);
+      res.send(busArchivo);
+    }
+
+  } catch (error) {
+    console.error("Error generando plantilla de experticia:", error);
+    res.status(500).json({ message: "Error generando plantilla de experticia" });
+  }
+});
+
   // === EXPERTICIAS ROUTES ===
   
   // GET /api/experticias - Get all experticias with filtering
@@ -1234,6 +1302,23 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
         ...validation.data,
         usuarioId: req.user.id,
       });
+
+      // Intentar generar automáticamente el documento Word de experticia
+      try {
+        const plantilla = await storage.getPlantillaWordByTipoExperticiaTipoPlantilla(
+          experticia.tipoExperticia, 
+          "experticia"
+        );
+        
+        if (plantilla && existsSync(plantilla.archivo)) {
+          console.log(`✅ Plantilla de experticia encontrada para ${experticia.tipoExperticia}`);
+          // La generación del documento se manejará en el frontend
+        } else {
+          console.log(`⚠️ No se encontró plantilla de experticia para ${experticia.tipoExperticia}`);
+        }
+      } catch (error) {
+        console.log("Error verificando plantilla de experticia:", error);
+      }
 
       res.status(201).json(experticia);
     } catch (error: any) {

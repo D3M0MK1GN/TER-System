@@ -6,6 +6,7 @@ import { ExperticiasTable } from "@/components/experticia-table";
 import { ExperticiasForm } from "@/components/experticia-form";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { type Experticia, type InsertExperticia } from "@shared/schema";
 
 export function ExperticiasManagement() {
@@ -31,9 +32,69 @@ export function ExperticiasManagement() {
   } = useExperticias(1, pageSize);
 
 
-  const handleCreate = (data: InsertExperticia) => {
-    createMutation.mutate({ ...data, usuarioId: user?.id });
-    setShowCreateModal(false);
+  const handleCreate = async (data: InsertExperticia) => {
+    try {
+      // Crear la experticia
+      const experticia = await createMutation.mutateAsync({ ...data, usuarioId: user?.id });
+      setShowCreateModal(false);
+      
+      // Intentar generar automáticamente el documento Word de experticia
+      try {
+        const response = await fetch(`/api/plantillas-word/experticia/${data.tipoExperticia}/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            ...data,
+            numeroDictamen: data.numeroDictamen,
+            experto: data.experto,
+            numeroComunicacion: data.numeroComunicacion,
+            fechaComunicacion: data.fechaComunicacion,
+            motivo: data.motivo,
+            operador: data.operador,
+            fechaRespuesta: data.fechaRespuesta,
+            usoHorario: data.usoHorario,
+            abonado: data.abonado,
+            datosAbonado: data.datosAbonado,
+            conclusion: data.conclusion,
+            expediente: data.expediente,
+          }),
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `experticia-${data.numeroDictamen || 'documento'}.docx`;
+          document.body.appendChild(link);
+          link.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(link);
+          
+          toast({
+            title: "Experticia creada",
+            description: "Experticia creada exitosamente y documento generado automáticamente",
+          });
+        } else {
+          // Experticia creada pero sin documento
+          toast({
+            title: "Experticia creada",
+            description: "Experticia creada exitosamente (sin plantilla de documento disponible)",
+          });
+        }
+      } catch (docError) {
+        console.log("Error generando documento:", docError);
+        toast({
+          title: "Experticia creada",
+          description: "Experticia creada exitosamente (sin plantilla de documento disponible)",
+        });
+      }
+    } catch (error) {
+      console.error("Error creando experticia:", error);
+    }
   };
 
   const handleUpdate = (data: InsertExperticia) => {

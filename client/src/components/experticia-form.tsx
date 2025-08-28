@@ -258,12 +258,33 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo de Experticia*</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Tipo de análisis a realizar" 
-                        {...field} 
-                      />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione tipo de experticia" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="identificar_datos_numero">Identificar datos de un número</SelectItem>
+                        <SelectItem value="determinar_historicos_trazas_bts">Determinar Históricos de Trazas Telefónicas BTS</SelectItem>
+                        <SelectItem value="determinar_linea_conexion_ip">Determinar línea telefónica con conexión IP</SelectItem>
+                        <SelectItem value="identificar_radio_bases_bts">Identificar las Radio Bases (BTS)</SelectItem>
+                        <SelectItem value="identificar_numeros_duraciones_bts">Identificar números con duraciones específicas en la Radio Base (BTS)</SelectItem>
+                        <SelectItem value="determinar_contaminacion_linea">Determinar contaminación de línea</SelectItem>
+                        <SelectItem value="determinar_sim_cards_numero">Determinar SIM CARDS utilizados con un número telefónico</SelectItem>
+                        <SelectItem value="determinar_comportamiento_social">Determinar comportamiento social</SelectItem>
+                        <SelectItem value="determinar_contacto_frecuente">Determinar Contacto Frecuente</SelectItem>
+                        <SelectItem value="determinar_ubicacion_llamadas">Determinar ubicación mediante registros de llamadas</SelectItem>
+                        <SelectItem value="determinar_ubicacion_trazas">Determinar ubicación mediante registros de trazas telefónicas (Recorrido)</SelectItem>
+                        <SelectItem value="determinar_contaminacion_equipo_imei">Determinar contaminación de equipo (IMEI)</SelectItem>
+                        <SelectItem value="identificar_numeros_comun_bts">Identificar números en común en dos o más Radio Base (BTS)</SelectItem>
+                        <SelectItem value="identificar_numeros_desconectan_bts">Identificar números que se desconectan de la Radio Base (BTS) después del hecho</SelectItem>
+                        <SelectItem value="identificar_numeros_repetidos_bts">Identificar números repetidos en la Radio Base (BTS)</SelectItem>
+                        <SelectItem value="determinar_numero_internacional">Determinar número internacional</SelectItem>
+                        <SelectItem value="identificar_linea_sim_card">Identificar línea mediante SIM CARD</SelectItem>
+                        <SelectItem value="identificar_cambio_simcard_documentos">Identificar Cambio de SIM CARD y Documentos</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
