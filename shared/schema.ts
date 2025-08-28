@@ -59,7 +59,9 @@ export const users = pgTable("users", {
   intentosFallidos: integer("intentos_fallidos").default(0),
   ultimoIntentoFallido: timestamp("ultimo_intento_fallido"),
   sessionToken: text("session_token"), // Para gestión de sesiones únicas
-  sessionExpires: timestamp("session_expires"), // Expiración de sesión
+  sessionExpires: timestamp("session_expires"), // Expiración
+  // 
+  //  de sesión
   // Campos para control del chatbot
   chatbotHabilitado: boolean("chatbot_habilitado").default(true),
   chatbotLimiteMensajes: integer("chatbot_limite_mensajes").default(20),
@@ -383,3 +385,6 @@ export const loginSchema = z.object({
 });
 
 export type LoginData = z.infer<typeof loginSchema>;
+
+
+
