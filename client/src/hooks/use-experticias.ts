@@ -7,6 +7,7 @@ import { type Experticia, type InsertExperticia } from "@shared/schema";
 interface ExperticiasFilters {
   operador?: string;
   estado?: string;
+  tipoExperticia?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -17,6 +18,7 @@ export function useExperticias(initialPage = 1, pageSize = 10) {
   const [filters, setFilters] = useState<ExperticiasFilters>({
     operador: "",
     estado: "",
+    tipoExperticia: "",
     search: "",
   });
 

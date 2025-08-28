@@ -5,6 +5,7 @@ import { useExperticias } from "@/hooks/use-experticias";
 import { ExperticiasTable } from "@/components/experticia-table";
 import { ExperticiasForm } from "@/components/experticia-form";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import { type Experticia, type InsertExperticia } from "@shared/schema";
 
 export function ExperticiasManagement() {
@@ -14,6 +15,7 @@ export function ExperticiasManagement() {
 
   const { user } = useAuth();
   const permissions = usePermissions();
+  const { toast } = useToast();
   
   const {
     experticias,
@@ -48,6 +50,80 @@ export function ExperticiasManagement() {
     setEditingExperticia(experticia);
   };
 
+  const handleExportExcel = async () => {
+    try {
+      // Fetch all experticias without pagination
+      const params = new URLSearchParams({
+        ...filters,
+        page: "1",
+        limit: "1000", // Get all records
+      });
+      
+      const response = await fetch(`/api/experticias?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error obteniendo experticias para exportar');
+      }
+      
+      const data = await response.json();
+      const allExperticias = data.experticias || [];
+      
+      // Import xlsx dynamically
+      const XLSX = await import('xlsx');
+      
+      // Format data for Excel
+      const excelData = allExperticias.map((experticia: any) => ({
+        'ID': experticia.id,
+        'Nº Dictamen': experticia.numeroDictamen,
+        'Expediente': experticia.expediente,
+        'Experto': experticia.experto,
+        'Nº Comunicación': experticia.numeroComunicacion,
+        'Fecha Comunicación': experticia.fechaComunicacion || '',
+        'Motivo': experticia.motivo || '',
+        'Operador': experticia.operador,
+        'Fecha Respuesta': experticia.fechaRespuesta || '',
+        'Uso Horario': experticia.usoHorario || '',
+        'Tipo Experticia': experticia.tipoExperticia,
+        'Abonado': experticia.abonado || '',
+        'Datos Abonado': experticia.datosAbonado || '',
+        'Conclusión': experticia.conclusion || '',
+        'Estado': experticia.estado,
+        'Fecha Creación': experticia.createdAt ? new Date(experticia.createdAt).toLocaleDateString() : '',
+        'Última Actualización': experticia.updatedAt ? new Date(experticia.updatedAt).toLocaleDateString() : '',
+      }));
+      
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Experticias');
+      
+      // Generate filename with current date
+      const today = new Date().toISOString().split('T')[0];
+      const filename = `experticias_${today}.xlsx`;
+      
+      // Write and download file
+      XLSX.writeFile(wb, filename);
+      
+      toast({
+        title: "Excel exportado",
+        description: `Se ha descargado el archivo ${filename} con ${allExperticias.length} experticias.`,
+      });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast({
+        title: "Error",
+        description: "Error al exportar a Excel",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="p-6">
       <ExperticiasTable
@@ -61,6 +137,7 @@ export function ExperticiasManagement() {
         onDelete={handleDelete}
         onView={() => {}}
         onCreateNew={() => setShowCreateModal(true)}
+        onExportExcel={handleExportExcel}
         loading={isLoading}
         permissions={permissions}
       />

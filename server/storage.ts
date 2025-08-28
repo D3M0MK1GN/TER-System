@@ -1142,6 +1142,7 @@ export class DatabaseStorage implements IStorage {
   async getExperticias(filters?: {
     operador?: string;
     estado?: string;
+    tipoExperticia?: string;
     search?: string;
     page?: number;
     limit?: number;
@@ -1160,14 +1161,15 @@ export class DatabaseStorage implements IStorage {
       whereConditions.push(eq(experticias.estado, filters.estado as any));
     }
 
+    if (filters?.tipoExperticia) {
+      whereConditions.push(eq(experticias.tipoExperticia, filters.tipoExperticia));
+    }
+
     if (filters?.search) {
       whereConditions.push(
         or(
           like(experticias.numeroDictamen, `%${filters.search}%`),
-          like(experticias.expediente, `%${filters.search}%`),
-          like(experticias.numeroComunicacion, `%${filters.search}%`),
-          like(experticias.experto, `%${filters.search}%`),
-          like(experticias.tipoExperticia, `%${filters.search}%`)
+          like(experticias.expediente, `%${filters.search}%`)
         )
       );
     }
@@ -1218,7 +1220,5 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount !== null && result.rowCount > 0;
   }
 }
-
-
 
 export const storage = new DatabaseStorage();

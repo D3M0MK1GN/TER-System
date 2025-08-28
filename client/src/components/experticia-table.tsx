@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { DetailField } from "@/components/ui/detail-field";
-import { Eye, Edit, Trash2, Search, Plus, ChevronLeft, ChevronRight, BarChart3, CheckCircle, XCircle, Clock, QrCode, Calendar, FileText } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Plus, ChevronLeft, ChevronRight, BarChart3, CheckCircle, XCircle, Clock, QrCode, Calendar, FileText, Download } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { type Experticia } from "@shared/schema";
@@ -24,6 +24,7 @@ interface ExperticiasTableProps {
   onDelete: (id: number) => void;
   onView: (experticia: Experticia) => void;
   onCreateNew: () => void;
+  onExportExcel: () => void;
   loading?: boolean;
   permissions: Permission;
 }
@@ -64,12 +65,14 @@ export function ExperticiasTable({
   onDelete,
   onView,
   onCreateNew,
+  onExportExcel,
   loading = false,
   permissions,
 }: ExperticiasTableProps) {
   const [filters, setFilters] = useState({
     operador: "all",
-    estado: "all", 
+    estado: "all",
+    tipoExperticia: "all",
     search: "",
   });
   const [viewingExperticia, setViewingExperticia] = useState<Experticia | null>(null);
@@ -108,26 +111,54 @@ export function ExperticiasTable({
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
             <CardTitle className="text-xl font-semibold">Gestión de Experticias</CardTitle>
-            {permissions.canManageUsers && (
-              <Button onClick={onCreateNew}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva Experticia
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {permissions.canManageUsers && (
+                <Button onClick={onExportExcel} variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100">
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar Excel
+                </Button>
+              )}
+              {permissions.canManageUsers && (
+                <Button onClick={onCreateNew}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva Experticia
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Search and Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Buscar por código o nombre..."
+                placeholder="Buscar por N° dictamen o expediente..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange("search", e.target.value)}
                 className="pl-10"
               />
             </div>
+
+            <Select value={filters.tipoExperticia} onValueChange={(value) => handleFilterChange("tipoExperticia", value === "all" ? "" : value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los tipos" />
+              </SelectTrigger>
+              <SelectContent side="bottom" sideOffset={4} alignOffset={0} avoidCollisions={false}>
+                <SelectItem value="all">Todos los tipos de experticia</SelectItem>
+                <SelectItem value="determinar_contacto_frecuente">Determinar contacto frecuente</SelectItem>
+                <SelectItem value="identificar_numeros_bts">Identificar números que se conectan a la BTS</SelectItem>
+                <SelectItem value="identificar_radio_bases_bts">Identificar Radio Bases (BTS)</SelectItem>
+                <SelectItem value="determinar_ubicacion_llamadas">Determinar ubicación mediante registros de llamadas</SelectItem>
+                <SelectItem value="determinar_ubicacion_trazas">Determinar ubicación mediante registros de trazas telefónicas</SelectItem>
+                <SelectItem value="determinar_contaminacion_equipo_imei">Determinar contaminación de equipo (IMEI)</SelectItem>
+                <SelectItem value="identificar_numeros_comun_bts">Identificar números en común en dos o más Radio Base (BTS)</SelectItem>
+                <SelectItem value="identificar_numeros_desconectan_bts">Identificar números que se desconectan de la Radio Base (BTS) después del hecho</SelectItem>
+                <SelectItem value="identificar_numeros_repetidos_bts">Identificar números repetidos en la Radio Base (BTS)</SelectItem>
+                <SelectItem value="determinar_numero_internacional">Determinar número internacional</SelectItem>
+                <SelectItem value="identificar_linea_sim_card">Identificar línea mediante SIM CARD</SelectItem>
+              </SelectContent>
+            </Select>
 
             <Select value={filters.operador} onValueChange={(value) => handleFilterChange("operador", value === "all" ? "" : value)}>
               <SelectTrigger>
@@ -155,7 +186,7 @@ export function ExperticiasTable({
             </Select>
 
             <div className="flex items-center text-sm text-gray-600">
-              {loading ? "Cargando..." : `${total} experticias encontradas`}
+              {loading ? "Cargando..." : ""}
             </div>
           </div>
 
