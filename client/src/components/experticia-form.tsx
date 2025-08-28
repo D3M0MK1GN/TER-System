@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -21,6 +22,7 @@ interface ExperticiasFormProps {
 
 export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: ExperticiasFormProps) {
   const isEditing = !!experticia;
+  const scrollContainerRef = useRef<HTMLFormElement>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(insertExperticiasSchema),
@@ -48,6 +50,30 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
     onSubmit(data);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const scrollAmount = 80; // Cantidad de scroll en píxeles (más rápido)
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      scrollContainer.scrollTo({
+        top: Math.max(0, scrollContainer.scrollTop - scrollAmount),
+        behavior: 'smooth'
+      });
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      scrollContainer.scrollTo({
+        top: Math.min(
+          scrollContainer.scrollHeight - scrollContainer.clientHeight,
+          scrollContainer.scrollTop + scrollAmount
+        ),
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <>
       <DialogHeader>
@@ -58,7 +84,17 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
       </DialogHeader>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto">
+        <form 
+          ref={scrollContainerRef}
+          onSubmit={form.handleSubmit(handleSubmit)} 
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+          className="space-y-6 max-h-[70vh] overflow-y-auto focus:outline-none pr-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d1d5db transparent'
+          }}
+        >
           {/* Información básica */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Información Básica</h3>

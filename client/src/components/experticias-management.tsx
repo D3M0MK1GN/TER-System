@@ -67,7 +67,7 @@ export function ExperticiasManagement() {
 
       {/* Create Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <ExperticiasForm
             onSubmit={handleCreate}
             onCancel={() => setShowCreateModal(false)}
@@ -78,7 +78,7 @@ export function ExperticiasManagement() {
 
       {/* Edit Modal */}
       <Dialog open={!!editingExperticia} onOpenChange={() => setEditingExperticia(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <ExperticiasForm
             experticia={editingExperticia}
             onSubmit={handleUpdate}

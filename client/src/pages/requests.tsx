@@ -329,7 +329,11 @@ export default function Requests() {
 
       {/* Create Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d1d5db transparent'
+          }}>
           <RequestForm
             onSubmit={handleCreateSubmit}
             onCancel={() => setShowCreateModal(false)}
@@ -340,7 +344,11 @@ export default function Requests() {
 
       {/* Edit Modal */}
       <Dialog open={!!editingSolicitud} onOpenChange={() => setEditingSolicitud(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d1d5db transparent'
+          }}>
           {editingSolicitud && (
             <RequestForm
               onSubmit={handleEditSubmit}
