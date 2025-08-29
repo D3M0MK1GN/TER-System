@@ -183,9 +183,21 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                     <FormLabel>C.Fecha</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="Fecha de comunicación" 
+                        placeholder="dd/mm/yyyy o dd-mm-yyyy" 
                         {...field}
                         value={field.value?.toString() || ''}
+                        onKeyDown={(e) => {
+                          const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+                          const allowedChars = /[0-9\/\-\s]/;
+                          
+                          if (allowedKeys.includes(e.key)) {
+                            return; // Permitir teclas de navegación
+                          }
+                          
+                          if (!allowedChars.test(e.key)) {
+                            e.preventDefault(); // Bloquear letras y otros caracteres
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -200,7 +212,7 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                     <FormLabel>R.Fecha</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="Fecha de respuesta" 
+                        placeholder="dd/mm/yyyy o dd-mm-yyyy" 
                         {...field}
                         value={field.value?.toString() || ''}
                         onKeyDown={(e) => {

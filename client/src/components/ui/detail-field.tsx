@@ -49,12 +49,9 @@ export function DetailField({
     return (
       <div>
         <label className="text-sm font-medium text-gray-600">{label}</label>
-        <div className="flex items-center space-x-1">
-          <Calendar className="h-4 w-4 text-gray-400" />
-          <span className="text-sm">
-            {value ? new Date(value as string).toLocaleDateString('es-ES') : "Sin fecha"}
-          </span>
-        </div>
+        <span className="text-sm">
+          {value || "Sin fecha"}
+        </span>
       </div>
     );
   }

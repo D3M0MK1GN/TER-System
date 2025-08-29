@@ -29,11 +29,26 @@ interface ExperticiasTableProps {
   permissions: Permission;
 }
 
+const operatorColors = {
+  digitel: "bg-red-100 text-red-800",
+  movistar: "bg-blue-100 text-blue-800",
+  movilnet: "bg-green-100 text-green-800",
+};
+
 const statusColors = {
   completada: "bg-green-100 text-green-800",
   negativa: "bg-red-100 text-red-800",
   procesando: "bg-yellow-100 text-yellow-800",
   qr_ausente: "bg-orange-100 text-orange-800",
+};
+
+const formatOperator = (operador: string) => {
+  const names = {
+    digitel: "Digitel",
+    movistar: "Movistar",
+    movilnet: "Movilnet",
+  };
+  return names[operador as keyof typeof names] || operador;
 };
 
 const formatStatus = (estado: string | null) => {
@@ -255,8 +270,10 @@ export function ExperticiasTable({
                       <span className="font-mono text-sm">{experticia.expediente}</span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {experticia.operador}
+                      <Badge
+                        className={operatorColors[experticia.operador] || "bg-gray-100 text-gray-800"}
+                      >
+                        {formatOperator(experticia.operador)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -268,15 +285,9 @@ export function ExperticiasTable({
                       <span className="font-mono text-sm">{experticia.numeroComunicacion}</span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm">
-                          {experticia.fechaComunicacion 
-                            ? new Date(experticia.fechaComunicacion).toLocaleDateString('es-ES')
-                            : "Sin fecha"
-                          }
-                        </span>
-                      </div>
+                      <span className="text-sm">
+                        {experticia.fechaComunicacion || "Sin fecha"}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Badge className={statusColors[experticia.estado as keyof typeof statusColors]}>
