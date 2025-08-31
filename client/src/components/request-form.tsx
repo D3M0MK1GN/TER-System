@@ -350,25 +350,32 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
               />
             </div>
 
-            <div>
-              <Label htmlFor="fecha_de_solicitud">Fecha de Solicitud</Label>
-              <Input
-                id="fecha_de_solicitud"
-                placeholder="desde: 26-06-2001 hasta: 02-08-2001"
-                {...form.register("fecha_de_solicitud")}
-              />
-            </div>
+            {/* Hide for Identificar datos de un numero */}
+            {form.watch("tipoExperticia") !== "identificar_datos_numero" && (
+              <div>
+                <Label htmlFor="fecha_de_solicitud">Fecha de Solicitud</Label>
+                <Input
+                  id="fecha_de_solicitud"
+                  placeholder="desde: 26-06-2001 hasta: 02-08-2001"
+                  {...form.register("fecha_de_solicitud")}
+                />
+              </div>
+            )}
 
           </div>
 
-          <div>
-              <Label htmlFor="direc">Direccion Solicitada</Label>
-              <Textarea
-                id="direc"
-                placeholder="Direcion Exacta el Hecho."
-                {...form.register("direc")}
-              />
-          </div>  
+          {/* Hide for Identificar datos de un numero AND Determinar Contacto Frecuente */}
+          {form.watch("tipoExperticia") !== "identificar_datos_numero" && 
+           form.watch("tipoExperticia") !== "determinar_contacto_frecuente" && (
+            <div>
+                <Label htmlFor="direc">Direccion Solicitada</Label>
+                <Textarea
+                  id="direc"
+                  placeholder="Direcion Exacta el Hecho."
+                  {...form.register("direc")}
+                />
+            </div>
+          )}  
 
           <div>
             <Label htmlFor="descripcion">Reseña</Label>

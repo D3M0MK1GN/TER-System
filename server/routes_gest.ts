@@ -121,6 +121,40 @@ export async function generateExcelDocument(requestData: any): Promise<Buffer | 
           'K3': requestData.fiscal || '',
         }
       ];
+    } else if (requestData.tipoExperticia === 'determinar_contacto_frecuente') {
+      // Para Determinar Contacto Frecuente: una fila por cada número, CON fechas en columnas G y H
+      const informacionLinea = requestData.informacionLinea || '';
+      const numeros = informacionLinea.split(',').map((num: string) => num.trim()).filter((num: string) => num.length > 0);
+      
+      dataMappings = numeros.map((numero: string, index: number) => {
+        const rowNumber = index + 2; // Empezar en fila 2, luego 3, 4, etc.
+        return {
+          [`B${rowNumber}`]: solicitudShort,
+          [`C${rowNumber}`]: currentDate,
+          [`D${rowNumber}`]: 'Delegacion Municipal Quibor',
+          [`E${rowNumber}`]: requestData.numeroExpediente || '',
+          [`F${rowNumber}`]: numero,
+          [`G${rowNumber}`]: requestData.fechaSolicitud || '',  // Fecha inicio
+          [`H${rowNumber}`]: requestData.fechaRespuesta || '',  // Fecha fin
+          [`J${rowNumber}`]: requestData.delito || '',
+          [`K${rowNumber}`]: requestData.fiscal || '',
+        };
+      });
+      
+      // Si no hay números, crear al menos una fila vacía
+      if (dataMappings.length === 0) {
+        dataMappings = [{
+          'B2': solicitudShort,
+          'C2': currentDate,
+          'D2': 'Delegacion Municipal Quibor',
+          'E2': requestData.numeroExpediente || '',
+          'F2': '',
+          'G2': requestData.fechaSolicitud || '',
+          'H2': requestData.fechaRespuesta || '',
+          'J2': requestData.delito || '',
+          'K2': requestData.fiscal || '',
+        }];
+      }
     } else {
       // Para otros tipos de experticia: comportamiento normal (una sola fila)
       dataMappings = [
@@ -337,6 +371,40 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
             'K3': requestData.fiscal || '',
           }
         ];
+      } else if (requestData.tipoExperticia === 'determinar_contacto_frecuente') {
+        // Para Determinar Contacto Frecuente: una fila por cada número, CON fechas en columnas G y H
+        const informacionLinea = requestData.informacionLinea || '';
+        const numeros = informacionLinea.split(',').map((num: string) => num.trim()).filter((num: string) => num.length > 0);
+        
+        dataMappings = numeros.map((numero: string, index: number) => {
+          const rowNumber = index + 2; // Empezar en fila 2, luego 3, 4, etc.
+          return {
+            [`B${rowNumber}`]: solicitudShort,                   // {SOLICITUD}
+            [`C${rowNumber}`]: currentDate,                      // {FECHA}
+            [`D${rowNumber}`]: 'Delegacion Municipal Quibor',    // {DM} - Despacho/Oficina
+            [`E${rowNumber}`]: requestData.numeroExpediente || '', // {EXP} - Expediente
+            [`F${rowNumber}`]: numero,                           // Número telefónico individual
+            [`G${rowNumber}`]: parsedFechas.desde || '',         // {DESDE} - Fecha inicio
+            [`H${rowNumber}`]: parsedFechas.hasta || '',         // {HASTA} - Fecha fin
+            [`J${rowNumber}`]: requestData.delito || '',         // {delito}
+            [`K${rowNumber}`]: requestData.fiscal || '',         // {fiscal}
+          };
+        });
+        
+        // Si no hay números, crear al menos una fila vacía
+        if (dataMappings.length === 0) {
+          dataMappings = [{
+            'B2': solicitudShort,
+            'C2': currentDate,
+            'D2': 'Delegacion Municipal Quibor',
+            'E2': requestData.numeroExpediente || '',
+            'F2': '',
+            'G2': parsedFechas.desde || '',
+            'H2': parsedFechas.hasta || '',
+            'J2': requestData.delito || '',
+            'K2': requestData.fiscal || '',
+          }];
+        }
       } else {
         // Para otros tipos de experticia: comportamiento normal (una sola fila)
         dataMappings = [
@@ -408,13 +476,19 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       // Preparar datos para la plantilla de experticia
       const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
       
+      console.log(req.user.credencial);
+      
       const templateData = {
         FECHA: currentDate,
-        COMUNICACION: requestData.numeroComunicacion || '',
-        'F.CC': requestData.fechaComunicacion || '',
+        UBICA: 'BARQUISIMETO',
         DICTAME: requestData.numeroDictamen || '',
-        DICTAMEN: requestData.numeroDictamen || '',
         EXPERTO: requestData.experto || '',
+        COMUNICACION: requestData.numeroComunicacion || '',
+        FECHA_R: requestData.fechaRespuesta || '',
+        CRED: req.user.credencial || 'No hay credencial',
+        OPERADOR: (requestData.operador || '').toUpperCase(),
+        /*
+        DICTAMEN: requestData.numeroDictamen || '',
         'F.RR': requestData.fechaRespuesta || '',
         'R.TIME': requestData.usoHorario || '',
         EXCEL: 'Archivo Excel generado',
@@ -430,7 +504,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         ABONADO: requestData.abonado || '',
         DATOS_ABONADO: requestData.datosAbonado || '',
         CONCLUSION: requestData.conclusion || '',
-        EXPEDIENTE: requestData.expediente || '',
+        EXPEDIENTE: requestData.expediente || '',*/
       };
 
       let busArchivo: Buffer;
