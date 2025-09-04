@@ -6,10 +6,11 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { Layout } from "@/components/layout";
 import { RequestTable } from "@/components/request-table";
 import { RequestForm } from "@/components/request-form";
+import { ExperticiasForm } from "@/components/experticia-form";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { type Solicitud } from "@shared/schema";
+import { type Solicitud, type InsertExperticia } from "@shared/schema";
 
 export default function Requests() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -22,12 +23,46 @@ export default function Requests() {
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingSolicitud, setEditingSolicitud] = useState<Solicitud | null>(null);
+  const [showExperticiasModal, setShowExperticiasModal] = useState(false);
+  const [experticiasPreloadData, setExperticiasPreloadData] = useState<Partial<InsertExperticia> | null>(null);
   const pageSize = 10;
 
   const { user } = useAuth();
   const permissions = usePermissions();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Función para generar el número de comunicación en el formato requerido
+  const generateNumeroComunicacion = (numeroSolicitud: string): string => {
+    const currentYear = new Date().getFullYear();
+    const parts = numeroSolicitud.split('-');
+    
+    if (parts.length >= 2) {
+      // Formato: 9700-PARTE1-CIDCPER-AÑO-PARTE2
+      return `9700-${parts[0]}-CIDCPER-${currentYear}-${parts[1]}`;
+    }
+    
+    // Fallback si el formato no es el esperado
+    return `9700-${numeroSolicitud}-CIDCPER-${currentYear}`;
+  };
+
+  // Función para crear experticia desde una solicitud
+  const handleCreateExperticia = (solicitud: Solicitud) => {
+    const fechaComunicacion = solicitud.fechaSolicitud
+      ? new Date(solicitud.fechaSolicitud).toLocaleDateString('es-ES')
+      : '';
+
+    const preloadData: Partial<InsertExperticia> = {
+      expediente: solicitud.numeroExpediente,
+      fechaComunicacion: fechaComunicacion,
+      numeroComunicacion: generateNumeroComunicacion(solicitud.numeroSolicitud),
+      operador: solicitud.operador,
+      tipoExperticia: solicitud.tipoExperticia,
+    };
+
+    setExperticiasPreloadData(preloadData);
+    setShowExperticiasModal(true);
+  };
 
   const handleTemplateDownload = async (tipoExperticia: string, requestData?: any) => {
     try {
@@ -304,6 +339,36 @@ export default function Requests() {
     }
   };
 
+  // Mutación para crear experticias
+  const createExperticiaMutation = useMutation({
+    mutationFn: async (data: InsertExperticia) => {
+      return await apiRequest("/api/experticias", {
+        method: "POST",
+        body: JSON.stringify({ ...data, usuarioId: user?.id }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/experticias"] });
+      setShowExperticiasModal(false);
+      setExperticiasPreloadData(null);
+      toast({
+        title: "Experticia creada",
+        description: "La experticia ha sido creada exitosamente desde la solicitud",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Error creando la experticia",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateExperticiasSubmit = (data: InsertExperticia) => {
+    createExperticiaMutation.mutate(data);
+  };
+
   const solicitudes = solicitudesData?.solicitudes || [];
   const total = solicitudesData?.total || 0;
 
@@ -321,6 +386,7 @@ export default function Requests() {
           onDelete={handleDelete}
           onView={handleView}
           onCreateNew={() => setShowCreateModal(true)}
+          onCreateExperticia={handleCreateExperticia}
           onExportExcel={handleExportExcel}
           loading={isLoading}
           permissions={permissions}
@@ -362,8 +428,30 @@ export default function Requests() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Create Experticia Modal */}
+      <Dialog open={showExperticiasModal} onOpenChange={setShowExperticiasModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d1d5db transparent'
+          }}>
+          <ExperticiasForm
+            onSubmit={handleCreateExperticiasSubmit}
+            onCancel={() => {
+              setShowExperticiasModal(false);
+              setExperticiasPreloadData(null);
+            }}
+            isLoading={createExperticiaMutation.isPending}
+            preloadData={experticiasPreloadData}
+          />
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
+
+
+
 
 

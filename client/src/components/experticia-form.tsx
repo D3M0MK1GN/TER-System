@@ -9,40 +9,48 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Atom, Upload } from "lucide-react";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
-import { type z } from "zod";
+import { usePermissions } from "@/hooks/use-permissions";
+import { z } from "zod";
 
-type FormData = z.infer<typeof insertExperticiasSchema>;
+const experticiasFormSchema = insertExperticiasSchema.extend({
+  createdAt: z.string().optional(),
+});
+
+type FormData = z.infer<typeof experticiasFormSchema>;
 
 interface ExperticiasFormProps {
   experticia?: Experticia | null;
   onSubmit: (data: FormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  preloadData?: Partial<FormData> | null;
 }
 
-export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: ExperticiasFormProps) {
+export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, preloadData }: ExperticiasFormProps) {
   const isEditing = !!experticia;
   const scrollContainerRef = useRef<HTMLFormElement>(null);
+  const permissions = usePermissions();
 
   const form = useForm<FormData>({
-    resolver: zodResolver(insertExperticiasSchema),
+    resolver: zodResolver(experticiasFormSchema),
     defaultValues: {
-      numeroDictamen: experticia?.numeroDictamen || "",
-      experto: experticia?.experto || "",
-      numeroComunicacion: experticia?.numeroComunicacion || "",
-      fechaComunicacion: experticia?.fechaComunicacion?.toString() || "",
-      motivo: experticia?.motivo || "",
-      operador: experticia?.operador || undefined,
-      fechaRespuesta: experticia?.fechaRespuesta?.toString() || "",
-      usoHorario: experticia?.usoHorario ?? "",
-      archivoAdjunto: experticia?.archivoAdjunto ?? "",
-      tipoExperticia: experticia?.tipoExperticia || "",
-      abonado: experticia?.abonado ?? "",
-      datosAbonado: experticia?.datosAbonado ?? "",
-      conclusion: experticia?.conclusion ?? "",
-      expediente: experticia?.expediente || "",
-      estado: experticia?.estado || "procesando",
-      usuarioId: experticia?.usuarioId || undefined,
+      numeroDictamen: experticia?.numeroDictamen || preloadData?.numeroDictamen || "",
+      experto: experticia?.experto || preloadData?.experto || "",
+      numeroComunicacion: experticia?.numeroComunicacion || preloadData?.numeroComunicacion || "",
+      fechaComunicacion: experticia?.fechaComunicacion?.toString() || preloadData?.fechaComunicacion || "",
+      motivo: experticia?.motivo || preloadData?.motivo || "",
+      operador: experticia?.operador || preloadData?.operador || undefined,
+      fechaRespuesta: experticia?.fechaRespuesta?.toString() || preloadData?.fechaRespuesta || "",
+      usoHorario: experticia?.usoHorario ?? preloadData?.usoHorario ?? "",
+      archivoAdjunto: experticia?.archivoAdjunto ?? preloadData?.archivoAdjunto ?? "",
+      tipoExperticia: experticia?.tipoExperticia || preloadData?.tipoExperticia || "",
+      abonado: experticia?.abonado ?? preloadData?.abonado ?? "",
+      datosAbonado: experticia?.datosAbonado ?? preloadData?.datosAbonado ?? "",
+      conclusion: experticia?.conclusion ?? preloadData?.conclusion ?? "",
+      expediente: experticia?.expediente || preloadData?.expediente || "",
+      estado: experticia?.estado || preloadData?.estado || "procesando",
+      usuarioId: experticia?.usuarioId || preloadData?.usuarioId || undefined,
+      createdAt: experticia?.createdAt ? new Date(experticia.createdAt).toISOString().split('T')[0] : "",
     },
   });
 
@@ -182,23 +190,31 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                   <FormItem>
                     <FormLabel>C.Fecha</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="dd/mm/yyyy o dd-mm-yyyy" 
-                        {...field}
-                        value={field.value?.toString() || ''}
-                        onKeyDown={(e) => {
-                          const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
-                          const allowedChars = /[0-9\/\-\s]/;
-                          
-                          if (allowedKeys.includes(e.key)) {
-                            return; // Permitir teclas de navegación
-                          }
-                          
-                          if (!allowedChars.test(e.key)) {
-                            e.preventDefault(); // Bloquear letras y otros caracteres
-                          }
-                        }}
-                      />
+                      {permissions.canEditCreationDates ? (
+                        <Input 
+                          placeholder="dd/mm/yyyy o dd-mm-yyyy" 
+                          {...field}
+                          value={field.value?.toString() || ''}
+                          onKeyDown={(e) => {
+                            const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+                            const allowedChars = /[0-9\/\-\s]/;
+                            
+                            if (allowedKeys.includes(e.key)) {
+                              return; // Permitir teclas de navegación
+                            }
+                            
+                            if (!allowedChars.test(e.key)) {
+                              e.preventDefault(); // Bloquear letras y otros caracteres
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center p-3 border rounded-md bg-gray-50">
+                          <span className="text-sm text-gray-600">
+                            {field.value?.toString() || 'No establecida'} (Solo administradores pueden editar fechas)
+                          </span>
+                        </div>
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -211,23 +227,31 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                   <FormItem>
                     <FormLabel>R.Fecha</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="dd/mm/yyyy o dd-mm-yyyy" 
-                        {...field}
-                        value={field.value?.toString() || ''}
-                        onKeyDown={(e) => {
-                          const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
-                          const allowedChars = /[0-9\/\-\s]/;
-                          
-                          if (allowedKeys.includes(e.key)) {
-                            return; // Permitir teclas de navegación
-                          }
-                          
-                          if (!allowedChars.test(e.key)) {
-                            e.preventDefault(); // Bloquear letras y otros caracteres
-                          }
-                        }}
-                      />
+                      {permissions.canEditCreationDates ? (
+                        <Input 
+                          placeholder="dd/mm/yyyy o dd-mm-yyyy" 
+                          {...field}
+                          value={field.value?.toString() || ''}
+                          onKeyDown={(e) => {
+                            const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+                            const allowedChars = /[0-9\/\-\s]/;
+                            
+                            if (allowedKeys.includes(e.key)) {
+                              return; // Permitir teclas de navegación
+                            }
+                            
+                            if (!allowedChars.test(e.key)) {
+                              e.preventDefault(); // Bloquear letras y otros caracteres
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center p-3 border rounded-md bg-gray-50">
+                          <span className="text-sm text-gray-600">
+                            {field.value?.toString() || 'No establecida'} (Solo administradores pueden editar fechas)
+                          </span>
+                        </div>
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -401,6 +425,41 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading }: E
                       value={field.value || ""}
                       rows={3}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Campo de fecha de creación solo editable por administradores */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Información Administrativa</h3>
+            
+            <FormField
+              control={form.control}
+              name="createdAt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de Creación de la Experticia</FormLabel>
+                  <FormControl>
+                    {permissions.canEditCreationDates ? (
+                      <Input
+                        type="date"
+                        placeholder="Seleccione fecha de creación"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    ) : (
+                      <div className="flex items-center p-3 border rounded-md bg-gray-50">
+                        <span className="text-sm text-gray-600">
+                          {field.value ? 
+                            new Date(field.value).toLocaleDateString('es-ES') : 
+                            'Fecha automática'
+                          } (Solo administradores pueden editar)
+                        </span>
+                      </div>
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>

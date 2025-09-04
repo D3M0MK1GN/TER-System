@@ -752,5 +752,289 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2025-09-01T17:00:32.357733",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "19910638",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=19910638",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 19910638,
+                "fecha_nac": "1987-02-08",
+                "rif": "V199106380",
+                "cne": {
+                    "estado": "BOLIVAR",
+                    "municipio": "CARONI",
+                    "parroquia": "ONCE DE ABRIL",
+                    "centro_electoral": "CICLO BASICO JOAQUIN MORENO DE MENDOZA"
+                },
+                "primer_apellido": "BARCELO",
+                "segundo_apellido": "CARMONA",
+                "primer_nombre": "ROSMARY",
+                "segundo_nombre": "ELIZABETH",
+                "request_date": "2025-09-01T21:00:32.217Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-01T17:25:52.033345",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "15916725",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=15916725",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 15916725,
+                "fecha_nac": "1982-05-15",
+                "rif": "V159167255",
+                "cne": {
+                    "estado": "CARABOBO",
+                    "municipio": "NAGUANAGUA",
+                    "parroquia": "NAGUANAGUA",
+                    "centro_electoral": "UNIDAD EDUCATIVA NACIONAL NUESTRA SEÑORA DE COROMOTO"
+                },
+                "primer_apellido": "ROMERO",
+                "segundo_apellido": "JORDAN",
+                "primer_nombre": "JUAN",
+                "segundo_nombre": "EDUARDO",
+                "request_date": "2025-09-01T21:25:52.723Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-01T17:26:22.415155",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "15916726",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=15916726",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 15916726,
+                "fecha_nac": "1976-05-29",
+                "rif": "V159167263",
+                "cne": {
+                    "estado": "FALCON",
+                    "municipio": "CARIRUBANA",
+                    "parroquia": "CARIRUBANA",
+                    "centro_electoral": "ESCUELA BOLIVARIANA PARAGUANÁ"
+                },
+                "primer_apellido": "GUTIERREZ",
+                "segundo_apellido": "MOSQUERA",
+                "primer_nombre": "DORKA",
+                "segundo_nombre": "ANTONIA",
+                "request_date": "2025-09-01T21:26:23.096Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-01T17:31:07.341533",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "15916724",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=15916724",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 15916724,
+                "fecha_nac": "1982-01-18",
+                "rif": "V159167247",
+                "cne": {
+                    "estado": "FALCON",
+                    "municipio": "MIRANDA",
+                    "parroquia": "SAN GABRIEL",
+                    "centro_electoral": "UNIDAD BASICA RAFAEL CALLES SIERRA"
+                },
+                "primer_apellido": "LUGO",
+                "segundo_apellido": "CASTILLO",
+                "primer_nombre": "IBRAHIN",
+                "segundo_nombre": "JOSE",
+                "request_date": "2025-09-01T21:31:08.023Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-01T17:31:18.046903",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "15916723",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=15916723",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 15916723,
+                "fecha_nac": "1983-06-15",
+                "rif": "V159167239",
+                "cne": {
+                    "estado": "FALCON",
+                    "municipio": "CACIQUE MANAURE",
+                    "parroquia": "YARACAL",
+                    "centro_electoral": "ESCUELA BOLIVARIANA EL CAIMAN"
+                },
+                "primer_apellido": "LUGO",
+                "segundo_apellido": "CASTILLO",
+                "primer_nombre": "IBRAMARYS",
+                "segundo_nombre": "YOSERIT",
+                "request_date": "2025-09-01T21:31:18.722Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-01T17:31:27.572589",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "15916722",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=15916722",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 15916722,
+                "fecha_nac": "1981-08-09",
+                "rif": "V159167220",
+                "cne": {
+                    "estado": "FALCON",
+                    "municipio": "MIRANDA",
+                    "parroquia": "SAN ANTONIO",
+                    "centro_electoral": "ESCUELA BÁSICA LOS MÉDANOS"
+                },
+                "primer_apellido": "GUTIERREZ",
+                "segundo_apellido": "YORIS",
+                "primer_nombre": "CARLOS",
+                "segundo_nombre": "JOSE",
+                "request_date": "2025-09-01T21:31:28.251Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-01T17:48:41.287969",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28329135",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28329135",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28329135,
+                "fecha_nac": "2001-06-22",
+                "rif": "V283291355",
+                "primer_apellido": "PINEDA",
+                "segundo_apellido": "MELENDEZ",
+                "primer_nombre": "JOSE",
+                "segundo_nombre": "GREGORIO",
+                "request_date": "2025-09-01T21:48:41.201Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-01T17:49:09.006325",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "23573573",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=23573573",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 23573573,
+                "fecha_nac": "1988-03-07",
+                "rif": "V235735731",
+                "cne": {
+                    "estado": "PORTUGUESA",
+                    "municipio": "ARAURE",
+                    "parroquia": "ARAURE",
+                    "centro_electoral": "UNIDAD EDUCATIVA NACIONAL LA LUCIA"
+                },
+                "primer_apellido": "PERALTA",
+                "segundo_apellido": "PAGUA",
+                "primer_nombre": "DEISY",
+                "segundo_nombre": "JOSEFINA",
+                "request_date": "2025-09-01T21:49:08.955Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-01T17:49:57.228817",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "13881000",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=13881000",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 13881000,
+                "fecha_nac": "1978-04-29",
+                "rif": "V138810001",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "ANDRES ELOY BLANCO",
+                    "parroquia": "PIO TAMAYO",
+                    "centro_electoral": "OFICINA MUNICIPAL DE EDUCACION DE ANDRES ELOY BLANCO"
+                },
+                "primer_apellido": "GRANADILLO",
+                "segundo_apellido": "PEREZ",
+                "primer_nombre": "TARQUINO",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2025-09-01T21:49:57.174Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-01T17:52:41.695671",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "23573537",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=23573537",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 23573537,
+                "fecha_nac": "1994-08-23",
+                "rif": "V235735373",
+                "primer_apellido": "RODRIGUEZ",
+                "segundo_apellido": "ROMERO",
+                "primer_nombre": "MIGUEL",
+                "segundo_nombre": "ANGEL",
+                "request_date": "2025-09-01T21:52:41.646Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-03T11:17:42.758033",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "30979485",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=30979485",
+        "error": "HTTPConnectionPool(host='api.cedula.com.ve', port=80): Max retries exceeded with url: /api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=30979485 (Caused by NameResolutionError(\"<urllib3.connection.HTTPConnection object at 0x717cbd983380>: Failed to resolve 'api.cedula.com.ve' ([Errno -2] Name or service not known)\"))",
+        "success": false
+    },
+    {
+        "timestamp": "2025-09-03T11:18:34.441670",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "30979485",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=30979485",
+        "error": "HTTPConnectionPool(host='api.cedula.com.ve', port=80): Read timed out. (read timeout=30)",
+        "success": false
     }
 ]

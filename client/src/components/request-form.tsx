@@ -22,6 +22,7 @@ const requestFormSchema = insertSolicitudSchema.extend({
   tipoExperticia: z.string().min(1, "Tipo de experticia es requerido"),
   coordinacionSolicitante: z.string().min(1, "Coordinación solicitante es requerida"),
   operador: z.string().min(1, "Operador es requerido"),
+  fechaSolicitud: z.string().optional(),
 }).refine((data) => {
   // If estado is "rechazada", motivoRechazo is required
   if (data.estado === "rechazada") {
@@ -73,6 +74,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
       motivoRechazo: "",
       estado: getDefaultStatus(),
       oficio: "",
+      fechaSolicitud: initialData?.fechaSolicitud ? new Date(initialData.fechaSolicitud).toISOString().split('T')[0] : "",
       ...initialData,
     },
   });
@@ -310,6 +312,28 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                 )}
               </div>
             )}
+
+            {/* Campo de fecha de creación solo editable por administradores */}
+            <div>
+              <Label htmlFor="fechaSolicitud">Fecha de Creación de la Solicitud</Label>
+              {permissions.canEditCreationDates ? (
+                <Input
+                  id="fechaSolicitud"
+                  type="date"
+                  placeholder="Seleccione fecha de creación"
+                  {...form.register("fechaSolicitud")}
+                />
+              ) : (
+                <div className="flex items-center p-3 border rounded-md bg-gray-50">
+                  <span className="text-sm text-gray-600">
+                    {form.watch("fechaSolicitud") ? 
+                      new Date(form.watch("fechaSolicitud")).toLocaleDateString('es-ES') : 
+                      'Fecha automática'
+                    } (Solo administradores pueden editar)
+                  </span>
+                </div>
+              )}
+            </div>
             
             <div>
               <Label htmlFor="delito">Tipo de Delito *</Label>
@@ -415,3 +439,4 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
     </Card>
   );
 }
+

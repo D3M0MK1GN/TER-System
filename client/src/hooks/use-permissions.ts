@@ -11,6 +11,8 @@ export interface Permission {
   canViewAllReports: boolean;
   canViewDashboard: boolean;
   canViewEmailTemplates: boolean;
+  canCreateExperticias: boolean;
+  canEditCreationDates: boolean;
 }
 
 export function usePermissions(): Permission {
@@ -26,6 +28,8 @@ export function usePermissions(): Permission {
         canViewAllReports: false,
         canViewDashboard: false,
         canViewEmailTemplates: false,
+        canCreateExperticias: false,
+        canEditCreationDates: false,
       };
     }
 
@@ -41,6 +45,8 @@ export function usePermissions(): Permission {
           canViewAllReports: true,
           canViewDashboard: true,
           canViewEmailTemplates: true,
+          canCreateExperticias: true,
+          canEditCreationDates: true,
         };
       
       case "supervisor":
@@ -52,6 +58,8 @@ export function usePermissions(): Permission {
           canViewAllReports: true,
           canViewDashboard: true,
           canViewEmailTemplates: false,
+          canCreateExperticias: true,
+          canEditCreationDates: false,
         };
       
       case "usuario":
@@ -63,6 +71,8 @@ export function usePermissions(): Permission {
           canViewAllReports: false,
           canViewDashboard: true,
           canViewEmailTemplates: false,
+          canCreateExperticias: false,
+          canEditCreationDates: false,
         };
       
       default:
@@ -74,6 +84,8 @@ export function usePermissions(): Permission {
           canViewAllReports: false,
           canViewDashboard: false,
           canViewEmailTemplates: false,
+          canCreateExperticias: false,
+          canEditCreationDates: false,
         };
     }
   }, [user?.rol]);

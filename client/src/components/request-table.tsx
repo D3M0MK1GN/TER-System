@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Edit, Mail, Trash2, Search, Plus, ChevronLeft, ChevronRight, Printer, Calendar, User, FileText, Building, ClipboardList, Download } from "lucide-react";
+import { Eye, Edit, Mail, Trash2, Search, Plus, ChevronLeft, ChevronRight, Printer, Calendar, User, FileText, Building, ClipboardList, Download, Atom } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +24,7 @@ interface RequestTableProps {
   onDelete: (id: number) => void;
   onView: (solicitud: Solicitud) => void;
   onCreateNew: () => void;
+  onCreateExperticia: (solicitud: Solicitud) => void;
   onExportExcel: () => void;
   loading?: boolean;
   permissions: Permission;
@@ -95,6 +96,7 @@ export function RequestTable({
   onDelete,
   onView,
   onCreateNew,
+  onCreateExperticia,
   onExportExcel,
   loading,
   permissions,
@@ -443,6 +445,17 @@ export function RequestTable({
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {permissions.canCreateExperticias && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onCreateExperticia(solicitud)}
+                              title="Crear Experticia"
+                              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            >
+                              <Atom className="h-4 w-4" />
+                            </Button>
+                          )}
                           {/* Edit button: Only show for "enviada" status OR admin users */}
                           {(solicitud.estado === "enviada" || permissions.canManageUsers) && (
                             <Button
@@ -726,4 +739,5 @@ export function RequestTable({
     </div>
   );
 }
+      
       
