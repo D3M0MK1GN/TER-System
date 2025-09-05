@@ -85,7 +85,7 @@ export const solicitudes = pgTable("solicitudes", {
   operador: operadorEnum("operador").notNull(),
   informacionLinea: text("informacion_linea"), // Linea de Codigo Redundante
   direc: text("direc"),
-  delito: text("delito").notNull(),
+  delito: text("delito"),
   fecha_de_solicitud: text("fecha_de_solicitud"),    
   descripcion: text("descripcion"),
   motivoRechazo: text("motivo_rechazo"),
@@ -298,10 +298,14 @@ export const experticias = pgTable("experticias", {
   fechaRespuesta: text("fecha_respuesta"),
   usoHorario: text("uso_horario"),
   archivoAdjunto: text("archivo_adjunto"), // Ruta del archivo adjunto
+  nombreArchivo: text("nombre_archivo"), // Nombre exacto del archivo
+  tamañoArchivo: integer("tamaño_archivo"), // Tamaño en bytes del archivo
   tipoExperticia: text("tipo_experticia").notNull(),
   abonado: text("abonado"),
   datosAbonado: text("datos_abonado"),
   conclusion: text("conclusion"),
+  respuestaFechaCorreo: text("respuesta_fecha_correo"),
+  horaRespuestaCorreo: text("hora_respuesta_correo"),
   expediente: text("expediente").notNull(),
   estado: estadoExperticiasEnum("estado").default("procesando"),
   createdAt: timestamp("created_at").defaultNow(),

@@ -43,10 +43,14 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
       fechaRespuesta: experticia?.fechaRespuesta?.toString() || preloadData?.fechaRespuesta || "",
       usoHorario: experticia?.usoHorario ?? preloadData?.usoHorario ?? "",
       archivoAdjunto: experticia?.archivoAdjunto ?? preloadData?.archivoAdjunto ?? "",
+      nombreArchivo: experticia?.nombreArchivo ?? preloadData?.nombreArchivo ?? "",
+      tamañoArchivo: experticia?.tamañoArchivo ?? preloadData?.tamañoArchivo ?? undefined,
       tipoExperticia: experticia?.tipoExperticia || preloadData?.tipoExperticia || "",
       abonado: experticia?.abonado ?? preloadData?.abonado ?? "",
       datosAbonado: experticia?.datosAbonado ?? preloadData?.datosAbonado ?? "",
       conclusion: experticia?.conclusion ?? preloadData?.conclusion ?? "",
+      respuestaFechaCorreo: experticia?.respuestaFechaCorreo ?? preloadData?.respuestaFechaCorreo ?? "",
+      horaRespuestaCorreo: experticia?.horaRespuestaCorreo ?? preloadData?.horaRespuestaCorreo ?? "",
       expediente: experticia?.expediente || preloadData?.expediente || "",
       estado: experticia?.estado || preloadData?.estado || "procesando",
       usuarioId: experticia?.usuarioId || preloadData?.usuarioId || undefined,
@@ -488,6 +492,9 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
                         const file = e.target.files?.[0];
                         if (file) {
                           field.onChange(file.name);
+                          // Capturar automáticamente nombre y tamaño del archivo
+                          form.setValue('nombreArchivo', file.name);
+                          form.setValue('tamañoArchivo', file.size);
                         }
                       }}
                       className="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium"
@@ -500,6 +507,68 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="respuestaFechaCorreo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Respuesta de Fecha del Correo</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="dd/mm/yyyy o dd-mm-yyyy"
+                        {...field}
+                        value={field.value || ""}
+                        onKeyDown={(e) => {
+                          const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+                          const allowedChars = /[0-9\/\-\s]/;
+                          
+                          if (allowedKeys.includes(e.key)) {
+                            return; // Permitir teclas de navegación
+                          }
+                          
+                          if (!allowedChars.test(e.key)) {
+                            e.preventDefault(); // Bloquear letras y otros caracteres
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="horaRespuestaCorreo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="HH:MM (ej: 14:30)"
+                        {...field}
+                        value={field.value || ""}
+                        onKeyDown={(e) => {
+                          const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+                          const allowedChars = /[0-9:]/;
+                          
+                          if (allowedKeys.includes(e.key)) {
+                            return; // Permitir teclas de navegación
+                          }
+                          
+                          if (!allowedChars.test(e.key)) {
+                            e.preventDefault(); // Bloquear letras y otros caracteres
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
