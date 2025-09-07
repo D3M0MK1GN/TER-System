@@ -1036,5 +1036,77 @@
         "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=30979485",
         "error": "HTTPConnectionPool(host='api.cedula.com.ve', port=80): Read timed out. (read timeout=30)",
         "success": false
+    },
+    {
+        "timestamp": "2025-09-05T10:36:23.101336",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28306166",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28306166",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28306166,
+                "fecha_nac": "1999-07-21",
+                "rif": "V283061661",
+                "primer_apellido": "RIVAS",
+                "segundo_apellido": "RODRIGUEZ",
+                "primer_nombre": "EFRAIN",
+                "segundo_nombre": "ALBERTO",
+                "request_date": "2025-09-05T14:36:23.049Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-05T10:37:19.030179",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "2830616",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=2830616",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 2830616,
+                "fecha_nac": "1945-07-23",
+                "rif": "V028306160",
+                "cne": {
+                    "estado": "ANZOATEGUI",
+                    "municipio": "GUANIPA",
+                    "parroquia": "SAN JOSE DE GUANIPA",
+                    "centro_electoral": "INSTITUTO RAFAEL RANGEL"
+                },
+                "primer_apellido": "BOADAS",
+                "segundo_apellido": "MILLAN",
+                "primer_nombre": "ASDRUBAL",
+                "segundo_nombre": "ALEJANDRO",
+                "request_date": "2025-09-05T14:37:18.982Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-05T10:38:01.050455",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28306116",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28306116",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28306116,
+                "fecha_nac": "2001-05-04",
+                "rif": "V283061163",
+                "primer_apellido": "URBINA",
+                "segundo_apellido": "MILLAN",
+                "primer_nombre": "ANDRES",
+                "segundo_nombre": "EDUARDO",
+                "request_date": "2025-09-05T14:38:01.003Z"
+            }
+        },
+        "success": true
     }
 ]

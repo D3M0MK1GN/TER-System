@@ -6,7 +6,7 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import ExcelJS from 'exceljs';
 import { parseWithPrefixes } from '../tools/utils_I';
-import { insertExperticiasSchema } from '../shared/schema';
+import { experticias, insertExperticiasSchema } from '../shared/schema';
 
 // Al inicio del archivo routes_gest.ts
 const swiPdf = {
@@ -443,9 +443,10 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       const excelBuffer = Buffer.from(arrayBuffer);
 
       // Configurar respuesta para descarga
-      const customFileName = `PLANILLA_DATOS-${requestData.numeroSolicitud || 'solicitud'}.xlsx`;
+      const customFileName = `PLANILLA ${requestData.numeroSolicitud || 'solicitud'} ${req.user.delegacion}.xlsx`;
       
       console.log("EXCEL LISTO - enviando archivo:", customFileName);
+      console.log(req.user.delegacion)
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${customFileName}"`);
       res.send(excelBuffer);
@@ -477,16 +478,21 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
       
       console.log(req.user.credencial);
-      
+      const desp = 'BARQUISIMETO'
       const templateData = {
         FECHA: currentDate,
-        UBICA: 'BARQUISIMETO',
+        UBICA: desp,
+        FUBICA: desp.toLowerCase,
         DICTAME: requestData.numeroDictamen || '',
         EXPERTO: requestData.experto || '',
         COMUNICACION: requestData.numeroComunicacion || '',
         FECHA_R: requestData.fechaRespuesta || '',
         CRED: req.user.credencial || 'No hay credencial',
         OPERADOR: (requestData.operador || '').toUpperCase(),
+        FRR: 'g',
+        RTIME: 'gg',
+        EXCEL: experticias.nombreArchivo,
+        TAMAÑO: experticias.tamañoArchivo,
         /*
         DICTAMEN: requestData.numeroDictamen || '',
         'F.RR': requestData.fechaRespuesta || '',

@@ -61,7 +61,7 @@ const formatStatus = (estado: string) => {
   };
   return names[estado as keyof typeof names] || estado;
 };
-
+// Diccionario para formatear tipo de experticias en la tabla
 const formatTipoExperticia = (tipo: string) => {
   const names = {
     identificar_datos_numero: "Identificar datos de un número",
@@ -81,6 +81,8 @@ const formatTipoExperticia = (tipo: string) => {
     identificar_numeros_repetidos_bts: "Identificar números repetidos en la Radio Base (BTS)",
     determinar_numero_internacional: "Determinar número internacional",
     identificar_linea_sim_card: "Identificar línea mediante SIM CARD",
+    determinar_contacto_frecuente: "Determinar contactos frecuente",
+    Identificar_linea_mediante_cedula_de_identidad: "Identificar linea mediante cedula de identidad",
   };
   return names[tipo as keyof typeof names] || tipo;
 };
@@ -312,6 +314,7 @@ export function RequestTable({
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="identificar_datos_numero">Identificar datos de un número</SelectItem>
+                  <SelectItem value="Identificar_linea_mediante_cedula_de_identidad">Identificar linea mediante cedula de identidad</SelectItem>
                   <SelectItem value="determinar_historicos_trazas_bts">Determinar Históricos de Trazas Telefónicas BTS</SelectItem>
                   <SelectItem value="determinar_linea_conexion_ip">Determinar línea telefónica con conexión IP</SelectItem>
                   <SelectItem value="identificar_radio_bases_bts">Identificar las Radio Bases (BTS)</SelectItem>

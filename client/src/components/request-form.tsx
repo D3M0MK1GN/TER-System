@@ -219,6 +219,7 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="identificar_datos_numero">Identificar datos de un número</SelectItem>
+                  <SelectItem value="Identificar_linea_mediante_cedula_de_identidad">Identificar linea mediante cedula de identidad</SelectItem>
                   <SelectItem value="determinar_historicos_trazas_bts">Determinar Históricos de Trazas Telefónicas BTS</SelectItem>
                   <SelectItem value="determinar_linea_conexion_ip">Determinar línea telefónica con conexión IP</SelectItem>
                   <SelectItem value="identificar_radio_bases_bts">Identificar las Radio Bases (BTS)</SelectItem>
@@ -354,7 +355,9 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                   <SelectItem value="Contra el Hurto y Robo de Vehiculo Automor (HURTO)">Contra el Hurto y Robo de Vehiculo Automor (HURTO)</SelectItem>
                   <SelectItem value="Contra las Personas">Contra las Personas</SelectItem>
                   <SelectItem value="Contra las Personas (Lesiones)">Contra las Personas (Lesiones)</SelectItem>
-                  <SelectItem value="Contra las Personas">Contra las Personas (Violencia)</SelectItem>
+                  <SelectItem value="Contra las Personas (Lesiones Reciprocas)">Contra las Personas (Lesiones Reciprocas)</SelectItem>
+                  <SelectItem value="Contra las Personas (Violencia)">Contra las Personas (Violencia)</SelectItem>
+                  <SelectItem value="Contra las Personas (Abuso Sexual)">Contra las Personas (Abuso Sexual)</SelectItem>
                   <SelectItem value="Contra las Personas (Homicidio)">Contra las Personas (Homicidio)</SelectItem>
                 </SelectContent>
               </Select>
