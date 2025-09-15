@@ -1108,5 +1108,98 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2025-09-12T17:18:21.994272",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28609925,
+                "fecha_nac": "2001-06-26",
+                "rif": "V286099250",
+                "primer_apellido": "JIMENEZ",
+                "segundo_apellido": "MENDOZA",
+                "primer_nombre": "RAUL",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2025-09-12T21:18:22.548Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-12T17:18:36.697068",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "25660766",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=25660766",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 25660766,
+                "fecha_nac": "1995-11-28",
+                "rif": "V256607669",
+                "primer_apellido": "RAMIREZ",
+                "segundo_apellido": "CORDERO",
+                "primer_nombre": "DENNY",
+                "segundo_nombre": "RAFAEL",
+                "request_date": "2025-09-12T21:18:37.246Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-12T17:19:06.744231",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "25760766",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=25760766",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 25760766,
+                "fecha_nac": "1997-06-19",
+                "rif": "V257607662",
+                "primer_apellido": "ARAUJO",
+                "segundo_apellido": "RANGEL",
+                "primer_nombre": "ZUNILDE",
+                "segundo_nombre": "ELENA",
+                "request_date": "2025-09-12T21:19:07.295Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-09-13T17:05:57.048044",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "23504805",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=23504805",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 23504805,
+                "fecha_nac": "1986-12-22",
+                "rif": "V235048058",
+                "cne": {
+                    "estado": "BOLIVAR",
+                    "municipio": "CARONI",
+                    "parroquia": "VISTA AL SOL",
+                    "centro_electoral": "ESCUELA MUNICPAL ANTONIO PINTO SALINAS"
+                },
+                "primer_apellido": "CAMPOS",
+                "primer_nombre": "DARWIN",
+                "segundo_nombre": "ENRIQUE",
+                "request_date": "2025-09-13T21:05:56.980Z"
+            }
+        },
+        "success": true
     }
 ]

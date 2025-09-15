@@ -5,6 +5,7 @@ import path from "path";
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import ExcelJS from 'exceljs';
+import multer from 'multer';
 import { parseWithPrefixes } from '../tools/utils_I';
 import { experticias, insertExperticiasSchema } from '../shared/schema';
 
@@ -13,6 +14,35 @@ const swiPdf = {
   downloadAsPdf: false,
   // otros valores de configuración...
 };
+
+// Configuración de multer para archivos Excel de experticias
+const experticiasUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const experticiasDir = path.join(process.cwd(), 'uploads', 'experticias');
+      if (!existsSync(experticiasDir)) {
+        mkdirSync(experticiasDir, { recursive: true });
+      }
+      cb(null, experticiasDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueName = `experticia-${Date.now()}-${Math.round(Math.random() * 1E9)}-${file.originalname}`;
+      cb(null, uniqueName);
+    }
+  }),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Solo archivos Excel
+    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+        file.mimetype === 'application/vnd.ms-excel') {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos Excel (.xls, .xlsx)') as any, false);
+    }
+  }
+});
 
 // Funciones reutilizables para generación de documentos
 export async function generateWordDocument(requestData: any, storage: any): Promise<Buffer | null> {
@@ -173,7 +203,7 @@ export async function generateExcelDocument(requestData: any): Promise<Buffer | 
     }
 
     // Aplicar los datos a las celdas preservando el formato
-    dataMappings.forEach(dataMapping => {
+    dataMappings.forEach((dataMapping: Record<string, string>) => {
       Object.entries(dataMapping).forEach(([cellAddress, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           const cell = worksheet.getCell(cellAddress);
@@ -199,6 +229,33 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
     const { downloadAsPdf } = req.body;
     swiPdf.downloadAsPdf = downloadAsPdf;
     res.json({ success: true, downloadAsPdf });
+  });
+
+  // Ruta para subir archivos Excel de experticias
+  app.post("/api/experticias/upload-archivo", authenticateToken, experticiasUpload.single('archivo'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No se proporcionó ningún archivo" });
+      }
+
+      // Retornar información del archivo subido
+      const fileInfo = {
+        nombreArchivo: req.file.originalname,
+        tamañoArchivo: req.file.size,
+        rutaArchivo: req.file.path,
+        filename: req.file.filename
+      };
+
+      res.json({ 
+        success: true, 
+        message: "Archivo subido exitosamente",
+        archivo: fileInfo
+      });
+
+    } catch (error) {
+      console.error("Error subiendo archivo de experticia:", error);
+      res.status(500).json({ message: "Error interno del servidor al subir archivo" });
+    }
   });
   
   // Ruta para generar plantilla Word personalizada
@@ -232,7 +289,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
            ? 'CIRHV'
            : (requestData.coordinacionSolicitante && requestData.coordinacionSolicitante.includes('homicidio')) 
            ? 'CIDCPER'
-           : 'IDENTIFICAR OFICINA POR FAVOR!!!',  // Valor por defecto,
+           : 'IDENTIFICAR OFICINA POR FAVOR!!!',  // Valor por defecto
 
         SOLICITUD: solicitudShort,
         EXP: requestData.numeroExpediente || '',
@@ -425,7 +482,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       console.log("Mapeo de datos para Excel:", JSON.stringify(dataMappings, null, 2));
 
       // Aplicar los datos a las celdas preservando el formato
-      dataMappings.forEach(dataMapping => {
+      dataMappings.forEach((dataMapping: Record<string, string>) => {
         Object.entries(dataMapping).forEach(([cellAddress, value]) => {
           if (value !== undefined && value !== null && value !== '') {
             const cell = worksheet.getCell(cellAddress);
@@ -482,7 +539,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       const templateData = {
         FECHA: currentDate,
         UBICA: desp,
-        FUBICA: desp.toLowerCase,
+        FUBICA: desp.toLowerCase(),
         DICTAME: requestData.numeroDictamen || '',
         EXPERTO: requestData.experto || '',
         COMUNICACION: requestData.numeroComunicacion || '',
@@ -734,7 +791,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       ];
 
       // Aplicar los datos a las celdas preservando el formato
-      dataMappings.forEach(dataMapping => {
+      dataMappings.forEach((dataMapping: Record<string, string>) => {
         Object.entries(dataMapping).forEach(([cellAddress, value]) => {
           if (value !== undefined && value !== null && value !== '') {
             const cell = worksheet.getCell(cellAddress);
