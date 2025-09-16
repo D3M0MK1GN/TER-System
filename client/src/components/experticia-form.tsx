@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Atom, Upload } from "lucide-react";
+import { Atom, Upload, FileSpreadsheet, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
 import { usePermissions } from "@/hooks/use-permissions";
 import { z } from "zod";
@@ -30,6 +30,26 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
   const isEditing = !!experticia;
   const scrollContainerRef = useRef<HTMLFormElement>(null);
   const permissions = usePermissions();
+
+  // Estado para la subida de archivos
+  const [fileUploadState, setFileUploadState] = useState<{
+    isUploading: boolean;
+    uploadedFile: { name: string; size: string } | null;
+    error: string | null;
+  }>({
+    isUploading: false,
+    uploadedFile: null,
+    error: null,
+  });
+
+  // Helper para formatear tamaño de archivo
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   const form = useForm<FormData>({
     resolver: zodResolver(experticiasFormSchema),
@@ -58,7 +78,13 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
     },
   });
 
+  // Monitorear campo abonado para habilitar/deshabilitar subida de archivo
+  const abonadoValue = form.watch('abonado');
+
   const handleSubmit = (data: FormData) => {
+    if (fileUploadState.isUploading) {
+      return; // Prevenir submit durante subida
+    }
     onSubmit(data);
   };
 
@@ -400,24 +426,6 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
             
             <FormField
               control={form.control}
-              name="abonado"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Abonado</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Número o identificación del abonado" 
-                      {...field}
-                      value={field.value || ""} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="datosAbonado"
               render={({ field }) => (
                 <FormItem>
@@ -477,6 +485,36 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
             
             <FormField
               control={form.control}
+              name="abonado"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Abonado</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Número o identificación del abonado" 
+                      {...field}
+                      value={field.value || ""} 
+                      onKeyDown={(e) => {
+                        const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+                        const allowedChars = /[0-9]/;
+                        
+                        if (allowedKeys.includes(e.key)) {
+                          return; // Permitir teclas de navegación
+                        }
+                        
+                        if (!allowedChars.test(e.key)) {
+                          e.preventDefault(); // Bloquear todo excepto números
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="archivoAdjunto"
               render={({ field }) => (
                 <FormItem>
@@ -485,20 +523,98 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
                     <span>Adjuntar Archivo</span>
                   </FormLabel>
                   <FormControl>
-                    <Input 
-                      type="file"
-                      accept=".xls,.xlsx"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          field.onChange(file.name);
-                          // Capturar automáticamente nombre y tamaño del archivo
-                          form.setValue('nombreArchivo', file.name);
-                          form.setValue('tamañoArchivo', file.size);
-                        }
-                      }}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium"
-                    />
+                    <div className="space-y-2">
+                      <Input 
+                        type="file"
+                        accept=".xls,.xlsx"
+                        disabled={!abonadoValue || fileUploadState.isUploading}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            // Limpiar estado anterior automáticamente
+                            setFileUploadState({
+                              isUploading: true,
+                              uploadedFile: null,
+                              error: null,
+                            });
+
+                            try {
+                              const formData = new FormData();
+                              formData.append('archivo', file);
+                              
+                              const response = await fetch('/api/experticias/upload-archivo', {
+                                method: 'POST',
+                                headers: {
+                                  'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                },
+                                body: formData,
+                              });
+                              
+                              if (response.ok) {
+                                const result = await response.json();
+                                field.onChange(result.archivo.rutaArchivo);
+                                form.setValue('nombreArchivo', result.archivo.nombreArchivo);
+                                form.setValue('tamañoArchivo', result.archivo.tamañoArchivo);
+                                
+                                setFileUploadState({
+                                  isUploading: false,
+                                  uploadedFile: {
+                                    name: result.archivo.nombreArchivo,
+                                    size: formatFileSize(result.archivo.tamañoArchivo),
+                                  },
+                                  error: null,
+                                });
+                              } else {
+                                const errorText = await response.text();
+                                field.onChange('');
+                                setFileUploadState({
+                                  isUploading: false,
+                                  uploadedFile: null,
+                                  error: errorText || 'Error subiendo archivo',
+                                });
+                              }
+                            } catch (error) {
+                              field.onChange('');
+                              setFileUploadState({
+                                isUploading: false,
+                                uploadedFile: null,
+                                error: 'Error de conexión al subir archivo',
+                              });
+                            }
+                          }
+                        }}
+                        className={`file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium ${
+                          fileUploadState.uploadedFile ? 'border-green-500' : 
+                          fileUploadState.error ? 'border-red-500' : ''
+                        }`}
+                      />
+                      
+                      {/* Estado de subida */}
+                      {fileUploadState.isUploading && (
+                        <div className="flex items-center space-x-2 text-sm text-blue-600">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Subiendo archivo...</span>
+                        </div>
+                      )}
+                      
+                      {/* Archivo subido exitosamente */}
+                      {fileUploadState.uploadedFile && (
+                        <div className="flex items-center space-x-2 text-sm text-green-600">
+                          <CheckCircle className="h-4 w-4" />
+                          <FileSpreadsheet className="h-4 w-4" />
+                          <span>{fileUploadState.uploadedFile.name}</span>
+                          <span className="text-gray-500">({fileUploadState.uploadedFile.size})</span>
+                        </div>
+                      )}
+                      
+                      {/* Error en subida */}
+                      {fileUploadState.error && (
+                        <div className="flex items-center space-x-2 text-sm text-red-600">
+                          <XCircle className="h-4 w-4" />
+                          <span>{fileUploadState.error}</span>
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
                   <p className="text-sm text-gray-600">
                     Formatos permitidos: XLS, XLSX
