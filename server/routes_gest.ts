@@ -6,6 +6,7 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import ExcelJS from 'exceljs';
 import multer from 'multer';
+import fetch from 'node-fetch';
 import { parseWithPrefixes } from '../tools/utils_I';
 import { experticias, insertExperticiasSchema } from '../shared/schema';
 
@@ -255,6 +256,71 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
     } catch (error) {
       console.error("Error subiendo archivo de experticia:", error);
       res.status(500).json({ message: "Error interno del servidor al subir archivo" });
+    }
+  });
+
+  // Endpoint para analizar BTS usando API Python
+  app.post("/api/experticias/analizar-bts", authenticateToken, async (req: any, res) => {
+    try {
+      const { archivo_excel, numero_buscar } = req.body;
+      
+      if (!archivo_excel || !numero_buscar) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Archivo Excel y número de búsqueda son requeridos" 
+        });
+      }
+
+      // Validar seguridad: solo permitir archivos en uploads/experticias
+      const experticiasDir = path.join(process.cwd(), 'uploads', 'experticias');
+      const normalizedPath = path.normalize(archivo_excel);
+      const resolvedPath = path.resolve(normalizedPath);
+      const resolvedExperticiasDir = path.resolve(experticiasDir);
+      
+      if (!resolvedPath.startsWith(resolvedExperticiasDir)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Acceso no autorizado: archivo fuera del directorio permitido" 
+        });
+      }
+
+      // Verificar que el archivo existe
+      if (!existsSync(resolvedPath)) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Archivo Excel no encontrado" 
+        });
+      }
+
+      // Llamar al API Python
+      const pythonApiResponse = await fetch('http://localhost:5001/analizar-bts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          archivo_excel: resolvedPath,
+          numero_buscar: numero_buscar
+        }),
+      });
+
+      if (!pythonApiResponse.ok) {
+        const errorText = await pythonApiResponse.text();
+        return res.status(500).json({ 
+          success: false, 
+          message: `Error en API Python: ${errorText}` 
+        });
+      }
+
+      const pythonData = await pythonApiResponse.json();
+      res.json(pythonData);
+
+    } catch (error) {
+      console.error("Error analizando BTS:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error interno del servidor al analizar BTS" 
+      });
     }
   });
   

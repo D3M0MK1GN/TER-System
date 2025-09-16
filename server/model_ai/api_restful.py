@@ -18,6 +18,9 @@ import uvicorn
 # Agregar el directorio osintpython al path para importar infoI
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'osintpython'))
 
+# Agregar el directorio experticias al path para importar BTSIdentifier
+sys.path.append(os.path.join(os.path.dirname(__file__), 'experticias'))
+
 # Importar funciones de infoI.py
 try:
     from infoI import cargar_logs, guardar_logs, APP_ID, TOKEN, BASE_URL, LOG_FILE
@@ -28,6 +31,13 @@ except ImportError as e:
     TOKEN = "64c2f1ca6f9abe04b74e386638816573"
     BASE_URL = "http://api.cedula.com.ve/api/v1"
     LOG_FILE = "consultas_cedulas.json"
+
+# Importar BTSIdentifier
+try:
+    from identify_bts import BTSIdentifier
+except ImportError as e:
+    print(f"Error importando BTSIdentifier: {e}")
+    BTSIdentifier = None
 
 # Crear la aplicación FastAPI
 app = FastAPI(
@@ -60,6 +70,16 @@ class HistorialResponse(BaseModel):
     consultas: List[Dict[str, Any]]
     total: int
 
+class AnalizarBTSRequest(BaseModel):
+    archivo_excel: str
+    numero_buscar: str
+
+class AnalizarBTSResponse(BaseModel):
+    success: bool
+    data: Optional[List[Dict[str, Any]]] = None
+    error: Optional[str] = None
+    timestamp: str
+
 # Funciones auxiliares
 def cargar_logs():
     """Carga las consultas existentes desde el archivo JSON."""
@@ -90,6 +110,7 @@ async def root():
         "endpoints": [
             "/consulta-cedula",
             "/historial-consultas",
+            "/analizar-bts",
             "/health"
         ]
     }
@@ -187,6 +208,59 @@ async def consultar_cedula(request: ConsultaCedulaRequest):
         return ConsultaCedulaResponse(
             success=False,
             error=f"Error interno: {str(e)}",
+            timestamp=datetime.now().isoformat()
+        )
+
+@app.post("/analizar-bts", response_model=AnalizarBTSResponse)
+async def analizar_bts(request: AnalizarBTSRequest):
+    """
+    Analiza archivo Excel BTS buscando número de abonado
+    """
+    try:
+        if BTSIdentifier is None:
+            raise HTTPException(
+                status_code=500, 
+                detail="Servicio de análisis BTS no disponible"
+            )
+        
+        # Validar que el archivo existe
+        if not os.path.exists(request.archivo_excel):
+            raise HTTPException(
+                status_code=400, 
+                detail="Archivo Excel no encontrado"
+            )
+        
+        # Crear instancia de BTSIdentifier
+        identificador = BTSIdentifier()
+        
+        # Realizar análisis
+        resultados = identificador.buscar_por_abonado_b(
+            request.archivo_excel, 
+            request.numero_buscar
+        )
+        
+        if resultados is None or resultados.empty:
+            return AnalizarBTSResponse(
+                success=True,
+                data=[],
+                timestamp=datetime.now().isoformat()
+            )
+        
+        # Convertir DataFrame a lista de diccionarios
+        resultados_list = resultados.to_dict('records')
+        
+        return AnalizarBTSResponse(
+            success=True,
+            data=resultados_list,
+            timestamp=datetime.now().isoformat()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        return AnalizarBTSResponse(
+            success=False,
+            error=f"Error al analizar archivo BTS: {str(e)}",
             timestamp=datetime.now().isoformat()
         )
 

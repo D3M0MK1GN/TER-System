@@ -1,4 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { spawn } from "child_process";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { tokenCleanupManager } from "../tools/clean";
@@ -118,5 +120,27 @@ app.use((req, res, next) => {
     
     // Iniciar el sistema de limpieza automática de tokens
     tokenCleanupManager.start();
+    
+    // Iniciar el servicio Python API para análisis BTS
+    const pythonApiPath = path.join(process.cwd(), 'server', 'model_ai', 'api_restful.py');
+    const pythonExecutable = path.join(process.cwd(), '.pythonlibs', 'bin', 'python');
+    const pythonProcess = spawn(pythonExecutable, [pythonApiPath], {
+      cwd: process.cwd(),
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    
+    pythonProcess.stdout?.on('data', (data) => {
+      log(`[Python API] ${data.toString().trim()}`);
+    });
+    
+    pythonProcess.stderr?.on('data', (data) => {
+      log(`[Python API Error] ${data.toString().trim()}`);
+    });
+    
+    pythonProcess.on('close', (code) => {
+      log(`[Python API] Process exited with code ${code}`);
+    });
+    
+    log('🐍 Iniciando API Python para análisis BTS en puerto 5001');
   });
 })();
