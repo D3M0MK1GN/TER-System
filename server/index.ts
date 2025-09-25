@@ -121,9 +121,10 @@ app.use((req, res, next) => {
     // Iniciar el sistema de limpieza automática de tokens
     tokenCleanupManager.start();
     
+    /* */
     // Iniciar el servicio Python API para análisis BTS
     const pythonApiPath = path.join(process.cwd(), 'server', 'model_ai', 'api_restful.py');
-    const pythonExecutable = path.join(process.cwd(), '.pythonlibs', 'bin', 'python');
+    const pythonExecutable = '/home/d1killer/Tools/d1killer/bin/python';
     const pythonProcess = spawn(pythonExecutable, [pythonApiPath], {
       cwd: process.cwd(),
       stdio: ['pipe', 'pipe', 'pipe']
