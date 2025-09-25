@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Atom, Upload, FileSpreadsheet, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -39,6 +40,17 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
   }>({
     isUploading: false,
     uploadedFile: null,
+    error: null,
+  });
+
+  // Estado para los resultados del análisis BTS
+  const [btsAnalysisState, setBtsAnalysisState] = useState<{
+    isAnalyzing: boolean;
+    results: any[] | null;
+    error: string | null;
+  }>({
+    isAnalyzing: false,
+    results: null,
     error: null,
   });
 
@@ -564,6 +576,50 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
                                   },
                                   error: null,
                                 });
+
+                                // Análisis automático BTS después de subir archivo
+                                if (abonadoValue) {
+                                  setBtsAnalysisState({
+                                    isAnalyzing: true,
+                                    results: null,
+                                    error: null,
+                                  });
+
+                                  try {
+                                    const analysisResponse = await fetch('/api/experticias/analizar-bts', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                      },
+                                      body: JSON.stringify({
+                                        archivo_excel: result.archivo.rutaArchivo,
+                                        numero_buscar: abonadoValue,
+                                      }),
+                                    });
+
+                                    if (analysisResponse.ok) {
+                                      const analysisResult = await analysisResponse.json();
+                                      setBtsAnalysisState({
+                                        isAnalyzing: false,
+                                        results: analysisResult.data || [],
+                                        error: null,
+                                      });
+                                    } else {
+                                      setBtsAnalysisState({
+                                        isAnalyzing: false,
+                                        results: null,
+                                        error: 'Error en el análisis BTS',
+                                      });
+                                    }
+                                  } catch (analysisError) {
+                                    setBtsAnalysisState({
+                                      isAnalyzing: false,
+                                      results: null,
+                                      error: 'Error de conexión al analizar BTS',
+                                    });
+                                  }
+                                }
                               } else {
                                 const errorText = await response.text();
                                 field.onChange('');
@@ -623,6 +679,71 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
                 </FormItem>
               )}
             />
+
+            {/* Resultados del análisis BTS */}
+            {(btsAnalysisState.isAnalyzing || btsAnalysisState.results || btsAnalysisState.error) && (
+              <div className="space-y-3 border-t pt-4">
+                <h4 className="text-md font-medium">Análisis BTS</h4>
+                
+                {/* Estado de análisis */}
+                {btsAnalysisState.isAnalyzing && (
+                  <div className="flex items-center space-x-2 text-sm text-blue-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analizando archivo BTS...</span>
+                  </div>
+                )}
+                
+                {/* Error en análisis */}
+                {btsAnalysisState.error && (
+                  <div className="flex items-center space-x-2 text-sm text-red-600">
+                    <XCircle className="h-4 w-4" />
+                    <span>{btsAnalysisState.error}</span>
+                  </div>
+                )}
+                
+                {/* Resultados del análisis */}
+                {btsAnalysisState.results && btsAnalysisState.results.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-sm text-green-600 font-medium">
+                      Resultados encontrados: {btsAnalysisState.results.length}
+                    </div>
+                    <div className="max-h-60 overflow-y-auto border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>ABONADO A</TableHead>
+                            <TableHead>ABONADO B</TableHead>
+                            <TableHead>FECHA</TableHead>
+                            <TableHead>HORA</TableHead>
+                            <TableHead>TIME</TableHead>
+                            <TableHead>DIRECCION</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {btsAnalysisState.results.map((result, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{result['ABONADO A'] || '-'}</TableCell>
+                              <TableCell>{result['ABONADO B'] || '-'}</TableCell>
+                              <TableCell>{result['FECHA'] || '-'}</TableCell>
+                              <TableCell>{result['HORA'] || '-'}</TableCell>
+                              <TableCell>{result['TIME'] || '-'}</TableCell>
+                              <TableCell>{result['DIRECCION'] || '-'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Sin resultados */}
+                {btsAnalysisState.results && btsAnalysisState.results.length === 0 && (
+                  <div className="text-sm text-gray-600">
+                    No se encontraron resultados para el número {abonadoValue}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
