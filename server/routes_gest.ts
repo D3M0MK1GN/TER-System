@@ -262,12 +262,12 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
   // Endpoint para analizar BTS usando API Python
   app.post("/api/experticias/analizar-bts", authenticateToken, async (req: any, res) => {
     try {
-      const { archivo_excel, numero_buscar } = req.body;
+      const { archivo_excel, numero_buscar, operador } = req.body;
       
-      if (!archivo_excel || !numero_buscar) {
+      if (!archivo_excel || !numero_buscar || !operador) {
         return res.status(400).json({ 
           success: false, 
-          message: "Archivo Excel y número de búsqueda son requeridos" 
+          message: "Archivo Excel, número de búsqueda y operador son requeridos" 
         });
       }
 
@@ -300,7 +300,8 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         },
         body: JSON.stringify({
           archivo_excel: resolvedPath,
-          numero_buscar: numero_buscar
+          numero_buscar: numero_buscar,
+          operador: operador
         }),
       });
 

@@ -73,6 +73,7 @@ class HistorialResponse(BaseModel):
 class AnalizarBTSRequest(BaseModel):
     archivo_excel: str
     numero_buscar: str
+    operador: str
 
 class AnalizarBTSResponse(BaseModel):
     success: bool
@@ -216,6 +217,7 @@ async def analizar_bts(request: AnalizarBTSRequest):
     """
     Analiza archivo Excel BTS buscando número de abonado
     """
+    print(f"[DEBUG API] Iniciando análisis BTS con datos: archivo={request.archivo_excel}, numero={request.numero_buscar}, operador={request.operador}")
     try:
         if BTSIdentifier is None:
             raise HTTPException(
@@ -224,20 +226,27 @@ async def analizar_bts(request: AnalizarBTSRequest):
             )
         
         # Validar que el archivo existe
+        print(f"[DEBUG API] Verificando existencia del archivo: {request.archivo_excel}")
         if not os.path.exists(request.archivo_excel):
+            print(f"[DEBUG API ERROR] Archivo no encontrado: {request.archivo_excel}")
             raise HTTPException(
                 status_code=400, 
                 detail="Archivo Excel no encontrado"
             )
+        print(f"[DEBUG API] Archivo encontrado correctamente")
         
         # Crear instancia de BTSIdentifier
+        print(f"[DEBUG API] Creando instancia de BTSIdentifier")
         identificador = BTSIdentifier()
         
         # Realizar análisis
+        print(f"[DEBUG API] Llamando buscar_por_abonado_b con parámetros: archivo={request.archivo_excel}, numero={request.numero_buscar}, operador={request.operador}")
         resultados = identificador.buscar_por_abonado_b(
             request.archivo_excel, 
-            request.numero_buscar
+            request.numero_buscar,
+            request.operador
         )
+        print(f"[DEBUG API] Resultado de análisis: {type(resultados)}, empty={resultados.empty if hasattr(resultados, 'empty') else 'N/A'}")
         
         if resultados is None or resultados.empty:
             return AnalizarBTSResponse(
@@ -258,6 +267,9 @@ async def analizar_bts(request: AnalizarBTSRequest):
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[DEBUG API ERROR] Excepción en análisis BTS: {type(e).__name__}: {str(e)}")
+        import traceback
+        print(f"[DEBUG API ERROR] Traceback: {traceback.format_exc()}")
         return AnalizarBTSResponse(
             success=False,
             error=f"Error al analizar archivo BTS: {str(e)}",

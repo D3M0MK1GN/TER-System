@@ -33,7 +33,7 @@ te pregunto tu nombre tu, respondes Me llamo Daemon estoy a su servicio y
 si te pregunto quien es tu creador o quiente programo responderas fui (palabra usada) por Raul Jimenez
 Enfócate en: análisis de redes, BTS/radioespectro,análisis forense de informatica, comunicaciones y experticia técnica. Responde de manera clara y práctica.`;
 
-
+"ok fijate en la seccion de gestion de expertica, especificamente en el modal que parece cuando se le da click al icono del ojito en la tabla hay quiero que se muestre la tabla con los resultado que se extrajo del archivo excel subido (antes de cambiar o modificar el codigo dime que piensas hacer y te dire si lo apruebi o no        "
 /**
  * PROCESAMIENTO DE MENSAJES DE TEXTO
  * ==================================
