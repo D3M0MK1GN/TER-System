@@ -595,6 +595,7 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
                                       body: JSON.stringify({
                                         archivo_excel: result.archivo.rutaArchivo,
                                         numero_buscar: abonadoValue,
+                                        operador: form.getValues('operador'), // <-- AGREGA ESTA LÍNEA
                                       }),
                                     });
 
@@ -717,6 +718,7 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
                             <TableHead>HORA</TableHead>
                             <TableHead>TIME</TableHead>
                             <TableHead>DIRECCION</TableHead>
+                            <TableHead>CORDENADAS</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -728,6 +730,7 @@ export function ExperticiasForm({ experticia, onSubmit, onCancel, isLoading, pre
                               <TableCell>{result['HORA'] || '-'}</TableCell>
                               <TableCell>{result['TIME'] || '-'}</TableCell>
                               <TableCell>{result['DIRECCION'] || '-'}</TableCell>
+                              <TableCell>{result['CORDENADAS'] || '-'}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

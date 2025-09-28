@@ -130,16 +130,21 @@ async def consultar_cedula(request: ConsultaCedulaRequest):
     """
     Consulta información de una cédula venezolana
     """
+    print(f"[LOG] Iniciando consulta de cédula: nacionalidad={request.nacionalidad}, cedula={request.cedula}")
     try:
         # Validar nacionalidad
+        print(f"[LOG] Validando nacionalidad: {request.nacionalidad}")
         if request.nacionalidad.upper() not in ['V', 'E']:
+            print(f"[ERROR] Nacionalidad inválida: {request.nacionalidad}")
             raise HTTPException(
                 status_code=400, 
                 detail="Nacionalidad inválida. Use 'V' para Venezolano o 'E' para Extranjero"
             )
         
         # Validar cédula
+        print(f"[LOG] Validando cédula: {request.cedula}")
         if not request.cedula.isdigit():
+            print(f"[ERROR] Cédula inválida: {request.cedula}")
             raise HTTPException(
                 status_code=400, 
                 detail="Número de cédula inválido. Solo se permiten dígitos"
@@ -150,11 +155,14 @@ async def consultar_cedula(request: ConsultaCedulaRequest):
         
         # Construir URL de la consulta
         url = f"{BASE_URL}?app_id={APP_ID}&token={TOKEN}&nacionalidad={nacionalidad}&cedula={cedula}"
+        print(f"[LOG] URL de consulta construida: {url}")
         
         # Realizar la petición HTTP
+        print(f"[LOG] Realizando petición HTTP a la API externa")
         response = requests.get(url, timeout=30)
         response.raise_for_status()
         data = response.json()
+        print(f"[LOG] Respuesta recibida de la API externa: {data}")
         
         # Preparar registro para el log
         consulta_registro = {
@@ -167,10 +175,12 @@ async def consultar_cedula(request: ConsultaCedulaRequest):
         }
         
         # Guardar en el historial
+        print(f"[LOG] Guardando consulta en el historial")
         logs = cargar_logs()
         logs.append(consulta_registro)
         guardar_logs(logs)
         
+        print(f"[LOG] Consulta de cédula finalizada correctamente")
         return ConsultaCedulaResponse(
             success=True,
             data=data,
@@ -178,6 +188,7 @@ async def consultar_cedula(request: ConsultaCedulaRequest):
         )
         
     except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Error de conexión con la API externa: {str(e)}")
         # Error de conexión con la API externa
         error_registro = {
             "timestamp": datetime.now().isoformat(),
@@ -199,6 +210,7 @@ async def consultar_cedula(request: ConsultaCedulaRequest):
         )
     
     except json.JSONDecodeError:
+        print(f"[ERROR] La respuesta de la API no es un JSON válido")
         return ConsultaCedulaResponse(
             success=False,
             error="Error: La respuesta de la API no es un JSON válido",
@@ -206,6 +218,7 @@ async def consultar_cedula(request: ConsultaCedulaRequest):
         )
     
     except Exception as e:
+        print(f"[ERROR] Error interno en consulta de cédula: {str(e)}")
         return ConsultaCedulaResponse(
             success=False,
             error=f"Error interno: {str(e)}",
@@ -217,38 +230,41 @@ async def analizar_bts(request: AnalizarBTSRequest):
     """
     Analiza archivo Excel BTS buscando número de abonado
     """
-    print(f"[DEBUG API] Iniciando análisis BTS con datos: archivo={request.archivo_excel}, numero={request.numero_buscar}, operador={request.operador}")
+    print(f"[LOG] Iniciando análisis BTS: archivo={request.archivo_excel}, numero={request.numero_buscar}, operador={request.operador}")
     try:
         if BTSIdentifier is None:
+            print(f"[ERROR] Servicio de análisis BTS no disponible")
             raise HTTPException(
                 status_code=500, 
                 detail="Servicio de análisis BTS no disponible"
             )
         
         # Validar que el archivo existe
-        print(f"[DEBUG API] Verificando existencia del archivo: {request.archivo_excel}")
+        print(f"[LOG] Verificando existencia del archivo: {request.archivo_excel}")
         if not os.path.exists(request.archivo_excel):
-            print(f"[DEBUG API ERROR] Archivo no encontrado: {request.archivo_excel}")
+            print(f"[ERROR] Archivo Excel no encontrado: {request.archivo_excel}")
             raise HTTPException(
                 status_code=400, 
                 detail="Archivo Excel no encontrado"
             )
-        print(f"[DEBUG API] Archivo encontrado correctamente")
+        print(f"[LOG] Archivo encontrado correctamente")
         
         # Crear instancia de BTSIdentifier
-        print(f"[DEBUG API] Creando instancia de BTSIdentifier")
+        print(f"[LOG] Creando instancia de BTSIdentifier")
         identificador = BTSIdentifier()
         
         # Realizar análisis
-        print(f"[DEBUG API] Llamando buscar_por_abonado_b con parámetros: archivo={request.archivo_excel}, numero={request.numero_buscar}, operador={request.operador}")
+        print(f"[LOG] Llamando buscar_por_abonado_b con parámetros: archivo={request.archivo_excel}, numero={request.numero_buscar}, operador={request.operador}")
         resultados = identificador.buscar_por_abonado_b(
             request.archivo_excel, 
             request.numero_buscar,
             request.operador
         )
-        print(f"[DEBUG API] Resultado de análisis: {type(resultados)}, empty={resultados.empty if hasattr(resultados, 'empty') else 'N/A'}")
+        print(f"Operadora a consultar: {request.operador}")
+        #print(f"[LOG] Resultado de análisis: tipo={type(resultados)}, empty={resultados.empty if hasattr(resultados, 'empty') else 'N/A'}")
         
         if resultados is None or resultados.empty:
+            print(f"[LOG] No se encontraron resultados en el análisis BTS")
             return AnalizarBTSResponse(
                 success=True,
                 data=[],
@@ -256,8 +272,10 @@ async def analizar_bts(request: AnalizarBTSRequest):
             )
         
         # Convertir DataFrame a lista de diccionarios
+        print(f"[LOG] Convirtiendo resultados a lista de diccionarios")
         resultados_list = resultados.to_dict('records')
         
+        print(f"[LOG] Análisis BTS finalizado correctamente")
         return AnalizarBTSResponse(
             success=True,
             data=resultados_list,
@@ -265,11 +283,12 @@ async def analizar_bts(request: AnalizarBTSRequest):
         )
         
     except HTTPException:
+        print(f"[ERROR] HTTPException lanzada en análisis BTS")
         raise
     except Exception as e:
-        print(f"[DEBUG API ERROR] Excepción en análisis BTS: {type(e).__name__}: {str(e)}")
+        print(f"[ERROR] Excepción en análisis BTS: {type(e).__name__}: {str(e)}")
         import traceback
-        print(f"[DEBUG API ERROR] Traceback: {traceback.format_exc()}")
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
         return AnalizarBTSResponse(
             success=False,
             error=f"Error al analizar archivo BTS: {str(e)}",
@@ -281,14 +300,18 @@ async def obtener_historial(limit: int = 50, offset: int = 0):
     """
     Obtiene el historial de consultas realizadas
     """
+    print(f"[LOG] Obteniendo historial de consultas: limit={limit}, offset={offset}")
     try:
         logs = cargar_logs()
+        print(f"[LOG] Total de consultas en historial: {len(logs)}")
         
         # Ordenar por timestamp descendente (más recientes primero)
         logs_ordenados = sorted(logs, key=lambda x: x.get('timestamp', ''), reverse=True)
+        print(f"[LOG] Historial ordenado por fecha")
         
         # Aplicar paginación
         consultas_paginadas = logs_ordenados[offset:offset + limit]
+        print(f"[LOG] Historial paginado: {len(consultas_paginadas)} registros devueltos")
         
         return HistorialResponse(
             consultas=consultas_paginadas,
@@ -296,6 +319,7 @@ async def obtener_historial(limit: int = 50, offset: int = 0):
         )
         
     except Exception as e:
+        print(f"[ERROR] Error al obtener historial: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al obtener historial: {str(e)}")
 
 @app.delete("/historial-consultas")
@@ -303,10 +327,13 @@ async def limpiar_historial():
     """
     Limpia el historial de consultas
     """
+    print(f"[LOG] Limpiando historial de consultas")
     try:
         guardar_logs([])
+        print(f"[LOG] Historial limpiado exitosamente")
         return {"message": "Historial limpiado exitosamente", "timestamp": datetime.now().isoformat()}
     except Exception as e:
+        print(f"[ERROR] Error al limpiar historial: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al limpiar historial: {str(e)}")
 
 @app.get("/stats")
@@ -314,8 +341,10 @@ async def obtener_estadisticas():
     """
     Obtiene estadísticas de uso de la API
     """
+    print(f"[LOG] Obteniendo estadísticas de uso de la API")
     try:
         logs = cargar_logs()
+        print(f"[LOG] Total de consultas en logs: {len(logs)}")
         
         total_consultas = len(logs)
         consultas_exitosas = len([log for log in logs if log.get('success', False)])
@@ -325,6 +354,7 @@ async def obtener_estadisticas():
         venezolanos = len([log for log in logs if log.get('nacionalidad_consultada') == 'V'])
         extranjeros = len([log for log in logs if log.get('nacionalidad_consultada') == 'E'])
         
+        print(f"[LOG] Estadísticas calculadas: exitosas={consultas_exitosas}, fallidas={consultas_fallidas}, venezolanos={venezolanos}, extranjeros={extranjeros}")
         return {
             "total_consultas": total_consultas,
             "consultas_exitosas": consultas_exitosas,
@@ -336,12 +366,13 @@ async def obtener_estadisticas():
         }
         
     except Exception as e:
+        print(f"[ERROR] Error al obtener estadísticas: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al obtener estadísticas: {str(e)}")
 
 if __name__ == "__main__":
-    print("🚀 Iniciando TER-System OSINT API...")
-    print("📍 Servidor corriendo en: http://localhost:5001")
-    print("📖 Documentación disponible en: http://localhost:5001/docs")
+    print("[LOG] 🚀 Iniciando TER-System OSINT API...")
+    print("[LOG] 📍 Servidor corriendo en: http://localhost:5001")
+    print("[LOG] 📖 Documentación disponible en: http://localhost:5001/docs")
     
     uvicorn.run(
         "api_restful:app",

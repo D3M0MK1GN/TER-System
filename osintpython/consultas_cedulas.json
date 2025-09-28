@@ -1356,5 +1356,27 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2025-09-28T16:41:55.694937",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28609925,
+                "fecha_nac": "2001-06-26",
+                "rif": "V286099250",
+                "primer_apellido": "JIMENEZ",
+                "segundo_apellido": "MENDOZA",
+                "primer_nombre": "RAUL",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2025-09-28T20:41:55.638Z"
+            }
+        },
+        "success": true
     }
 ]

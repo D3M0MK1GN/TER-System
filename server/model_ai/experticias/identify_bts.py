@@ -10,20 +10,22 @@ class BTSIdentifier:
         print(f"[DEBUG BTS] Hojas disponibles: {hojas}")
 
         print(f"[DEBUG BTS] Verificando operador: {operador.lower()}")
-        if 'digitel' not in operador.lower():
+        if 'digitel' in operador.lower():
 
-            print(f"[DEBUG BTS] Procesando como no-digitel, leyendo Hoja1")
+            print(f"[DEBUG BTS] Procesando como digitel, leyendo Hoja1")
             datos_voz = pd.read_excel(archivo_excel, sheet_name='Hoja1')
             print(f"[DEBUG BTS] Datos leídos: {datos_voz.shape} filas/columnas")
             datos_voz_despues_fila_15 = datos_voz.iloc[28:]
             print(f"[DEBUG BTS] Después de fila 28: {datos_voz_despues_fila_15.shape} filas/columnas")
             datos_filtrados = datos_voz_despues_fila_15.iloc[:, [
-                0, 3, 7, 7, 8, 10
+                0, 3, 7, 7, 8, 10, 15, 16
             ]]
             datos_filtrados.columns = [
-                'ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION'
+                'ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION', 'CORDENADAS', 'CORDENADAS_2'
             ]
 
+            datos_filtrados['CORDENADAS'] = datos_filtrados['CORDENADAS'].astype(str) + " " + datos_filtrados['CORDENADAS_2'].astype(str)
+            
             resultados = datos_filtrados[datos_filtrados['ABONADO B'].astype(
                 str) == numero_buscar]
 
@@ -54,12 +56,15 @@ class BTSIdentifier:
             datos_voz_despues_fila_15 = datos_voz.iloc[14:]
             print(f"[DEBUG BTS] Después de fila 14: {datos_voz_despues_fila_15.shape} filas/columnas")
             datos_filtrados = datos_voz_despues_fila_15.iloc[:, [
-                0, 1, 2, 3, 4, 9
+                0, 1, 2, 3, 4, 9, 10, 11
             ]]
+            
             datos_filtrados.columns = [
-                'ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION'
+                'ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION', 'CORDENADAS', 'CORDENADAS_2'
             ]
 
+            datos_filtrados['CORDENADAS'] = datos_filtrados['CORDENADAS'].astype(str) + " " + datos_filtrados['CORDENADAS_2'].astype(str)
+            
             resultados = datos_filtrados[datos_filtrados['ABONADO B'].astype(
                 str) == numero_buscar]
 
@@ -76,10 +81,44 @@ class BTSIdentifier:
                          tablefmt='psql',
                          showindex=False))
             return resultados
-        else:
-            print(f"[DEBUG BTS ERROR] Empresa no reconocida: {operador}. Actualmente solo se soporta 'digitel' y 'movistar'.")
-            return None
+        elif 'movilnet' in operador.lower():
+            print(f"[DEBUG BTS] Procesando como Movilnet")
 
+            if 'LLAMADA' not in hojas:
+                print(f"[DEBUG BTS ERROR] La hoja 'LLAMADA' no existe en el archivo. Hojas disponibles: {hojas}")
+                return None
+
+            print(f"[DEBUG BTS] Leyendo hoja LLAMADA")
+            datos_voz = pd.read_excel(archivo_excel, sheet_name='LLAMADA')
+            print(f"[DEBUG BTS] Datos LLAMADA leídos: {datos_voz.shape} filas/columnas")
+            datos_voz_despues_fila_15 = datos_voz.iloc[1:]
+            print(f"[DEBUG BTS] Después de fila 14: {datos_voz_despues_fila_15.shape} filas/columnas")
+            datos_filtrados = datos_voz_despues_fila_15.iloc[:, [
+                1, 2, 4, 5, 6, 9, 9, 11
+            ]]
+            
+            datos_filtrados.columns = [
+                'ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION', 'CORDENADAS', 'CORDENADAS_2'
+            ]
+
+            datos_filtrados['CORDENADAS'] = datos_filtrados['CORDENADAS'].astype(str) + " " + datos_filtrados['CORDENADAS_2'].astype(str)
+            
+            resultados = datos_filtrados[datos_filtrados['ABONADO B'].astype(
+                str) == numero_buscar]
+
+            if resultados.empty:
+                print(
+                    f"No se encontraron resultados para el número {numero_buscar}."
+                )
+                return None
+
+            print(f"Resultados para el número {numero_buscar}:")
+            print(
+                tabulate(resultados.head(10),
+                         headers='keys',
+                         tablefmt='psql',
+                         showindex=False))
+            return resultados
 
 # Ejemplo de uso:
 if __name__ == "__main__":
