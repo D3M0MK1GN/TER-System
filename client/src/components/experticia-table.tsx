@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { DetailField } from "@/components/ui/detail-field";
-import { Eye, Edit, Trash2, Search, Plus, ChevronLeft, ChevronRight, BarChart3, CheckCircle, XCircle, Clock, QrCode, Calendar, FileText, Download, Printer } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Plus, ChevronLeft, ChevronRight, BarChart3, CheckCircle, XCircle, Clock, QrCode, Calendar, FileText, Download, Printer, MessageSquare, Files, Bug } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { type Experticia } from "@shared/schema";
@@ -91,6 +91,7 @@ export function ExperticiasTable({
     search: "",
   });
   const [viewingExperticia, setViewingExperticia] = useState<Experticia | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Función para imprimir el reporte
   const handlePrint = () => {
@@ -367,7 +368,7 @@ export function ExperticiasTable({
 
       {/* View Details Modal */}
       <Dialog open={!!viewingExperticia} onOpenChange={() => setViewingExperticia(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-x-auto">
           <DialogHeader className="pb-4">
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -481,6 +482,79 @@ export function ExperticiasTable({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Burbuja flotante con menú */}
+      <div className="fixed bottom-4 right-3 z-50">
+        {/* Menú desplegable */}
+        {isMenuOpen && (
+          <div className="absolute bottom-12 right-5 bg-white rounded-lg shadow-lg border border-gray-200 py-2 w-56 mb-2" data-testid="menu-flotante">
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 transition-colors"
+              data-testid="button-chat"
+            >
+              <MessageSquare className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-medium">Chat</span>
+            </button>
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 transition-colors"
+              data-testid="button-combinar-archivos"
+            >
+              <Files className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium">Combinar Archivos</span>
+            </button>
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 transition-colors relative"
+              data-testid="button-rastrear"
+            >
+              <div className="relative">
+                <Bug className="h-5 w-5 text-red-600 relative z-10" />
+                <div className="absolute inset-0 opacity-20 ">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5">
+                    <path
+                      d="M12 2L2 7L12 12L22 7L12 2Z"
+                      fill="currentColor"
+                      className="text-gray-400"
+                    />
+                    <path
+                      d="M2 17L12 22L22 17"
+                      stroke="currentColor"
+                      className="text-gray-400"
+                      fill="none"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="M2 12L12 17L22 12"
+                      stroke="currentColor"
+                      className="text-gray-400"
+                      fill="none"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <span className="text-sm font-medium">Rastrear (Araña)</span>
+            </button>
+          </div>
+        )}
+
+        {/* Botón de burbuja */}
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition-all hover:scale-110"
+          data-testid="button-menu-flotante"
+        >
+          <Plus className={`h-6 w-6 transition-transform ${isMenuOpen ? 'rotate-45' : ''}`} />
+        </button>
+      </div>
     </div>
   );
 }

@@ -1378,5 +1378,63 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2025-10-01T19:35:07.919529",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "25471675",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=25471675",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 25471675,
+                "fecha_nac": "1997-01-29",
+                "rif": "V254716754",
+                "primer_apellido": "BONILLA",
+                "segundo_apellido": "OCHOA",
+                "primer_nombre": "PAOLA",
+                "segundo_nombre": "SILIBET",
+                "request_date": "2025-10-01T23:35:07.899Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-10-02T08:39:21.372196",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "10319748",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=10319748",
+        "error": "HTTPConnectionPool(host='api.cedula.com.ve', port=80): Max retries exceeded with url: /api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=10319748 (Caused by NameResolutionError(\"<urllib3.connection.HTTPConnection object at 0x770e9374a3c0>: Failed to resolve 'api.cedula.com.ve' ([Errno -2] Name or service not known)\"))",
+        "success": false
+    },
+    {
+        "timestamp": "2025-10-02T18:05:16.242565",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "10319748",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=10319748",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 10319748,
+                "fecha_nac": "1971-11-12",
+                "rif": "V103197488",
+                "cne": {
+                    "estado": "TRUJILLO",
+                    "municipio": "PAMPAN",
+                    "parroquia": "PAMPAN",
+                    "centro_electoral": "ESCUELA BOLIVARIANA FRANCISCO DE SALES PÉREZ"
+                },
+                "primer_apellido": "ROSALES",
+                "segundo_apellido": "BRICEÑO",
+                "primer_nombre": "CARYULY",
+                "segundo_nombre": "TRINIDAD",
+                "request_date": "2025-10-02T22:05:16.197Z"
+            }
+        },
+        "success": true
     }
 ]
