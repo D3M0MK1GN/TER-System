@@ -883,4 +883,67 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       res.status(500).json({ message: "Error generando archivo Excel de experticia" });
     }
   });
+
+  const combinarUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024,
+    },
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+          file.mimetype === 'application/vnd.ms-excel') {
+        cb(null, true);
+      } else {
+        cb(new Error('Solo se permiten archivos Excel (.xls, .xlsx)') as any, false);
+      }
+    }
+  });
+
+  app.post("/api/experticias/combinar-excel", combinarUpload.any(), async (req: any, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length < 2) {
+        return res.status(400).json({ message: "Debes seleccionar al menos 2 archivos para combinar" });
+      }
+
+      const workbookCombinado = new ExcelJS.Workbook();
+      const worksheetCombinado = workbookCombinado.addWorksheet('Datos Combinados');
+
+      let primeraHoja = true;
+
+      for (const file of files) {
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(file.buffer);
+        
+        const worksheet = workbook.worksheets[0];
+        if (!worksheet) continue;
+
+        const filas = worksheet.getRows(1, worksheet.rowCount) || [];
+        if (!Array.isArray(filas)) return; // O manejar el error
+
+        filas.forEach((fila, index) => {
+          if (!fila) return; // Evita errores si alguna fila es undefined
+          if (!primeraHoja && index === 0) return;
+
+          const nuevaFila = worksheetCombinado.addRow([]);
+          fila.eachCell((celda, colNumber) => {
+            nuevaFila.getCell(colNumber).value = celda.value;
+          });
+        });
+
+        primeraHoja = false;
+      }
+
+      const buffer = await workbookCombinado.xlsx.writeBuffer();
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="archivos_combinados.xlsx"');
+      res.send(Buffer.from(buffer));
+
+    } catch (error) {
+      console.error("Error combinando archivos Excel:", error);
+      res.status(500).json({ message: "Error combinando archivos Excel" });
+    }
+  });
 }

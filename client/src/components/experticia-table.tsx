@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Separator } from "@/components/ui/separator";
 import { type Experticia } from "@shared/schema";
 import { type Permission } from "@/hooks/use-permissions";
+import { CombinarArchivosModal } from "./combinar-archivos-modal";
 
 interface ExperticiasTableProps {
   experticias: Experticia[];
@@ -92,6 +93,7 @@ export function ExperticiasTable({
   });
   const [viewingExperticia, setViewingExperticia] = useState<Experticia | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCombinarModalOpen, setIsCombinarModalOpen] = useState(false);
 
   // Función para imprimir el reporte
   const handlePrint = () => {
@@ -501,6 +503,7 @@ export function ExperticiasTable({
             <button
               onClick={() => {
                 setIsMenuOpen(false);
+                setIsCombinarModalOpen(true);
               }}
               className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 transition-colors"
               data-testid="button-combinar-archivos"
@@ -512,7 +515,7 @@ export function ExperticiasTable({
               onClick={() => {
                 setIsMenuOpen(false);
               }}
-              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 transition-colors relative"
+              className="w-full px-4 py-3 text-left hover:bg-purple-100 bg-purple-50 flex items-center space-x-3 transition-colors relative"
               data-testid="button-rastrear"
             >
               <div className="relative">
@@ -555,6 +558,11 @@ export function ExperticiasTable({
           <Plus className={`h-6 w-6 transition-transform ${isMenuOpen ? 'rotate-45' : ''}`} />
         </button>
       </div>
+
+      <CombinarArchivosModal
+        isOpen={isCombinarModalOpen}
+        onClose={() => setIsCombinarModalOpen(false)}
+      />
     </div>
   );
 }
