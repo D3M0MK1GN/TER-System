@@ -715,6 +715,20 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
   // POST /api/experticias - Create new experticia
   app.post("/api/experticias", authenticateToken, async (req: any, res) => {
     try {
+      const numeroSolicitudOriginal = req.body.numeroDictamen;
+      const numeroSolicitudLimpio = (numeroSolicitudOriginal || '').trim().toUpperCase();
+      console.log('Número de solicitud recibido:', numeroSolicitudOriginal);
+      console.log('Número de solicitud limpio:', numeroSolicitudLimpio);
+
+      // Consulta para verificar duplicados
+      const existe = await storage.findSolicitudByNumero(numeroSolicitudLimpio);
+      console.log('¿Existe duplicado en la base de datos?', !!existe);
+
+      if (existe) {
+        console.log('Solicitud duplicada detectada para:', numeroSolicitudLimpio);
+        return res.status(400).json({ message: 'Solicitud duplicada' });
+      }
+
       if (req.user.rol !== 'admin') {
         return res.status(403).json({ message: "No tienes permisos para crear experticias" });
       }
