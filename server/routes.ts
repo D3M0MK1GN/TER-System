@@ -25,6 +25,7 @@ import { registerDocumentRoutes, generateWordDocument, generateExcelDocument } f
 import { generateUserGuideHTML } from "../tools/user_gui";
 import { registerChatbotRoutes } from "./model_ai/routesAI";
 import { registerStatsRoutes } from "./routes-stats";
+import { parseWithPrefixes } from '../tools/utils_I';
 
 // import { readFileSync, existsSync } from 'fs';
 import PizZip from 'pizzip';
@@ -1079,6 +1080,7 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
     const { tipoExperticia } = req.params;
     const requestData = req.body;
 
+
     // 1. Validar existencia de plantilla y archivo (más conciso)
     const plantilla = await storage.getPlantillaWordByTipoExperticia(tipoExperticia);
     if (!plantilla) {
@@ -1091,7 +1093,23 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
     const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
     const solicitudShort = requestData.numeroSolicitud?.split('-').pop() || requestData.numeroSolicitud || ''; // Uso de optional chaining y nullish coalescing
 
-    
+    // Extraer prefijos de informacionLinea
+    const abonado = parseWithPrefixes(requestData.informacionLinea || '', ['e', 'r']);
+    const fecha = parseWithPrefixes(requestData.fecha_de_solicitud || '', ['desde', 'hasta']);
+
+      console.log('=== GENERACIÓN PLANILLA WORD ===');
+      console.log('Tipo de Experticia:', tipoExperticia);
+      console.log('¿Es Contacto Frecuente?:', tipoExperticia === 'determinar_contacto_frecuente');
+      console.log('Datos recibidos del frontend (requestData):');
+      console.log('  - informacionLinea (sin parsear):', requestData.informacionLinea);
+      console.log('  - informacionE (parseado):', abonado .e);
+      console.log('  - informacionR (parseado):', abonado .r);
+      console.log('  - fecha (sin parsear):', requestData.fecha);
+      console.log('  - desde (parseado):', fecha.desde);
+      console.log('  - hasta (parseado):', fecha.hasta);
+      
+
+
     const templateData = {
       // Uso de un único estilo de nombre para los placeholders
       OFI: (requestData.coordinacionSolicitante.includes('delitos_propiedad')) 
@@ -1117,16 +1135,23 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
       FECHA: currentDate,
       FISCAL: requestData.fiscal || '',
       DIR: requestData.direc || '',
-      INFO_E: requestData.informacionE || '',
-      INFO_R: requestData.informacionR || '',
-      DESDE: requestData.desde || '', // iNTRODUCIR
-      HASTA: requestData.hasta || '',      // INTRODUCIR
+      INFO_E: abonado .e || requestData.informacionE || '',
+      INFO_R: abonado .r || requestData.informacionR || '',
+      DESDE: fecha.desde || '', // iNTRODUCIR
+      HASTA: fecha.hasta || '',      // INTRODUCIR
       DELITO: requestData.delito || '',
       
       /*
       informacionLinea: requestData.informacionLinea || '',
       descripcion: requestData.descripcion || '', */
     };
+
+    console.log('Datos preparados para la plantilla Word (templateData):');
+    console.log('  - INFO_E:', templateData.INFO_E);
+    console.log('  - INFO_R:', templateData.INFO_R);
+    console.log('  - DESDE:', templateData.DESDE);
+    console.log('  - HASTA:', templateData.HASTA);
+    console.log('Template Data completo:', JSON.stringify(templateData, null, 2));
 
     let busArhivo: Buffer; // Variable para almacenar el buffer del archivo a enviar
     
@@ -1146,11 +1171,15 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
           linebreaks: true,
         });
 
+        console.log('Iniciando renderizado del documento Word con docxtemplater...');
+        
         // Generar Documento con Datos
         doc.render(templateData);
 
         // Obtener el buffer del documento generado con los datos
         busArhivo = doc.getZip().generate({ type: 'nodebuffer' });
+        
+        console.log('Documento Word generado exitosamente');
 
       } catch (renderError: any) {
         // Si el renderizado falla, registramos el error y usamos la plantilla original

@@ -1,4 +1,4 @@
-// Formulario de Gestion de Solicitudes 
+// Formulario de Gestion de Solicitudes
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertSolicitudSchema } from "@shared/schema";
@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Save, X, Download } from "lucide-react";
 import { z } from "zod";
@@ -14,25 +20,33 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
-import { parseWithPrefixes } from '../../../tools/utils_I.ts';
+import { parseWithPrefixes } from "../../../tools/utils_I.ts";
 
-const requestFormSchema = insertSolicitudSchema.extend({
-  numeroSolicitud: z.string().min(1, "Número de solicitud es requerido"),
-  numeroExpediente: z.string().min(1, "Número de expediente es requerido"),
-  tipoExperticia: z.string().min(1, "Tipo de experticia es requerido"),
-  coordinacionSolicitante: z.string().min(1, "Coordinación solicitante es requerida"),
-  operador: z.string().min(1, "Operador es requerido"),
-  fechaSolicitud: z.string().optional(),
-}).refine((data) => {
-  // If estado is "rechazada", motivoRechazo is required
-  if (data.estado === "rechazada") {
-    return data.motivoRechazo && data.motivoRechazo.trim().length > 0;
-  }
-  return true;
-}, {
-  message: "El motivo de rechazo es requerido cuando el estado es 'rechazada'",
-  path: ["motivoRechazo"],
-});
+const requestFormSchema = insertSolicitudSchema
+  .extend({
+    numeroSolicitud: z.string().min(1, "Número de solicitud es requerido"),
+    numeroExpediente: z.string().min(1, "Número de expediente es requerido"),
+    tipoExperticia: z.string().min(1, "Tipo de experticia es requerido"),
+    coordinacionSolicitante: z
+      .string()
+      .min(1, "Coordinación solicitante es requerida"),
+    operador: z.string().min(1, "Operador es requerido"),
+    fechaSolicitud: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If estado is "rechazada", motivoRechazo is required
+      if (data.estado === "rechazada") {
+        return data.motivoRechazo && data.motivoRechazo.trim().length > 0;
+      }
+      return true;
+    },
+    {
+      message:
+        "El motivo de rechazo es requerido cuando el estado es 'rechazada'",
+      path: ["motivoRechazo"],
+    }
+  );
 
 type RequestFormData = z.infer<typeof requestFormSchema>;
 
@@ -41,14 +55,18 @@ interface RequestFormProps {
   onCancel: () => void;
   initialData?: Partial<RequestFormData & { fiscal: string | null }>;
   isLoading?: boolean;
-
 }
 
-export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: RequestFormProps) {
+export function RequestForm({
+  onSubmit,
+  onCancel,
+  initialData,
+  isLoading,
+}: RequestFormProps) {
   const { user } = useAuth();
   const permissions = usePermissions();
   const { toast } = useToast();
-  
+
   // Determine default status based on user role
   const getDefaultStatus = () => {
     if (user?.rol === "supervisor" || user?.rol === "usuario") {
@@ -74,7 +92,9 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
       motivoRechazo: "",
       estado: getDefaultStatus(),
       oficio: "",
-      fechaSolicitud: initialData?.fechaSolicitud ? new Date(initialData.fechaSolicitud).toISOString().split('T')[0] : "",
+      fechaSolicitud: initialData?.fechaSolicitud
+        ? new Date(initialData.fechaSolicitud).toISOString().split("T")[0]
+        : "",
       ...initialData,
     },
   });
@@ -83,18 +103,25 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
 
   const handleTemplateDownload = async (tipoExperticia: string) => {
     try {
-      const response = await fetch(`/api/plantillas-word/by-expertise/${tipoExperticia}`, {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const response = await fetch(
+        `/api/plantillas-word/by-expertise/${tipoExperticia}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = response.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || "plantilla.docx";
+        a.download =
+          response.headers
+            .get("content-disposition")
+            ?.split("filename=")[1]
+            ?.replace(/"/g, "") || "plantilla.docx";
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -114,29 +141,10 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
     }
   };
 
-  // Extraer y enviar datos  
+  // Extraer y enviar datos
   const handleSubmit = (data: RequestFormData) => {
-    // Extraer información con prefijos "e:" y "r:" del campo informacionLinea
-    const informacionLineaData = parseWithPrefixes(data.informacionLinea || '', ['e', 'r']);
-    const informacionE = informacionLineaData.e || '';
-    const informacionR = informacionLineaData.r || '';
-    
-    // Extraer información con prefijos "desde:" y "hasta:" del campo fecha_de_solicitud
-    const fechaData = parseWithPrefixes(data.fecha_de_solicitud || '', ['desde', 'hasta']);
-    const desde = fechaData.desde || '';
-    const hasta = fechaData.hasta || '';
-    
-    // Agregar los valores parseados a los datos que se envían
-    const dataWithParsedInfo = {
-      ...data,
-      informacionE,
-      informacionR,
-      desde,
-      hasta
-    };
-    
-    // Llamar al handler del componente padre con los datos completos
-    onSubmit(dataWithParsedInfo);
+    // Enviar los datos tal cual, sin parsear prefijos
+    onSubmit(data);
   };
 
   return (
@@ -212,31 +220,74 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
               <Label htmlFor="tipoExperticia">Tipo de Experticia *</Label>
               <Select
                 value={form.watch("tipoExperticia")}
-                onValueChange={(value) => form.setValue("tipoExperticia", value)}
+                onValueChange={(value) =>
+                  form.setValue("tipoExperticia", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione tipo de experticia" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="identificar_datos_numero">Identificar datos de un número</SelectItem>
-                  <SelectItem value="Identificar_linea_mediante_cedula_de_identidad">Identificar linea mediante cedula de identidad</SelectItem>
-                  <SelectItem value="determinar_historicos_trazas_bts">Determinar Históricos de Trazas Telefónicas BTS</SelectItem>
-                  <SelectItem value="determinar_linea_conexion_ip">Determinar línea telefónica con conexión IP</SelectItem>
-                  <SelectItem value="identificar_radio_bases_bts">Identificar las Radio Bases (BTS)</SelectItem>
-                  <SelectItem value="identificar_numeros_duraciones_bts">Identificar números con duraciones específicas en la Radio Base (BTS)</SelectItem>
-                  <SelectItem value="determinar_contaminacion_linea">Determinar contaminación de línea</SelectItem>
-                  <SelectItem value="determinar_sim_cards_numero">Determinar SIM CARDS utilizados con un número telefónico</SelectItem>
-                  <SelectItem value="determinar_comportamiento_social">Determinar comportamiento social</SelectItem>
-                  <SelectItem value="determinar_contacto_frecuente">Determinar Contacto Frecuente</SelectItem>
-                  <SelectItem value="determinar_ubicacion_llamadas">Determinar ubicación mediante registros de llamadas</SelectItem>
-                  <SelectItem value="determinar_ubicacion_trazas">Determinar ubicación mediante registros de trazas telefónicas (Recorrido)</SelectItem>
-                  <SelectItem value="determinar_contaminacion_equipo_imei">Determinar contaminación de equipo (IMEI)</SelectItem>
-                  <SelectItem value="identificar_numeros_comun_bts">Identificar números en común en dos o más Radio Base (BTS)</SelectItem>
-                  <SelectItem value="identificar_numeros_desconectan_bts">Identificar números que se desconectan de la Radio Base (BTS) después del hecho</SelectItem>
-                  <SelectItem value="identificar_numeros_repetidos_bts">Identificar números repetidos en la Radio Base (BTS)</SelectItem>
-                  <SelectItem value="determinar_numero_internacional">Determinar número internacional</SelectItem>
-                  <SelectItem value="identificar_linea_sim_card">Identificar línea mediante SIM CARD</SelectItem>
-                  <SelectItem value="identificar_cambio_simcard_documentos">Identificar Cambio de SIM CARD y Documentos</SelectItem>
+                  <SelectItem value="identificar_datos_numero">
+                    Identificar datos de un número
+                  </SelectItem>
+                  <SelectItem value="Identificar_linea_mediante_cedula_de_identidad">
+                    Identificar linea mediante cedula de identidad
+                  </SelectItem>
+                  <SelectItem value="determinar_historicos_trazas_bts">
+                    Determinar Históricos de Trazas Telefónicas BTS
+                  </SelectItem>
+                  <SelectItem value="determinar_linea_conexion_ip">
+                    Determinar línea telefónica con conexión IP
+                  </SelectItem>
+                  <SelectItem value="identificar_radio_bases_bts">
+                    Identificar las Radio Bases (BTS)
+                  </SelectItem>
+                  <SelectItem value="identificar_numeros_duraciones_bts">
+                    Identificar números con duraciones específicas en la Radio
+                    Base (BTS)
+                  </SelectItem>
+                  <SelectItem value="determinar_contaminacion_linea">
+                    Determinar contaminación de línea
+                  </SelectItem>
+                  <SelectItem value="determinar_sim_cards_numero">
+                    Determinar SIM CARDS utilizados con un número telefónico
+                  </SelectItem>
+                  <SelectItem value="determinar_comportamiento_social">
+                    Determinar comportamiento social
+                  </SelectItem>
+                  <SelectItem value="determinar_contacto_frecuente">
+                    Determinar Contacto Frecuente
+                  </SelectItem>
+                  <SelectItem value="determinar_ubicacion_llamadas">
+                    Determinar ubicación mediante registros de llamadas
+                  </SelectItem>
+                  <SelectItem value="determinar_ubicacion_trazas">
+                    Determinar ubicación mediante registros de trazas
+                    telefónicas (Recorrido)
+                  </SelectItem>
+                  <SelectItem value="determinar_contaminacion_equipo_imei">
+                    Determinar contaminación de equipo (IMEI)
+                  </SelectItem>
+                  <SelectItem value="identificar_numeros_comun_bts">
+                    Identificar números en común en dos o más Radio Base (BTS)
+                  </SelectItem>
+                  <SelectItem value="identificar_numeros_desconectan_bts">
+                    Identificar números que se desconectan de la Radio Base
+                    (BTS) después del hecho
+                  </SelectItem>
+                  <SelectItem value="identificar_numeros_repetidos_bts">
+                    Identificar números repetidos en la Radio Base (BTS)
+                  </SelectItem>
+                  <SelectItem value="determinar_numero_internacional">
+                    Determinar número internacional
+                  </SelectItem>
+                  <SelectItem value="identificar_linea_sim_card">
+                    Identificar línea mediante SIM CARD
+                  </SelectItem>
+                  <SelectItem value="identificar_cambio_simcard_documentos">
+                    Identificar Cambio de SIM CARD y Documentos
+                  </SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.tipoExperticia && (
@@ -247,19 +298,33 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
             </div>
 
             <div>
-              <Label htmlFor="coordinacionSolicitante">Coordinación Solicitante *</Label>
+              <Label htmlFor="coordinacionSolicitante">
+                Coordinación Solicitante *
+              </Label>
               <Select
                 value={form.watch("coordinacionSolicitante")}
-                onValueChange={(value) => form.setValue("coordinacionSolicitante", value)}
+                onValueChange={(value) =>
+                  form.setValue("coordinacionSolicitante", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione coordinación" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="delitos_propiedad">Coordinacion de los Delitos Contra la Propiedad</SelectItem>
-                  <SelectItem value="delitos_personas">Coordinacion de los Delitos Contra las Personas</SelectItem>
-                  <SelectItem value="crimen_organizado">Coordinacion de los Delitos Contra la Delincuencia Organizada</SelectItem>
-                  <SelectItem value="delitos_vehiculos">Coordinacion de los Delitos Contra el Hurto y Robo de Vehiculo Automotor</SelectItem>
+                  <SelectItem value="delitos_propiedad">
+                    Coordinacion de los Delitos Contra la Propiedad
+                  </SelectItem>
+                  <SelectItem value="delitos_personas">
+                    Coordinacion de los Delitos Contra las Personas
+                  </SelectItem>
+                  <SelectItem value="crimen_organizado">
+                    Coordinacion de los Delitos Contra la Delincuencia
+                    Organizada
+                  </SelectItem>
+                  <SelectItem value="delitos_vehiculos">
+                    Coordinacion de los Delitos Contra el Hurto y Robo de
+                    Vehiculo Automotor
+                  </SelectItem>
                   <SelectItem value="homicidio">Homicidio</SelectItem>
                 </SelectContent>
               </Select>
@@ -275,7 +340,9 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
               {user?.rol === "admin" ? (
                 <Select
                   value={form.watch("estado") || "procesando"}
-                  onValueChange={(value) => form.setValue("estado", value as any)}
+                  onValueChange={(value) =>
+                    form.setValue("estado", value as any)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione estado" />
@@ -316,7 +383,9 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
 
             {/* Campo de fecha de creación solo editable por administradores */}
             <div>
-              <Label htmlFor="fechaSolicitud">Fecha de Creación de la Solicitud</Label>
+              <Label htmlFor="fechaSolicitud">
+                Fecha de Creación de la Solicitud
+              </Label>
               {permissions.canEditCreationDates ? (
                 <Input
                   id="fechaSolicitud"
@@ -327,15 +396,17 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
               ) : (
                 <div className="flex items-center p-3 border rounded-md bg-gray-50">
                   <span className="text-sm text-gray-600">
-                    {form.watch("fechaSolicitud") ? 
-                      new Date(form.watch("fechaSolicitud")).toLocaleDateString('es-ES') : 
-                      'Fecha automática'
-                    } (Solo administradores pueden editar)
+                    {form.watch("fechaSolicitud")
+                      ? new Date(
+                          form.watch("fechaSolicitud")
+                        ).toLocaleDateString("es-ES")
+                      : "Fecha automática"}{" "}
+                    (Solo administradores pueden editar)
                   </span>
                 </div>
               )}
             </div>
-            
+
             <div>
               <Label htmlFor="delito">Tipo de Delito *</Label>
               <Select
@@ -346,19 +417,46 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                   <SelectValue placeholder="Seleccione el Delito" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Contra la Propiedad">Contra la Propiedad</SelectItem>
-                  <SelectItem value="Contra la Propiedad (Robo)">Contra la Propiedad (Robo)</SelectItem>
-                  <SelectItem value="Contra la Propiedad (Hurto)">Contra la Propiedad (Hurto)</SelectItem>
-                  <SelectItem value="Contra la Propiedad (Estafa)">Contra la Propiedad (Estafa)</SelectItem>
-                  <SelectItem value="Comtenplando en la Ley Sobre el Hurto y Robo de Vehiculos Automotor">Comtenplando en la Ley Sobre el Hurto y Robo de Vehiculos Automotor</SelectItem>
-                  <SelectItem value="Contra el Hurto y Robo de Vehiculo Automor (ROBO)">Contra el Hurto y Robo de Vehiculo Automor (ROBO)</SelectItem>
-                  <SelectItem value="Contra el Hurto y Robo de Vehiculo Automor (HURTO)">Contra el Hurto y Robo de Vehiculo Automor (HURTO)</SelectItem>
-                  <SelectItem value="Contra las Personas">Contra las Personas</SelectItem>
-                  <SelectItem value="Contra las Personas (Lesiones)">Contra las Personas (Lesiones)</SelectItem>
-                  <SelectItem value="Contra las Personas (Lesiones Reciprocas)">Contra las Personas (Lesiones Reciprocas)</SelectItem>
-                  <SelectItem value="Contra las Personas (Violencia)">Contra las Personas (Violencia)</SelectItem>
-                  <SelectItem value="Contra las Personas (Abuso Sexual)">Contra las Personas (Abuso Sexual)</SelectItem>
-                  <SelectItem value="Contra las Personas (Homicidio)">Contra las Personas (Homicidio)</SelectItem>
+                  <SelectItem value="Contra la Propiedad">
+                    Contra la Propiedad
+                  </SelectItem>
+                  <SelectItem value="Contra la Propiedad (Robo)">
+                    Contra la Propiedad (Robo)
+                  </SelectItem>
+                  <SelectItem value="Contra la Propiedad (Hurto)">
+                    Contra la Propiedad (Hurto)
+                  </SelectItem>
+                  <SelectItem value="Contra la Propiedad (Estafa)">
+                    Contra la Propiedad (Estafa)
+                  </SelectItem>
+                  <SelectItem value="Comtenplando en la Ley Sobre el Hurto y Robo de Vehiculos Automotor">
+                    Comtenplando en la Ley Sobre el Hurto y Robo de Vehiculos
+                    Automotor
+                  </SelectItem>
+                  <SelectItem value="Contra el Hurto y Robo de Vehiculo Automor (ROBO)">
+                    Contra el Hurto y Robo de Vehiculo Automor (ROBO)
+                  </SelectItem>
+                  <SelectItem value="Contra el Hurto y Robo de Vehiculo Automor (HURTO)">
+                    Contra el Hurto y Robo de Vehiculo Automor (HURTO)
+                  </SelectItem>
+                  <SelectItem value="Contra las Personas">
+                    Contra las Personas
+                  </SelectItem>
+                  <SelectItem value="Contra las Personas (Lesiones)">
+                    Contra las Personas (Lesiones)
+                  </SelectItem>
+                  <SelectItem value="Contra las Personas (Lesiones Reciprocas)">
+                    Contra las Personas (Lesiones Reciprocas)
+                  </SelectItem>
+                  <SelectItem value="Contra las Personas (Violencia)">
+                    Contra las Personas (Violencia)
+                  </SelectItem>
+                  <SelectItem value="Contra las Personas (Abuso Sexual)">
+                    Contra las Personas (Abuso Sexual)
+                  </SelectItem>
+                  <SelectItem value="Contra las Personas (Homicidio)">
+                    Contra las Personas (Homicidio)
+                  </SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.delito && (
@@ -388,21 +486,21 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
                 />
               </div>
             )}
-
           </div>
 
           {/* Hide for Identificar datos de un numero AND Determinar Contacto Frecuente */}
-          {form.watch("tipoExperticia") !== "identificar_datos_numero" && 
-           form.watch("tipoExperticia") !== "determinar_contacto_frecuente" && (
-            <div>
+          {form.watch("tipoExperticia") !== "identificar_datos_numero" &&
+            form.watch("tipoExperticia") !==
+              "determinar_contacto_frecuente" && (
+              <div>
                 <Label htmlFor="direc">Direccion Solicitada</Label>
                 <Textarea
                   id="direc"
                   placeholder="Direcion Exacta el Hecho."
                   {...form.register("direc")}
                 />
-            </div>
-          )}  
+              </div>
+            )}
 
           <div>
             <Label htmlFor="descripcion">Reseña</Label>
@@ -442,4 +540,3 @@ export function RequestForm({ onSubmit, onCancel, initialData, isLoading }: Requ
     </Card>
   );
 }
-

@@ -1436,5 +1436,83 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2025-10-13T10:27:14.731273",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "25421521",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=25421521",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 25421521,
+                "fecha_nac": "1994-06-12",
+                "rif": "V254215216",
+                "primer_apellido": "BAEZ",
+                "segundo_apellido": "BEJARANO",
+                "primer_nombre": "SANTIAGO",
+                "segundo_nombre": "ANDRES",
+                "request_date": "2025-10-13T14:27:14.692Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-10-15T18:41:13.250662",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "22208835",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=22208835",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 22208835,
+                "fecha_nac": "1970-02-20",
+                "rif": "V222088352",
+                "cne": {
+                    "estado": "CARABOBO",
+                    "municipio": "VALENCIA",
+                    "parroquia": "RAFAEL URDANETA",
+                    "centro_electoral": "GRUPO ESCOLAR GUACARA"
+                },
+                "primer_apellido": "SALAZAR",
+                "segundo_apellido": "SALAZAR",
+                "primer_nombre": "MARCO",
+                "segundo_nombre": "FIDEL",
+                "request_date": "2025-10-15T22:41:13.198Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-10-15T18:41:31.944091",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "22200835",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=22200835",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 22200835,
+                "fecha_nac": "1990-07-03",
+                "rif": "V222008359",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "JIMENEZ",
+                    "parroquia": "CRNEL. MARIANO PERAZA",
+                    "centro_electoral": "CENTRO DE EDUCACION INICIAL ROSA ISABEL ANGULO"
+                },
+                "primer_apellido": "DIAZ",
+                "segundo_apellido": "COLMENARES",
+                "primer_nombre": "YUGERSSYS",
+                "segundo_nombre": "KARINA",
+                "request_date": "2025-10-15T22:41:31.889Z"
+            }
+        },
+        "success": true
     }
 ]
