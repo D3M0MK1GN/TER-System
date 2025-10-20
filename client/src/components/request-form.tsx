@@ -19,7 +19,36 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+
+// Mapeo de delitos por coordinación
+const delitosPorCoordinacion: Record<string, string[]> = {
+  delitos_propiedad: [
+    "Contra la Propiedad",
+    "Contra la Propiedad (Robo)",
+    "Contra la Propiedad (Hurto)",
+    "Contra la Propiedad (Estafa)",
+  ],
+  delitos_personas: [
+    "Contra las Personas",
+    "Contra las Personas (Lesiones)",
+    "Contra las Personas (Lesiones Reciprocas)",
+    "Contra las Personas (Violencia)",
+    "Contra las Personas (Abuso Sexual)",
+    "Contra las Personas (Homicidio)",
+    "Contra las Personas (Femicidio)",
+  ],
+  delitos_vehiculos: [
+    "Comtenplando en la Ley Sobre el Hurto y Robo de Vehiculos Automotor",
+    "Contra el Hurto y Robo de Vehiculo Automor (ROBO)",
+    "Contra el Hurto y Robo de Vehiculo Automor (HURTO)",
+  ],
+  crimen_organizado: ["Contra la Salubridad Publica", "Instigacion al Odio"],
+  homicidio: [
+    "Contra las Personas (Homicidio)",
+    "Contra las Personas (Femicidio)",
+  ],
+};
 
 const requestFormSchema = insertSolicitudSchema
   .extend({
@@ -97,6 +126,24 @@ export function RequestForm({
       ...initialData,
     },
   });
+
+  // Observar cambios en la coordinación para limpiar el campo de delito
+  const coordinacionSeleccionada = form.watch("coordinacionSolicitante");
+
+  useEffect(() => {
+    // Limpiar el campo de delito cuando cambie la coordinación
+    if (coordinacionSeleccionada && !initialData) {
+      form.setValue("delito", "");
+    }
+  }, [coordinacionSeleccionada]);
+
+  // Filtrar delitos según la coordinación seleccionada
+  const delitosDisponibles = useMemo(() => {
+    if (!coordinacionSeleccionada) {
+      return [];
+    }
+    return delitosPorCoordinacion[coordinacionSeleccionada] || [];
+  }, [coordinacionSeleccionada]);
 
   // Template download is handled after successful form submission
 
@@ -415,51 +462,23 @@ export function RequestForm({
               <Select
                 value={form.watch("delito")}
                 onValueChange={(value) => form.setValue("delito", value)}
+                disabled={!coordinacionSeleccionada}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccione el Delito" />
+                  <SelectValue
+                    placeholder={
+                      coordinacionSeleccionada
+                        ? "Seleccione el Delito"
+                        : "Primero seleccione una coordinación"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Contra la Propiedad">
-                    Contra la Propiedad
-                  </SelectItem>
-                  <SelectItem value="Contra la Propiedad (Robo)">
-                    Contra la Propiedad (Robo)
-                  </SelectItem>
-                  <SelectItem value="Contra la Propiedad (Hurto)">
-                    Contra la Propiedad (Hurto)
-                  </SelectItem>
-                  <SelectItem value="Contra la Propiedad (Estafa)">
-                    Contra la Propiedad (Estafa)
-                  </SelectItem>
-                  <SelectItem value="Comtenplando en la Ley Sobre el Hurto y Robo de Vehiculos Automotor">
-                    Comtenplando en la Ley Sobre el Hurto y Robo de Vehiculos
-                    Automotor
-                  </SelectItem>
-                  <SelectItem value="Contra el Hurto y Robo de Vehiculo Automor (ROBO)">
-                    Contra el Hurto y Robo de Vehiculo Automor (ROBO)
-                  </SelectItem>
-                  <SelectItem value="Contra el Hurto y Robo de Vehiculo Automor (HURTO)">
-                    Contra el Hurto y Robo de Vehiculo Automor (HURTO)
-                  </SelectItem>
-                  <SelectItem value="Contra las Personas">
-                    Contra las Personas
-                  </SelectItem>
-                  <SelectItem value="Contra las Personas (Lesiones)">
-                    Contra las Personas (Lesiones)
-                  </SelectItem>
-                  <SelectItem value="Contra las Personas (Lesiones Reciprocas)">
-                    Contra las Personas (Lesiones Reciprocas)
-                  </SelectItem>
-                  <SelectItem value="Contra las Personas (Violencia)">
-                    Contra las Personas (Violencia)
-                  </SelectItem>
-                  <SelectItem value="Contra las Personas (Abuso Sexual)">
-                    Contra las Personas (Abuso Sexual)
-                  </SelectItem>
-                  <SelectItem value="Contra las Personas (Homicidio)">
-                    Contra las Personas (Homicidio)
-                  </SelectItem>
+                  {delitosDisponibles.map((delito) => (
+                    <SelectItem key={delito} value={delito}>
+                      {delito}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {form.formState.errors.delito && (

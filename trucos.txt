@@ -17,3 +17,22 @@ Administracion de planillas word, crear un boton Switch, el cual permitira al us
 Formato de descarga automática
 
 Elige si las plantillas se descargan en formato Word o se convierten automáticamente a PDF usando iLovePDF no van deja al Switch dentro del recuardo de planillas existente (ojo asi como esta con su word y pdf aun lado)
+
+
+
+📝 Resumen de Archivos Modificados:
+
+    client/src/components/experticias-management.tsx
+        Corregí error de variable solicitudesData no definida
+
+    client/src/components/request-form.tsx
+        Agregué mapeo de delitos por coordinación
+        Implementé filtrado dinámico del campo "Tipo de Delito" según coordinación seleccionada
+        Campo de delito se limpia al cambiar coordinación
+
+    client/src/components/request-table.tsx
+        Reemplacé botón de "Enviar correo" (Mail) por "Duplicar Solicitud" (FilePlus)
+        Posicionado justo después del botón de "Ver detalles" (Eye)
+
+    .local/state/replit/agent/progress_tracker.md
+        Archivo de seguimiento del proceso de migración

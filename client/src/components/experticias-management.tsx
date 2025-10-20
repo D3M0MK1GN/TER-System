@@ -33,8 +33,6 @@ export function ExperticiasManagement() {
     updateMutation,
   } = useExperticias(1, pageSize);
 
-  const solicitudes = solicitudesData?.solicitudes || [];
-
   const handleCreate = async (data: InsertExperticia) => {
     try {
       // Crear la experticia
@@ -206,16 +204,18 @@ export function ExperticiasManagement() {
   return (
     <div className="p-6">
       <RequestTable
-        experticias={experticias}
+        solicitudes={experticias as any}
         total={total}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={setCurrentPage}
         onFiltersChange={setFilters}
-        onEdit={handleEdit}
+        onEdit={handleEdit as any}
         onDelete={handleDelete}
         onView={() => {}}
         onCreateNew={() => setShowCreateModal(true)}
+        onCreateExperticia={() => {}}
+        onDuplicateSolicitud={() => {}}
         onExportExcel={handleExportExcel}
         loading={isLoading}
         permissions={permissions}
