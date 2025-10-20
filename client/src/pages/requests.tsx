@@ -22,9 +22,14 @@ export default function Requests() {
     search: "",
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingSolicitud, setEditingSolicitud] = useState<Solicitud | null>(null);
+  const [editingSolicitud, setEditingSolicitud] = useState<Solicitud | null>(
+    null
+  );
   const [showExperticiasModal, setShowExperticiasModal] = useState(false);
-  const [experticiasPreloadData, setExperticiasPreloadData] = useState<Partial<InsertExperticia> | null>(null);
+  const [experticiasPreloadData, setExperticiasPreloadData] =
+    useState<Partial<InsertExperticia> | null>(null);
+  const [duplicateSolicitudData, setDuplicateSolicitudData] =
+    useState<any>(null);
   const pageSize = 10;
 
   const { user } = useAuth();
@@ -35,13 +40,13 @@ export default function Requests() {
   // Función para generar el número de comunicación en el formato requerido
   const generateNumeroComunicacion = (numeroSolicitud: string): string => {
     const currentYear = new Date().getFullYear();
-    const parts = numeroSolicitud.split('-');
-    
+    const parts = numeroSolicitud.split("-");
+
     if (parts.length >= 2) {
       // Formato: 9700-PARTE1-CIDCPER-AÑO-PARTE2
       return `9700-${parts[0]}-CIDCPER-${currentYear}-${parts[1]}`;
     }
-    
+
     // Fallback si el formato no es el esperado
     return `9700-${numeroSolicitud}-CIDCPER-${currentYear}`;
   };
@@ -49,8 +54,8 @@ export default function Requests() {
   // Función para crear experticia desde una solicitud
   const handleCreateExperticia = (solicitud: Solicitud) => {
     const fechaComunicacion = solicitud.fechaSolicitud
-      ? new Date(solicitud.fechaSolicitud).toLocaleDateString('es-ES')
-      : '';
+      ? new Date(solicitud.fechaSolicitud).toLocaleDateString("es-ES")
+      : "";
 
     const preloadData: Partial<InsertExperticia> = {
       expediente: solicitud.numeroExpediente,
@@ -64,23 +69,57 @@ export default function Requests() {
     setShowExperticiasModal(true);
   };
 
-  const handleTemplateDownload = async (tipoExperticia: string, requestData?: any) => {
+  // Función para duplicar solicitud
+  const handleDuplicateSolicitud = (solicitud: Solicitud) => {
+    const duplicateData = {
+      numeroSolicitud: solicitud.numeroSolicitud,
+      numeroExpediente: solicitud.numeroExpediente,
+      fiscal: solicitud.fiscal || "",
+      tipoExperticia: solicitud.tipoExperticia,
+      coordinacionSolicitante: solicitud.coordinacionSolicitante,
+      operador: solicitud.operador,
+      informacionLinea: solicitud.informacionLinea,
+      fecha_de_solicitud: solicitud.fecha_de_solicitud,
+      direc: solicitud.direc,
+      delito: solicitud.delito,
+      descripcion: solicitud.descripcion,
+      oficio: solicitud.oficio,
+      fechaSolicitud: solicitud.fechaSolicitud
+        ? new Date(solicitud.fechaSolicitud).toISOString().split("T")[0]
+        : "",
+    };
+
+    setDuplicateSolicitudData(duplicateData);
+    setShowCreateModal(true);
+  };
+
+  const handleTemplateDownload = async (
+    tipoExperticia: string,
+    requestData?: any
+  ) => {
     try {
-      const response = await fetch(`/api/plantillas-word/by-expertise/${tipoExperticia}/generate`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData || {}),
-      });
+      const response = await fetch(
+        `/api/plantillas-word/by-expertise/${tipoExperticia}/generate`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestData || {}),
+        }
+      );
 
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = response.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || "plantilla.docx";
+        a.download =
+          response.headers
+            .get("content-disposition")
+            ?.split("filename=")[1]
+            ?.replace(/"/g, "") || "plantilla.docx";
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -88,7 +127,8 @@ export default function Requests() {
 
         toast({
           title: "Plantilla Word descargada",
-          description: "La plantilla Word se ha descargado con los datos de la solicitud.",
+          description:
+            "La plantilla Word se ha descargado con los datos de la solicitud.",
         });
       } else if (response.status === 404) {
         // No template available for this expertise type, silently continue
@@ -103,7 +143,7 @@ export default function Requests() {
       const response = await fetch(`/api/solicitudes/generate-excel`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestData || {}),
@@ -114,7 +154,11 @@ export default function Requests() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = response.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || "planilla_datos.xlsx";
+        a.download =
+          response.headers
+            .get("content-disposition")
+            ?.split("filename=")[1]
+            ?.replace(/"/g, "") || "planilla_datos.xlsx";
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -122,7 +166,8 @@ export default function Requests() {
 
         toast({
           title: "Archivo Excel descargado",
-          description: "El archivo Excel se ha descargado con los datos de la solicitud.",
+          description:
+            "El archivo Excel se ha descargado con los datos de la solicitud.",
         });
       } else if (response.status === 404) {
         toast({
@@ -148,17 +193,17 @@ export default function Requests() {
         limit: pageSize.toString(),
         ...filters,
       });
-      
+
       const response = await fetch(`/api/solicitudes?${params}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      
+
       if (!response.ok) {
-        throw new Error('Error obteniendo solicitudes');
+        throw new Error("Error obteniendo solicitudes");
       }
-      
+
       return response.json();
     },
   });
@@ -178,12 +223,12 @@ export default function Requests() {
         title: "Solicitud creada",
         description: "La solicitud ha sido creada exitosamente",
       });
-      
+
       // Download templates after successful creation with request data
       if (variables.tipoExperticia) {
         handleTemplateDownload(variables.tipoExperticia, variables);
       }
-      
+
       // Always download Excel with request data
       handleExcelDownload(variables);
     },
@@ -197,7 +242,13 @@ export default function Requests() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Record<string, any> }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Record<string, any>;
+    }) => {
       return await apiRequest(`/api/solicitudes/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
@@ -278,59 +329,65 @@ export default function Requests() {
         page: "1",
         limit: "1000", // Get all records
       });
-      
+
       const response = await fetch(`/api/solicitudes?${params}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      
+
       if (!response.ok) {
-        throw new Error('Error obteniendo solicitudes para exportar');
+        throw new Error("Error obteniendo solicitudes para exportar");
       }
-      
+
       const data = await response.json();
       const allSolicitudes = data.solicitudes || [];
-      
+
       // Import xlsx dynamically
-      const XLSX = await import('xlsx');
-      
+      const XLSX = await import("xlsx");
+
       // Format data for Excel
       const excelData = allSolicitudes.map((solicitud: any) => ({
-        'ID': solicitud.id,
-        'Nº Solicitud': solicitud.numeroSolicitud,
-        'Nº Expediente': solicitud.numeroExpediente,
-        'Operador': solicitud.operador,
-        'Tipo Experticia': solicitud.tipoExperticia,
-        'Estado': solicitud.estado,
-        'Coordinación': solicitud.coordinacionSolicitante,
-        'Fiscal': solicitud.fiscal || '',
-        'Reseña': solicitud.descripcion || '',
-        'Fecha Solicitud': solicitud.fechaSolicitud ? new Date(solicitud.fechaSolicitud).toLocaleDateString() : '',
-        'Fecha Creación': solicitud.createdAt ? new Date(solicitud.createdAt).toLocaleDateString() : '',
-        'Última Actualización': solicitud.updatedAt ? new Date(solicitud.updatedAt).toLocaleDateString() : '',
+        ID: solicitud.id,
+        "Nº Solicitud": solicitud.numeroSolicitud,
+        "Nº Expediente": solicitud.numeroExpediente,
+        Operador: solicitud.operador,
+        "Tipo Experticia": solicitud.tipoExperticia,
+        Estado: solicitud.estado,
+        Coordinación: solicitud.coordinacionSolicitante,
+        Fiscal: solicitud.fiscal || "",
+        Reseña: solicitud.descripcion || "",
+        "Fecha Solicitud": solicitud.fechaSolicitud
+          ? new Date(solicitud.fechaSolicitud).toLocaleDateString()
+          : "",
+        "Fecha Creación": solicitud.createdAt
+          ? new Date(solicitud.createdAt).toLocaleDateString()
+          : "",
+        "Última Actualización": solicitud.updatedAt
+          ? new Date(solicitud.updatedAt).toLocaleDateString()
+          : "",
       }));
-      
+
       // Create workbook and worksheet
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
-      
+
       // Add worksheet to workbook
-      XLSX.utils.book_append_sheet(wb, ws, 'Solicitudes');
-      
+      XLSX.utils.book_append_sheet(wb, ws, "Solicitudes");
+
       // Generate filename with current date
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split("T")[0];
       const filename = `solicitudes_${today}.xlsx`;
-      
+
       // Write and download file
       XLSX.writeFile(wb, filename);
-      
+
       toast({
         title: "Excel exportado",
         description: `Se ha descargado el archivo ${filename} con ${allSolicitudes.length} solicitudes.`,
       });
     } catch (error) {
-      console.error('Error exporting to Excel:', error);
+      console.error("Error exporting to Excel:", error);
       toast({
         title: "Error",
         description: "Error al exportar a Excel",
@@ -353,7 +410,8 @@ export default function Requests() {
       setExperticiasPreloadData(null);
       toast({
         title: "Experticia creada",
-        description: "La experticia ha sido creada exitosamente desde la solicitud",
+        description:
+          "La experticia ha sido creada exitosamente desde la solicitud",
       });
     },
     onError: (error: Error) => {
@@ -373,7 +431,10 @@ export default function Requests() {
   const total = solicitudesData?.total || 0;
 
   return (
-    <Layout title="Gestión de Solicitudes" subtitle="Crear, editar y administrar solicitudes">
+    <Layout
+      title="Gestión de Solicitudes"
+      subtitle="Crear, editar y administrar solicitudes"
+    >
       <div className="p-6">
         <RequestTable
           solicitudes={solicitudes}
@@ -387,6 +448,7 @@ export default function Requests() {
           onView={handleView}
           onCreateNew={() => setShowCreateModal(true)}
           onCreateExperticia={handleCreateExperticia}
+          onDuplicateSolicitud={handleDuplicateSolicitud}
           onExportExcel={handleExportExcel}
           loading={isLoading}
           permissions={permissions}
@@ -394,27 +456,44 @@ export default function Requests() {
       </div>
 
       {/* Create Modal */}
-      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
+      <Dialog
+        open={showCreateModal}
+        onOpenChange={() => {
+          setShowCreateModal(false);
+          setDuplicateSolicitudData(null);
+        }}
+      >
+        <DialogContent
+          className="max-w-4xl max-h-[90vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
           style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#d1d5db transparent'
-          }}>
+            scrollbarWidth: "thin",
+            scrollbarColor: "#d1d5db transparent",
+          }}
+        >
           <RequestForm
             onSubmit={handleCreateSubmit}
-            onCancel={() => setShowCreateModal(false)}
+            onCancel={() => {
+              setShowCreateModal(false);
+              setDuplicateSolicitudData(null);
+            }}
             isLoading={createMutation.isPending}
+            initialData={duplicateSolicitudData || undefined}
           />
         </DialogContent>
       </Dialog>
 
       {/* Edit Modal */}
-      <Dialog open={!!editingSolicitud} onOpenChange={() => setEditingSolicitud(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
+      <Dialog
+        open={!!editingSolicitud}
+        onOpenChange={() => setEditingSolicitud(null)}
+      >
+        <DialogContent
+          className="max-w-4xl max-h-[90vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
           style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#d1d5db transparent'
-          }}>
+            scrollbarWidth: "thin",
+            scrollbarColor: "#d1d5db transparent",
+          }}
+        >
           {editingSolicitud && (
             <RequestForm
               onSubmit={handleEditSubmit}
@@ -430,12 +509,17 @@ export default function Requests() {
       </Dialog>
 
       {/* Create Experticia Modal */}
-      <Dialog open={showExperticiasModal} onOpenChange={setShowExperticiasModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
+      <Dialog
+        open={showExperticiasModal}
+        onOpenChange={setShowExperticiasModal}
+      >
+        <DialogContent
+          className="max-w-4xl max-h-[90vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
           style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#d1d5db transparent'
-          }}>
+            scrollbarWidth: "thin",
+            scrollbarColor: "#d1d5db transparent",
+          }}
+        >
           <ExperticiasForm
             onSubmit={handleCreateExperticiasSubmit}
             onCancel={() => {
@@ -450,8 +534,3 @@ export default function Requests() {
     </Layout>
   );
 }
-
-
-
-
-

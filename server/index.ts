@@ -124,7 +124,7 @@ app.use((req, res, next) => {
     /* */
     // Iniciar el servicio Python API para análisis BTS
     const pythonApiPath = path.join(process.cwd(), 'server', 'model_ai', 'api_restful.py');
-    const pythonExecutable = '/home/d1killer/Tools/d1killer/bin/python';
+    const pythonExecutable = 'python3';
     const pythonProcess = spawn(pythonExecutable, [pythonApiPath], {
       cwd: process.cwd(),
       stdio: ['pipe', 'pipe', 'pipe']

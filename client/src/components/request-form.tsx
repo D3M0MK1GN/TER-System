@@ -20,7 +20,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
-import { parseWithPrefixes } from "../../../tools/utils_I.ts";
 
 const requestFormSchema = insertSolicitudSchema
   .extend({
@@ -146,6 +145,10 @@ export function RequestForm({
     // Enviar los datos tal cual, sin parsear prefijos
     onSubmit(data);
   };
+
+  const fecha = form.watch("fechaSolicitud");
+  const fechaDate = fecha ? new Date(fecha) : undefined;
+  // Ahora puedes usar fechaDate de forma segura
 
   return (
     <Card className="w-full max-w-4xl">

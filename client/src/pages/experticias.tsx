@@ -3,7 +3,10 @@ import { ExperticiasManagement } from "@/components/experticias-management";
 
 export function Experticias() {
   return (
-    <Layout title="Gestión de Experticias" subtitle="Administración de tipos de experticia criminalística">
+    <Layout
+      title="Gestión de Experticias"
+      subtitle="Administración de tipos de experticia criminalística"
+    >
       <ExperticiasManagement />
     </Layout>
   );

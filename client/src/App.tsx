@@ -16,7 +16,13 @@ import Users from "@/pages/users";
 import ChatbotPage from "@/pages/chatbot";
 import NotFound from "@/pages/not-found";
 
-function ProtectedRoute({ children, requirePermission }: { children: React.ReactNode; requirePermission?: keyof import("@/hooks/use-permissions").Permission }) {
+function ProtectedRoute({
+  children,
+  requirePermission,
+}: {
+  children: React.ReactNode;
+  requirePermission?: keyof import("@/hooks/use-permissions").Permission;
+}) {
   const { isAuthenticated, loading } = useAuth();
   const permissions = usePermissions();
 

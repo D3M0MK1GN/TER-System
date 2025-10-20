@@ -86,7 +86,7 @@ export const solicitudes = pgTable("solicitudes", {
   informacionLinea: text("informacion_linea"), // Linea de Codigo Redundante
   direc: text("direc"),
   delito: text("delito"),
-  fecha_de_solicitud: text("fecha_de_solicitud"),    
+  fecha_de_solicitud: text("fecha_de_solicitud"), // Timpo de requerir la informacion   
   descripcion: text("descripcion"),
   motivoRechazo: text("motivo_rechazo"),
   estado: estadoEnum("estado").default("enviada"),

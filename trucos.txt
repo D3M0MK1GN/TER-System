@@ -2,7 +2,7 @@ Actualizar los token de acceso = UPDATE users SET session_token = NULL, session_
 
 Actulizar ID: ALTER SEQUENCE solicitudes_id_seq RESTART WITH 1;
 
-
+Actualizar token por usuarios: UPDATE users SET session_token = NULL, session_expires = NULL WHERE username = 'admin';
 
 
 
