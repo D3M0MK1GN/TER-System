@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useExperticias } from "@/hooks/use-experticias";
-import { RequestTable } from "@/components/experticia-table";
+import { ExperticiasTable } from "@/components/experticia-table";
 import { ExperticiasForm } from "@/components/experticia-form";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -203,19 +203,17 @@ export function ExperticiasManagement() {
 
   return (
     <div className="p-6">
-      <RequestTable
-        solicitudes={experticias as any}
+      <ExperticiasTable
+        experticias={experticias}
         total={total}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={setCurrentPage}
         onFiltersChange={setFilters}
-        onEdit={handleEdit as any}
+        onEdit={handleEdit}
         onDelete={handleDelete}
         onView={() => {}}
         onCreateNew={() => setShowCreateModal(true)}
-        onCreateExperticia={() => {}}
-        onDuplicateSolicitud={() => {}}
         onExportExcel={handleExportExcel}
         loading={isLoading}
         permissions={permissions}

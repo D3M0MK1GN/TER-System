@@ -61,6 +61,7 @@ interface RequestTableProps {
   onView: (solicitud: Solicitud) => void;
   onCreateNew: () => void;
   onCreateExperticia: (solicitud: Solicitud) => void;
+  onDuplicateSolicitud: (solicitud: Solicitud) => void;
   onExportExcel: () => void;
   loading?: boolean;
   permissions: Permission;
@@ -145,6 +146,7 @@ export function RequestTable({
   onView,
   onCreateNew,
   onCreateExperticia,
+  onDuplicateSolicitud,
   onExportExcel,
   loading,
   permissions,

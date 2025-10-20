@@ -1,4 +1,3 @@
-// Seccion de Gestion de Solicitdues
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,26 +18,29 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
+import { DetailField } from "@/components/ui/detail-field";
 import {
   Eye,
   Edit,
-  Mail,
   Trash2,
   Search,
   Plus,
   ChevronLeft,
   ChevronRight,
-  Printer,
+  BarChart3,
+  CheckCircle,
+  XCircle,
+  Clock,
+  QrCode,
   Calendar,
-  User,
   FileText,
-  Building,
-  ClipboardList,
   Download,
-  Atom,
-  FilePlus,
+  Printer,
+  MessageSquare,
+  Files,
+  Bug,
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import {
   Dialog,
   DialogContent,
@@ -46,22 +48,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { type Solicitud } from "@shared/schema";
+import { type Experticia } from "@shared/schema";
 import { type Permission } from "@/hooks/use-permissions";
+import { CombinarArchivosModal } from "./combinar-archivos-modal";
 
-interface RequestTableProps {
-  solicitudes: Solicitud[];
+interface ExperticiasTableProps {
+  experticias: Experticia[];
   total: number;
   currentPage: number;
   pageSize: number;
   onPageChange: (page: number) => void;
   onFiltersChange: (filters: any) => void;
-  onEdit: (solicitud: Solicitud) => void;
+  onEdit: (experticia: Experticia) => void;
   onDelete: (id: number) => void;
-  onView: (solicitud: Solicitud) => void;
+  onView: (experticia: Experticia) => void;
   onCreateNew: () => void;
-  onCreateExperticia: (solicitud: Solicitud) => void;
-  onDuplicateSolicitud: (solicitud: Solicitud) => void;
   onExportExcel: () => void;
   loading?: boolean;
   permissions: Permission;
@@ -74,10 +75,10 @@ const operatorColors = {
 };
 
 const statusColors = {
+  completada: "bg-green-100 text-green-800",
+  negativa: "bg-red-100 text-red-800",
   procesando: "bg-yellow-100 text-yellow-800",
-  enviada: "bg-blue-100 text-blue-800",
-  respondida: "bg-green-100 text-green-800",
-  rechazada: "bg-red-100 text-red-800",
+  qr_ausente: "bg-orange-100 text-orange-800",
 };
 
 const formatOperator = (operador: string) => {
@@ -89,53 +90,31 @@ const formatOperator = (operador: string) => {
   return names[operador as keyof typeof names] || operador;
 };
 
-const formatStatus = (estado: string) => {
+const formatStatus = (estado: string | null) => {
+  if (!estado) return "N/A";
   const names = {
+    completada: "Completada",
+    negativa: "Negativa",
     procesando: "Procesando",
-    enviada: "Enviada",
-    respondida: "Respondida",
-    rechazada: "Rechazada",
+    qr_ausente: "QR Ausente",
   };
   return names[estado as keyof typeof names] || estado;
 };
-// Diccionario para formatear tipo de experticias en la tabla
-const formatTipoExperticia = (tipo: string) => {
-  const names = {
-    identificar_datos_numero: "Identificar datos de un número",
-    determinar_tramite_venta_linea:
-      "Determinar dónde fue tramitada la venta de línea",
-    determinar_linea_conexion_ip: "Determinar línea telefónica con conexión IP",
-    identificar_radio_bases_bts: "Identificar las Radio Bases (BTS)",
-    identificar_numeros_duraciones_bts:
-      "Identificar números con duraciones específicas en la Radio Base (BTS)",
-    determinar_contaminacion_linea: "Determinar contaminación de línea",
-    determinar_sim_cards_numero:
-      "Determinar SIM CARDS utilizados con un número telefónico",
-    determinar_comportamiento_social: "Determinar comportamiento social",
-    determinar_numeros_comun: "Determinar números en común",
-    determinar_ubicacion_llamadas:
-      "Determinar ubicación mediante registros de llamadas",
-    determinar_ubicacion_trazas:
-      "Determinar ubicación mediante registros de trazas telefónicas",
-    determinar_contaminacion_equipo_imei:
-      "Determinar contaminación de equipo (IMEI)",
-    identificar_numeros_comun_bts:
-      "Identificar números en común en dos o más Radio Base (BTS)",
-    identificar_numeros_desconectan_bts:
-      "Identificar números que se desconectan de la Radio Base (BTS) después del hecho",
-    identificar_numeros_repetidos_bts:
-      "Identificar números repetidos en la Radio Base (BTS)",
-    determinar_numero_internacional: "Determinar número internacional",
-    identificar_linea_sim_card: "Identificar línea mediante SIM CARD",
-    determinar_contacto_frecuente: "Determinar contactos frecuente",
-    Identificar_linea_mediante_cedula_de_identidad:
-      "Identificar linea mediante cedula de identidad",
-  };
-  return names[tipo as keyof typeof names] || tipo;
-};
 
-export function RequestTable({
-  solicitudes,
+const statsConfig = [
+  {
+    estado: "completada",
+    label: "Completadas",
+    icon: CheckCircle,
+    color: "green",
+  },
+  { estado: "negativa", label: "Negativas", icon: XCircle, color: "red" },
+  { estado: "procesando", label: "Procesando", icon: Clock, color: "yellow" },
+  { estado: "qr_ausente", label: "QR Ausente", icon: QrCode, color: "orange" },
+];
+
+export function ExperticiasTable({
+  experticias,
   total,
   currentPage,
   pageSize,
@@ -145,606 +124,376 @@ export function RequestTable({
   onDelete,
   onView,
   onCreateNew,
-  onCreateExperticia,
-  onDuplicateSolicitud,
   onExportExcel,
-  loading,
+  loading = false,
   permissions,
-}: RequestTableProps) {
+}: ExperticiasTableProps) {
   const [filters, setFilters] = useState({
-    operador: "",
-    estado: "",
-    tipoExperticia: "",
-    coordinacion: "",
+    operador: "all",
+    estado: "all",
+    tipoExperticia: "all",
     search: "",
   });
-
-  const [selectValues, setSelectValues] = useState({
-    operador: "todos",
-    estado: "todos",
-    tipoExperticia: "todos",
-    coordinacion: "todos",
-  });
-
-  const [viewingSolicitud, setViewingSolicitud] = useState<Solicitud | null>(
+  const [viewingExperticia, setViewingExperticia] = useState<Experticia | null>(
     null
   );
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCombinarModalOpen, setIsCombinarModalOpen] = useState(false);
 
-  const handleFilterChange = (key: string, value: string) => {
-    // Actualizar valor del select
-    setSelectValues((prev) => ({ ...prev, [key]: value }));
-
-    // Convertir "todos" a string vacío para el filtro
-    const filterValue = value === "todos" ? "" : value;
-    const newFilters = { ...filters, [key]: filterValue };
-    setFilters(newFilters);
-    onFiltersChange(newFilters);
-  };
-
-  const handleView = (solicitud: Solicitud) => {
-    setViewingSolicitud(solicitud);
-  };
-
+  // Función para imprimir el reporte
   const handlePrint = () => {
-    if (viewingSolicitud) {
-      window.print();
-    }
+    window.print();
   };
 
+  // Función para generar documento Word de experticia
   const handleGenerateDocument = async () => {
-    if (!viewingSolicitud) return;
+    if (!viewingExperticia) return;
 
     try {
-      // **PASO 1: Generar plantilla Word usando los datos de la solicitud existente**
-      const wordPromise = fetch(
-        `/api/plantillas-word/by-expertise/${viewingSolicitud.tipoExperticia}/generate`,
+      const response = await fetch(
+        `/api/plantillas-word/experticia/${viewingExperticia.tipoExperticia}/generate`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
             "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          body: JSON.stringify(viewingSolicitud),
+          body: JSON.stringify(viewingExperticia),
         }
       );
 
-      // **PASO 2: Generar planilla Excel usando los mismos datos de la solicitud**
-      const excelPromise = fetch("/api/solicitudes/generate-excel", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(viewingSolicitud),
-      });
-
-      // **PASO 3: Ejecutar ambas peticiones en paralelo para mejor rendimiento**
-      const [wordResponse, excelResponse] = await Promise.all([
-        wordPromise,
-        excelPromise,
-      ]);
-
-      // **PASO 4: Procesar descarga del documento Word**
-      if (wordResponse.ok) {
-        const blob = await wordResponse.blob();
+      if (response.ok) {
+        const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download =
-          wordResponse.headers
-            .get("content-disposition")
-            ?.split("filename=")[1]
-            ?.replace(/"/g, "") ||
-          `Plantilla_${viewingSolicitud.numeroSolicitud}.docx`;
-        document.body.appendChild(a);
-        a.click();
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `experticia-${viewingExperticia.numeroDictamen}.docx`;
+        document.body.appendChild(link);
+        link.click();
         window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } else if (wordResponse.status === 404) {
-        console.log(
-          "No hay plantilla Word disponible para este tipo de experticia"
-        );
+        document.body.removeChild(link);
       } else {
-        console.error(
-          "Error generando documento Word:",
-          wordResponse.statusText
-        );
-      }
-
-      // **PASO 5: Procesar descarga de la planilla Excel**
-      if (excelResponse.ok) {
-        const blob = await excelResponse.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download =
-          excelResponse.headers
-            .get("content-disposition")
-            ?.split("filename=")[1]
-            ?.replace(/"/g, "") ||
-          `PLANILLA_DATOS-${viewingSolicitud.numeroSolicitud}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } else if (excelResponse.status === 404) {
-        console.log("No hay plantilla Excel disponible");
-      } else {
-        console.error(
-          "Error generando planilla Excel:",
-          excelResponse.statusText
-        );
+        console.error("Error generando documento");
       }
     } catch (error) {
-      console.error("Error descargando documentos:", error);
+      console.error("Error:", error);
     }
   };
 
-  const formatExpertiseType = (tipo: string) => {
-    const types = {
-      identificar_datos_numero: "Identificar datos de un número",
-      determinar_historicos_trazas_bts:
-        "Determinar Históricos de Trazas Telefónicas BTS",
-      determinar_linea_conexion_ip:
-        "Determinar línea telefónica con conexión IP",
-      identificar_radio_bases_bts: "Identificar las Radio Bases (BTS)",
-      identificar_numeros_duraciones_bts:
-        "Identificar números con duraciones específicas en la Radio Base (BTS)",
-      determinar_contaminacion_linea: "Determinar contaminación de línea",
-      determinar_sim_cards_numero:
-        "Determinar SIM CARDS utilizados con un número telefónico",
-      determinar_comportamiento_social: "Determinar comportamiento social",
-      determinar_contacto_frecuente: "Determinar Contacto Frecuente",
-      determinar_ubicacion_llamadas:
-        "Determinar ubicación mediante registros de llamadas",
-      determinar_ubicacion_trazas:
-        "Determinar ubicación mediante registros de trazas telefónicas",
-      determinar_contaminacion_equipo_imei:
-        "Determinar contaminación de equipo (IMEI)",
-      identificar_numeros_comun_bts:
-        "Identificar números en común en dos o más Radio Base (BTS)",
-      identificar_numeros_desconectan_bts:
-        "Identificar números que se desconectan de la Radio Base (BTS) después del hecho",
-      identificar_numeros_repetidos_bts:
-        "Identificar números repetidos en la Radio Base (BTS)",
-      determinar_numero_internacional: "Determinar número internacional",
-      identificar_linea_sim_card: "Identificar línea mediante SIM CARD",
-      identificar_cambio_sim_card:
-        "Identificar Cambio de SIM CARD y Documentos",
-    };
-    return types[tipo as keyof typeof types] || tipo;
+  const handleFilterChange = (key: string, value: string) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    onFiltersChange(newFilters);
   };
 
   const totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800">
-          Gestión de Solicitudes
-        </h2>
-        <div className="flex gap-2">
-          {/* Botón de exportar Excel solo para administradores */}
-          {permissions.canManageUsers && (
-            <Button
-              onClick={onExportExcel}
-              variant="outline"
-              className="bg-green-50 text-green-700 hover:bg-green-100"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Exportar Excel
-            </Button>
-          )}
-          <Button onClick={onCreateNew} className="bg-primary text-white">
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Solicitud
-          </Button>
-        </div>
+      {/* Header with Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <StatCard icon={BarChart3} label="Total" count={total} color="blue" />
+        {statsConfig.map((stat) => (
+          <StatCard
+            key={stat.estado}
+            icon={stat.icon}
+            label={stat.label}
+            count={experticias.filter((e) => e.estado === stat.estado).length}
+            color={stat.color}
+          />
+        ))}
       </div>
 
-      {/* Filters */}
+      {/* Filters and Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div
-            className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${
-              permissions.canManageUsers ? "lg:grid-cols-6" : "lg:grid-cols-5"
-            }`}
-          >
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Operador
-              </label>
-              <Select
-                value={selectValues.operador}
-                onValueChange={(value) => handleFilterChange("operador", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="digitel">Digitel</SelectItem>
-                  <SelectItem value="movistar">Movistar</SelectItem>
-                  <SelectItem value="movilnet">Movilnet</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Estado
-              </label>
-              <Select
-                value={selectValues.estado}
-                onValueChange={(value) => handleFilterChange("estado", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="procesando">Procesando</SelectItem>
-                  <SelectItem value="enviada">Enviada</SelectItem>
-                  <SelectItem value="respondida">Respondida</SelectItem>
-                  <SelectItem value="rechazada">Rechazada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo Experticia
-              </label>
-              <Select
-                value={selectValues.tipoExperticia}
-                onValueChange={(value) =>
-                  handleFilterChange("tipoExperticia", value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="identificar_datos_numero">
-                    Identificar datos de un número
-                  </SelectItem>
-                  <SelectItem value="Identificar_linea_mediante_cedula_de_identidad">
-                    Identificar linea mediante cedula de identidad
-                  </SelectItem>
-                  <SelectItem value="determinar_historicos_trazas_bts">
-                    Determinar Históricos de Trazas Telefónicas BTS
-                  </SelectItem>
-                  <SelectItem value="determinar_linea_conexion_ip">
-                    Determinar línea telefónica con conexión IP
-                  </SelectItem>
-                  <SelectItem value="identificar_radio_bases_bts">
-                    Identificar las Radio Bases (BTS)
-                  </SelectItem>
-                  <SelectItem value="identificar_numeros_duraciones_bts">
-                    Identificar números con duraciones específicas en la Radio
-                    Base (BTS)
-                  </SelectItem>
-                  <SelectItem value="determinar_contaminacion_linea">
-                    Determinar contaminación de línea
-                  </SelectItem>
-                  <SelectItem value="determinar_sim_cards_numero">
-                    Determinar SIM CARDS utilizados con un número telefónico
-                  </SelectItem>
-                  <SelectItem value="determinar_comportamiento_social">
-                    Determinar comportamiento social
-                  </SelectItem>
-                  <SelectItem value="determinar_contacto_frecuente">
-                    Determinar Contacto Frecuente
-                  </SelectItem>
-                  <SelectItem value="determinar_ubicacion_llamadas">
-                    Determinar ubicación mediante registros de llamadas
-                  </SelectItem>
-                  <SelectItem value="determinar_ubicacion_trazas">
-                    Determinar ubicación mediante registros de trazas
-                    telefónicas
-                  </SelectItem>
-                  <SelectItem value="determinar_contaminacion_equipo_imei">
-                    Determinar contaminación de equipo (IMEI)
-                  </SelectItem>
-                  <SelectItem value="identificar_numeros_comun_bts">
-                    Identificar números en común en dos o más Radio Base (BTS)
-                  </SelectItem>
-                  <SelectItem value="identificar_numeros_desconectan_bts">
-                    Identificar números que se desconectan de la Radio Base
-                    (BTS) después del hecho
-                  </SelectItem>
-                  <SelectItem value="identificar_numeros_repetidos_bts">
-                    Identificar números repetidos en la Radio Base (BTS)
-                  </SelectItem>
-                  <SelectItem value="determinar_numero_internacional">
-                    Determinar número internacional
-                  </SelectItem>
-                  <SelectItem value="identificar_linea_sim_card">
-                    Identificar línea mediante SIM CARD
-                  </SelectItem>
-                  <SelectItem value="identificar_cambio_simcard_documentos">
-                    Identificar Cambio de SIM CARD y Documentos
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filtro de coordinación solo para administradores */}
-            {permissions.canManageUsers && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Coordinación
-                </label>
-                <Select
-                  value={selectValues.coordinacion}
-                  onValueChange={(value) =>
-                    handleFilterChange("coordinacion", value)
-                  }
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            <CardTitle className="text-xl font-semibold">
+              Gestión de Experticias
+            </CardTitle>
+            <div className="flex gap-2">
+              {permissions.canManageUsers && (
+                <Button
+                  onClick={onExportExcel}
+                  variant="outline"
+                  className="bg-green-50 text-green-700 hover:bg-green-100"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas</SelectItem>
-                    <SelectItem value="delitos_propiedad">
-                      Coordinación de los Delitos Contra la Propiedad
-                    </SelectItem>
-                    <SelectItem value="delitos_personas">
-                      Coordinación de los Delitos Contra las Personas
-                    </SelectItem>
-                    <SelectItem value="delincuencia_organizada">
-                      Coordinación de los Delitos Contra la Delincuencia
-                      Organizada
-                    </SelectItem>
-                    <SelectItem value="delitos_vehiculos">
-                      Coordinación de los Delitos Contra el Hurto y Robo de
-                      Vehículo Automotor
-                    </SelectItem>
-                    <SelectItem value="homicidio">Homicidio</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Buscar
-              </label>
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar Excel
+                </Button>
+              )}
+              {permissions.canManageUsers && (
+                <Button onClick={onCreateNew}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva Experticia
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search and Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Nº Solicitud o Expediente"
+                placeholder="Buscar por N° dictamen o expediente..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange("search", e.target.value)}
+                className="pl-10"
               />
             </div>
 
-            <div className="flex items-end">
-              <Button className="w-full">
-                <Search className="mr-2 h-4 w-4" />
-                Buscar
-              </Button>
+            <Select
+              value={filters.tipoExperticia}
+              onValueChange={(value) =>
+                handleFilterChange(
+                  "tipoExperticia",
+                  value === "all" ? "" : value
+                )
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los tipos" />
+              </SelectTrigger>
+              <SelectContent
+                side="bottom"
+                sideOffset={4}
+                alignOffset={0}
+                avoidCollisions={false}
+              >
+                <SelectItem value="all">
+                  Todos los tipos de experticia
+                </SelectItem>
+                <SelectItem value="determinar_contacto_frecuente">
+                  Determinar contacto frecuente
+                </SelectItem>
+                <SelectItem value="identificar_numeros_bts">
+                  Identificar números que se conectan a la BTS
+                </SelectItem>
+                <SelectItem value="identificar_radio_bases_bts">
+                  Identificar Radio Bases (BTS)
+                </SelectItem>
+                <SelectItem value="determinar_ubicacion_llamadas">
+                  Determinar ubicación mediante registros de llamadas
+                </SelectItem>
+                <SelectItem value="determinar_ubicacion_trazas">
+                  Determinar ubicación mediante registros de trazas telefónicas
+                </SelectItem>
+                <SelectItem value="determinar_contaminacion_equipo_imei">
+                  Determinar contaminación de equipo (IMEI)
+                </SelectItem>
+                <SelectItem value="identificar_numeros_comun_bts">
+                  Identificar números en común en dos o más Radio Base (BTS)
+                </SelectItem>
+                <SelectItem value="identificar_numeros_desconectan_bts">
+                  Identificar números que se desconectan de la Radio Base (BTS)
+                  después del hecho
+                </SelectItem>
+                <SelectItem value="identificar_numeros_repetidos_bts">
+                  Identificar números repetidos en la Radio Base (BTS)
+                </SelectItem>
+                <SelectItem value="determinar_numero_internacional">
+                  Determinar número internacional
+                </SelectItem>
+                <SelectItem value="identificar_linea_sim_card">
+                  Identificar línea mediante SIM CARD
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.operador}
+              onValueChange={(value) =>
+                handleFilterChange("operador", value === "all" ? "" : value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los operadores" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los operadores</SelectItem>
+                <SelectItem value="digitel">Digitel</SelectItem>
+                <SelectItem value="movistar">Movistar</SelectItem>
+                <SelectItem value="movilnet">Movilnet</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.estado}
+              onValueChange={(value) =>
+                handleFilterChange("estado", value === "all" ? "" : value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los estados" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="completada">Completada</SelectItem>
+                <SelectItem value="negativa">Negativa</SelectItem>
+                <SelectItem value="procesando">Procesando</SelectItem>
+                <SelectItem value="qr_ausente">QR Ausente</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center text-sm text-gray-600">
+              {loading ? "Cargando..." : ""}
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Table */}
+          <div className="border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Nº Solicitud</TableHead>
+                  <TableHead>Nº Dictamen</TableHead>
                   <TableHead>Expediente</TableHead>
                   <TableHead>Operador</TableHead>
                   <TableHead>Tipo Experticia</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <TableHead>Nº Comunicación</TableHead>
                   <TableHead>Fecha</TableHead>
-                  <TableHead>Acciones</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      Cargando solicitudes...
+                {experticias.map((experticia) => (
+                  <TableRow key={experticia.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4 text-gray-400" />
+                        <span className="font-mono text-sm">
+                          {experticia.numeroDictamen}
+                        </span>
+                      </div>
                     </TableCell>
-                  </TableRow>
-                ) : solicitudes.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      No se encontraron solicitudes
+                    <TableCell>
+                      <span className="font-mono text-sm">
+                        {experticia.expediente}
+                      </span>
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  solicitudes.map((solicitud) => (
-                    <TableRow key={solicitud.id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">
-                        {solicitud.id}
-                      </TableCell>
-                      <TableCell>{solicitud.numeroSolicitud}</TableCell>
-                      <TableCell>{solicitud.numeroExpediente}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            operatorColors[solicitud.operador] ||
-                            "bg-gray-100 text-gray-800"
-                          }
+                    <TableCell>
+                      <Badge
+                        className={
+                          operatorColors[experticia.operador] ||
+                          "bg-gray-100 text-gray-800"
+                        }
+                      >
+                        {formatOperator(experticia.operador)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-xs">
+                        <span className="font-medium truncate">
+                          {experticia.tipoExperticia}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-sm">
+                        {experticia.numeroComunicacion}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">
+                        {experticia.fechaComunicacion || "Sin fecha"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          statusColors[
+                            experticia.estado as keyof typeof statusColors
+                          ]
+                        }
+                      >
+                        {formatStatus(experticia.estado)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setViewingExperticia(experticia)}
                         >
-                          {formatOperator(solicitud.operador)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {formatTipoExperticia(solicitud.tipoExperticia)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            statusColors[solicitud.estado || "procesando"] ||
-                            "bg-gray-100 text-gray-800"
-                          }
-                        >
-                          {formatStatus(solicitud.estado || "procesando")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {solicitud.fechaSolicitud
-                          ? new Date(
-                              solicitud.fechaSolicitud
-                            ).toLocaleDateString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleView(solicitud)}
-                            title="Ver detalles"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {permissions.canManageUsers && (
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {permissions.canManageUsers && (
+                          <>
                             <Button
                               variant="ghost"
-                              size="icon"
-                              onClick={() => onDuplicateSolicitud(solicitud)}
-                              title="Crear solicitud basada en esta"
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              data-testid="button-duplicate-solicitud"
-                            >
-                              <FilePlus className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {permissions.canCreateExperticias && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onCreateExperticia(solicitud)}
-                              title="Crear Experticia"
-                              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                            >
-                              <Atom className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {/* Edit button: Only show for "enviada" status OR admin users */}
-                          {(solicitud.estado === "enviada" ||
-                            permissions.canManageUsers) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onEdit(solicitud)}
-                              title="Editar"
+                              size="sm"
+                              onClick={() => onEdit(experticia)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                          )}
-                          {permissions.canManageUsers && (
-                            <>
-                              {/* Delete button: Only show for "enviada" status OR admin users */}
-                              {(solicitud.estado === "enviada" ||
-                                permissions.canManageUsers) && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => onDelete(solicitud.id)}
-                                  title="Eliminar"
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-600" />
-                                </Button>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onDelete(experticia.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
 
           {/* Pagination */}
-          <div className="px-4 py-3 flex items-center justify-between border-t">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <Button
-                variant="outline"
-                onClick={() => onPageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                Anterior
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => onPageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Siguiente
-              </Button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Mostrando{" "}
-                  <span className="font-medium">
-                    {(currentPage - 1) * pageSize + 1}
-                  </span>{" "}
-                  a{" "}
-                  <span className="font-medium">
-                    {Math.min(currentPage * pageSize, total)}
-                  </span>{" "}
-                  de <span className="font-medium">{total}</span> resultados
-                </p>
-              </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {[...Array(totalPages)].map((_, i) => (
-                    <Button
-                      key={i}
-                      variant={currentPage === i + 1 ? "default" : "outline"}
-                      onClick={() => onPageChange(i + 1)}
-                      className="px-4 py-2"
-                    >
-                      {i + 1}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </nav>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-700">
+                Mostrando {(currentPage - 1) * pageSize + 1} a{" "}
+                {Math.min(currentPage * pageSize, total)} de {total} experticias
+              </p>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Modal de Visualización */}
+      {/* View Details Modal */}
       <Dialog
-        open={!!viewingSolicitud}
-        onOpenChange={(open) => !open && setViewingSolicitud(null)}
+        open={!!viewingExperticia}
+        onOpenChange={() => setViewingExperticia(null)}
       >
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-x-auto">
+          <DialogHeader className="pb-4">
             <DialogTitle className="flex items-center justify-between">
-              <span>Detalles de la Solicitud</span>
+              <div className="flex items-center space-x-2">
+                <Eye className="h-5 w-5" />
+                <span>Detalles de Experticia</span>
+              </div>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -767,222 +516,240 @@ export function RequestTable({
               </div>
             </DialogTitle>
           </DialogHeader>
-
-          {viewingSolicitud && (
-            <div className="space-y-6">
-              {/* Información General */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <FileText className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Número de Solicitud
-                      </p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {viewingSolicitud.numeroSolicitud}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <ClipboardList className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Número de Expediente
-                      </p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {viewingSolicitud.numeroExpediente}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-5 w-5 text-purple-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Fecha de Creación
-                      </p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {viewingSolicitud.createdAt
-                          ? new Date(
-                              viewingSolicitud.createdAt
-                            ).toLocaleDateString("es-ES", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })
-                          : "No disponible"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-5 w-5 text-orange-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Fiscal
-                      </p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {viewingSolicitud.fiscal || "No asignado"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Building className="h-5 w-5 text-indigo-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Operador
-                      </p>
-                      <Badge
-                        className={
-                          operatorColors[
-                            viewingSolicitud.operador as keyof typeof operatorColors
-                          ]
-                        }
-                      >
-                        {formatOperator(viewingSolicitud.operador)}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <ClipboardList className="h-5 w-5 text-teal-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Estado
-                      </p>
-                      <Badge
-                        className={
-                          statusColors[
-                            viewingSolicitud.estado as keyof typeof statusColors
-                          ]
-                        }
-                      >
-                        {formatStatus(viewingSolicitud.estado || "procesando")}
-                      </Badge>
-                      {viewingSolicitud.estado === "rechazada" &&
-                        viewingSolicitud.motivoRechazo && (
-                          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
-                            <p className="text-sm font-medium text-red-800">
-                              Motivo de rechazo:
-                            </p>
-                            <p className="text-sm text-red-700">
-                              {viewingSolicitud.motivoRechazo}
-                            </p>
-                          </div>
-                        )}
-                    </div>
-                  </div>
+          {viewingExperticia && (
+            <div className="space-y-6 px-6 pb-6 max-h-[60vh] overflow-y-auto">
+              {/* Información básica */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900">
+                  Información Básica
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <DetailField
+                    label="Nº Dictamen"
+                    value={viewingExperticia.numeroDictamen}
+                    isMono
+                  />
+                  <DetailField
+                    label="Expediente"
+                    value={viewingExperticia.expediente}
+                    isMono
+                  />
+                  <DetailField
+                    label="Experto"
+                    value={viewingExperticia.experto}
+                  />
+                  <DetailField
+                    label="Nº Comunicación"
+                    value={viewingExperticia.numeroComunicacion}
+                    isMono
+                  />
                 </div>
               </div>
 
-              <Separator />
-
-              {/* Detalles Técnicos */}
+              {/* Fechas */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Detalles Técnicos
-                </h3>
-
+                <h4 className="text-lg font-medium text-gray-900">Fechas</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-2">
-                      Tipo de Experticia
-                    </p>
-                    <p className="text-gray-900">
-                      {formatTipoExperticia(viewingSolicitud.tipoExperticia)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-2">
-                      Coordinación
-                    </p>
-                    <p className="text-gray-900">
-                      {viewingSolicitud.coordinacionSolicitante}
-                    </p>
-                  </div>
-                </div>
-
-                {/* **NUEVA SECCIÓN: Dirección - agregada antes de Reseña** */}
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">
-                    Dirección
-                  </p>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-900">
-                      {viewingSolicitud.direc || "No especificada"}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">
-                    Reseña
-                  </p>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-900 whitespace-pre-wrap">
-                      {viewingSolicitud.descripcion || "Sin reseña"}
-                    </p>
-                  </div>
+                  <DetailField
+                    label="Fecha Comunicación"
+                    value={viewingExperticia.fechaComunicacion?.toString()}
+                    isDate
+                  />
+                  <DetailField
+                    label="Fecha Respuesta"
+                    value={viewingExperticia.fechaRespuesta?.toString()}
+                    isDate
+                  />
                 </div>
               </div>
 
-              <Separator />
-
-              {/* Información Adicional */}
+              {/* Detalles de la experticia */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Información Adicional
-                </h3>
-
+                <h4 className="text-lg font-medium text-gray-900">
+                  Detalles de la Experticia
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-2">
-                      Información de Línea
-                    </p>
-                    <p className="text-gray-900">
-                      {viewingSolicitud.informacionLinea || "No disponible"}
-                    </p>
-                  </div>
+                  <DetailField
+                    label="Operador"
+                    value={viewingExperticia.operador}
+                    isBadge
+                    badgeVariant="outline"
+                    badgeClassName="capitalize"
+                  />
+                  <DetailField
+                    label="Tipo de Experticia"
+                    value={viewingExperticia.tipoExperticia}
+                  />
+                  <DetailField
+                    label="Estado"
+                    value={formatStatus(viewingExperticia.estado)}
+                    isBadge
+                    badgeClassName={
+                      statusColors[
+                        viewingExperticia.estado as keyof typeof statusColors
+                      ]
+                    }
+                  />
+                  <DetailField
+                    label="Uso Horario"
+                    value={viewingExperticia.usoHorario}
+                  />
+                </div>
+                <DetailField label="Motivo" value={viewingExperticia.motivo} />
+              </div>
 
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-2">
-                      Fecha de Solicitud
-                    </p>
-                    <p className="text-gray-900">
-                      {viewingSolicitud.fecha_de_solicitud || "No disponible"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-2">
-                      Fecha de Actualización
-                    </p>
-                    <p className="text-gray-900">
-                      {viewingSolicitud.updatedAt
-                        ? new Date(
-                            viewingSolicitud.updatedAt
-                          ).toLocaleDateString("es-ES", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "No disponible"}
-                    </p>
+              {/* Información del abonado */}
+              {(viewingExperticia.abonado ||
+                viewingExperticia.datosAbonado) && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium text-gray-900">
+                    Información del Abonado
+                  </h4>
+                  <div className="space-y-4">
+                    {viewingExperticia.abonado && (
+                      <DetailField
+                        label="Abonado"
+                        value={viewingExperticia.abonado}
+                      />
+                    )}
+                    {viewingExperticia.datosAbonado && (
+                      <DetailField
+                        label="Datos del Abonado"
+                        value={viewingExperticia.datosAbonado}
+                      />
+                    )}
                   </div>
                 </div>
+              )}
+
+              {/* Archivo y conclusión */}
+              {(viewingExperticia.archivoAdjunto ||
+                viewingExperticia.conclusion) && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium text-gray-900">
+                    Documentación y Resultados
+                  </h4>
+                  <div className="space-y-4">
+                    {viewingExperticia.archivoAdjunto && (
+                      <DetailField
+                        label="Archivo Adjunto"
+                        value={viewingExperticia.archivoAdjunto}
+                      />
+                    )}
+                    {viewingExperticia.conclusion && (
+                      <DetailField
+                        label="Conclusión"
+                        value={viewingExperticia.conclusion}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-4">
+                <DetailField
+                  label="Fecha de Creación"
+                  value={viewingExperticia.createdAt?.toString()}
+                  isDate
+                />
+                <DetailField
+                  label="Última Actualización"
+                  value={viewingExperticia.updatedAt?.toString()}
+                  isDate
+                />
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Burbuja flotante con menú */}
+      <div className="fixed bottom-4 right-3 z-50">
+        {/* Menú desplegable */}
+        {isMenuOpen && (
+          <div
+            className="absolute bottom-12 right-5 bg-white rounded-lg shadow-lg border border-gray-200 py-2 w-56 mb-2"
+            data-testid="menu-flotante"
+          >
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 transition-colors"
+              data-testid="button-chat"
+            >
+              <MessageSquare className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-medium">Chat</span>
+            </button>
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                setIsCombinarModalOpen(true);
+              }}
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 transition-colors"
+              data-testid="button-combinar-archivos"
+            >
+              <Files className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium">Combinar Archivos</span>
+            </button>
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 text-left hover:bg-purple-100 bg-purple-50 flex items-center space-x-3 transition-colors relative"
+              data-testid="button-rastrear"
+            >
+              <div className="relative">
+                <Bug className="h-5 w-5 text-red-600 relative z-10" />
+                <div className="absolute inset-0 opacity-20 ">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5">
+                    <path
+                      d="M12 2L2 7L12 12L22 7L12 2Z"
+                      fill="currentColor"
+                      className="text-gray-400"
+                    />
+                    <path
+                      d="M2 17L12 22L22 17"
+                      stroke="currentColor"
+                      className="text-gray-400"
+                      fill="none"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="M2 12L12 17L22 12"
+                      stroke="currentColor"
+                      className="text-gray-400"
+                      fill="none"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <span className="text-sm font-medium">Rastrear (Araña)</span>
+            </button>
+          </div>
+        )}
+
+        {/* Botón de burbuja */}
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition-all hover:scale-110"
+          data-testid="button-menu-flotante"
+        >
+          <Plus
+            className={`h-6 w-6 transition-transform ${
+              isMenuOpen ? "rotate-45" : ""
+            }`}
+          />
+        </button>
+      </div>
+
+      <CombinarArchivosModal
+        isOpen={isCombinarModalOpen}
+        onClose={() => setIsCombinarModalOpen(false)}
+      />
     </div>
   );
 }
