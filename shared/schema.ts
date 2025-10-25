@@ -392,5 +392,146 @@ export const loginSchema = z.object({
 
 export type LoginData = z.infer<typeof loginSchema>;
 
+// ============================================
+// ANÁLISIS DE TRAZABILIDAD - Nuevas Tablas
+// ============================================
 
+// Tabla PERSONA_CASO - Almacena datos estáticos del caso y de la persona
+export const personasCasos = pgTable("personas_casos", {
+  nro: serial("nro").primaryKey(),
+  telefono: text("telefono"), // Teléfono principal (opcional, sin UNIQUE)
+  cedula: text("cedula").unique(),
+  nombre: text("nombre"),
+  apellido: text("apellido"),
+  pseudonimo: text("pseudonimo"),
+  edad: integer("edad"),
+  fechaDeNacimiento: text("fecha_de_nacimiento"),
+  profesion: text("profesion"),
+  direccion: text("direccion"),
+  expediente: text("expediente"),
+  fechaDeInicio: text("fecha_de_inicio"),
+  delito: text("delito"),
+  nOficio: text("n_oficio"),
+  fiscalia: text("fiscalia"),
+  descripcion: text("descripcion"),
+  observacion: text("observacion"),
+  usuarioId: integer("usuario_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
+// Tabla PERSONA_TELEFONOS - Catálogo de números asociados a personas
+export const personaTelefonos = pgTable("persona_telefonos", {
+  id: serial("id").primaryKey(),
+  personaId: integer("persona_id").references(() => personasCasos.nro, { onDelete: 'cascade' }),
+  numero: text("numero").notNull().unique(), // Número de teléfono único
+  tipo: text("tipo"), // Tipo: móvil, fijo, trabajo, etc.
+  activo: boolean("activo").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Tabla REGISTRO_COMUNICACION - Almacena cada evento de comunicación
+export const registrosComunicacion = pgTable("registros_comunicacion", {
+  registroId: serial("registro_id").primaryKey(),
+  abonadoA: text("abonado_a").notNull(), // String puro para integridad histórica
+  abonadoB: text("abonado_b"),
+  abonadoAId: integer("abonado_a_id").references(() => personaTelefonos.id), // FK opcional para trazabilidad
+  abonadoBId: integer("abonado_b_id").references(() => personaTelefonos.id), // FK opcional para trazabilidad
+  imei1A: text("imei1_a"),
+  imei2A: text("imei2_a"),
+  imei1B: text("imei1_b"),
+  imei2B: text("imei2_b"),
+  tipoYTransaccion: text("tipo_y_transaccion"),
+  segundos: integer("segundos"),
+  hora: text("hora"),
+  fecha: text("fecha"),
+  direccionInicialA: text("direccion_inicial_a"),
+  latitudInicialA: text("latitud_inicial_a"),
+  longitudInicialA: text("longitud_inicial_a"),
+  archivo: text("archivo"),
+  peso: text("peso"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relaciones
+export const personasCasosRelations = relations(personasCasos, ({ one, many }) => ({
+  usuario: one(users, {
+    fields: [personasCasos.usuarioId],
+    references: [users.id],
+  }),
+  telefonos: many(personaTelefonos),
+}));
+
+export const personaTelefonosRelations = relations(personaTelefonos, ({ one, many }) => ({
+  persona: one(personasCasos, {
+    fields: [personaTelefonos.personaId],
+    references: [personasCasos.nro],
+  }),
+  registrosComunicacionA: many(registrosComunicacion, {
+    relationName: 'registros_abonado_a',
+  }),
+  registrosComunicacionB: many(registrosComunicacion, {
+    relationName: 'registros_abonado_b',
+  }),
+}));
+
+export const registrosComunicacionRelations = relations(registrosComunicacion, ({ one }) => ({
+  telefonoA: one(personaTelefonos, {
+    fields: [registrosComunicacion.abonadoAId],
+    references: [personaTelefonos.id],
+    relationName: 'registros_abonado_a',
+  }),
+  telefonoB: one(personaTelefonos, {
+    fields: [registrosComunicacion.abonadoBId],
+    references: [personaTelefonos.id],
+    relationName: 'registros_abonado_b',
+  }),
+}));
+
+// Insert schemas
+export const insertPersonaCasoSchema = createInsertSchema(personasCasos).omit({
+  nro: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  telefono: z.string()
+    .max(20, "Teléfono muy largo")
+    .optional(),
+  cedula: z.string()
+    .max(20, "Cédula muy larga")
+    .optional(),
+  expediente: z.string()
+    .max(100, "Expediente muy largo")
+    .optional(),
+});
+
+export const insertPersonaTelefonoSchema = createInsertSchema(personaTelefonos).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  numero: z.string()
+    .min(1, "Número de teléfono es requerido")
+    .max(20, "Número muy largo")
+    .transform(val => val.trim()),
+  tipo: z.string()
+    .max(50, "Tipo muy largo")
+    .optional(),
+});
+
+export const insertRegistroComunicacionSchema = createInsertSchema(registrosComunicacion).omit({
+  registroId: true,
+  createdAt: true,
+}).extend({
+  abonadoA: z.string()
+    .min(1, "Abonado A es requerido")
+    .max(20, "Abonado A muy largo")
+    .transform(val => val.trim()),
+});
+
+// Types
+export type PersonaCaso = typeof personasCasos.$inferSelect;
+export type InsertPersonaCaso = z.infer<typeof insertPersonaCasoSchema>;
+export type PersonaTelefono = typeof personaTelefonos.$inferSelect;
+export type InsertPersonaTelefono = z.infer<typeof insertPersonaTelefonoSchema>;
+export type RegistroComunicacion = typeof registrosComunicacion.$inferSelect;
+export type InsertRegistroComunicacion = z.infer<typeof insertRegistroComunicacionSchema>;

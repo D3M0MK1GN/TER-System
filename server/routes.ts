@@ -11,6 +11,9 @@ import {
   insertPlantillaCorreoSchema,
   insertPlantillaWordSchema,
   insertExperticiasSchema,
+  insertPersonaCasoSchema,
+  insertPersonaTelefonoSchema,
+  insertRegistroComunicacionSchema,
   loginSchema,
   type User,
 } from "@shared/schema";
@@ -1208,6 +1211,359 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
 
   // Registrar rutas de estadísticas
   registerStatsRoutes(app, authenticateToken);
+
+  // ============================================
+  // ANÁLISIS DE TRAZABILIDAD - API Routes
+  // ============================================
+
+  // Personas Casos - CRUD
+  app.get("/api/personas-casos", authenticateToken, async (req: any, res) => {
+    try {
+      const { search, page, limit } = req.query;
+      const result = await storage.getPersonasCasos({
+        search: search as string,
+        page: page ? parseInt(page as string) : undefined,
+        limit: limit ? parseInt(limit as string) : undefined,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error getting personas casos:', error);
+      res.status(500).json({ message: 'Error al obtener personas casos' });
+    }
+  });
+
+  app.get("/api/personas-casos/:nro", authenticateToken, async (req: any, res) => {
+    try {
+      const nro = parseInt(req.params.nro);
+      const persona = await storage.getPersonaCasoById(nro);
+      if (!persona) {
+        return res.status(404).json({ message: 'Persona caso no encontrada' });
+      }
+      res.json(persona);
+    } catch (error: any) {
+      console.error('Error getting persona caso:', error);
+      res.status(500).json({ message: 'Error al obtener persona caso' });
+    }
+  });
+
+  // Persona Teléfonos - Catálogo de números
+  app.get("/api/persona-telefonos/persona/:personaId", authenticateToken, async (req: any, res) => {
+    try {
+      const personaId = parseInt(req.params.personaId);
+      const telefonos = await storage.getPersonaTelefonos(personaId);
+      res.json(telefonos);
+    } catch (error: any) {
+      console.error('Error getting persona telefonos:', error);
+      res.status(500).json({ message: 'Error al obtener teléfonos' });
+    }
+  });
+
+  app.get("/api/persona-telefonos/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const telefono = await storage.getPersonaTelefonoById(id);
+      if (!telefono) {
+        return res.status(404).json({ message: 'Teléfono no encontrado' });
+      }
+      res.json(telefono);
+    } catch (error: any) {
+      console.error('Error getting telefono:', error);
+      res.status(500).json({ message: 'Error al obtener teléfono' });
+    }
+  });
+
+  app.get("/api/persona-telefonos/numero/:numero", authenticateToken, async (req: any, res) => {
+    try {
+      const { numero } = req.params;
+      const telefono = await storage.getPersonaTelefonoByNumero(numero);
+      if (!telefono) {
+        return res.status(404).json({ message: 'Teléfono no encontrado' });
+      }
+      res.json(telefono);
+    } catch (error: any) {
+      console.error('Error getting telefono by numero:', error);
+      res.status(500).json({ message: 'Error al obtener teléfono' });
+    }
+  });
+
+  app.post("/api/persona-telefonos", authenticateToken, async (req: any, res) => {
+    try {
+      const validatedData = insertPersonaTelefonoSchema.parse(req.body);
+      const newTelefono = await storage.createPersonaTelefono(validatedData);
+      res.status(201).json(newTelefono);
+    } catch (error: any) {
+      console.error('Error creating telefono:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Datos inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Error al crear teléfono' });
+    }
+  });
+
+  app.post("/api/persona-telefonos/bulk", authenticateToken, async (req: any, res) => {
+    try {
+      const { telefonos } = req.body;
+      if (!Array.isArray(telefonos)) {
+        return res.status(400).json({ message: 'Se esperaba un array de teléfonos' });
+      }
+      const validatedData = telefonos.map(t => insertPersonaTelefonoSchema.parse(t));
+      const newTelefonos = await storage.createPersonaTelefonosBulk(validatedData);
+      res.status(201).json({
+        message: `${newTelefonos.length} teléfonos creados correctamente`,
+        telefonos: newTelefonos
+      });
+    } catch (error: any) {
+      console.error('Error creating bulk telefonos:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Datos inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Error al crear teléfonos' });
+    }
+  });
+
+  app.put("/api/persona-telefonos/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertPersonaTelefonoSchema.partial().parse(req.body);
+      const updated = await storage.updatePersonaTelefono(id, validatedData);
+      if (!updated) {
+        return res.status(404).json({ message: 'Teléfono no encontrado' });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error updating telefono:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Datos inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Error al actualizar teléfono' });
+    }
+  });
+
+  app.delete("/api/persona-telefonos/:id", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deletePersonaTelefono(id);
+      if (!deleted) {
+        return res.status(404).json({ message: 'Teléfono no encontrado' });
+      }
+      res.json({ message: 'Teléfono eliminado correctamente' });
+    } catch (error: any) {
+      console.error('Error deleting telefono:', error);
+      res.status(500).json({ message: 'Error al eliminar teléfono' });
+    }
+  });
+
+  app.post("/api/personas-casos", authenticateToken, async (req: any, res) => {
+    try {
+      const validatedData = insertPersonaCasoSchema.parse({
+        ...req.body,
+        usuarioId: req.user.id,
+      });
+      const newPersona = await storage.createPersonaCaso(validatedData);
+      res.status(201).json(newPersona);
+    } catch (error: any) {
+      console.error('Error creating persona caso:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Datos inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Error al crear persona caso' });
+    }
+  });
+
+  app.put("/api/personas-casos/:nro", authenticateToken, async (req: any, res) => {
+    try {
+      const nro = parseInt(req.params.nro);
+      const validatedData = insertPersonaCasoSchema.partial().parse(req.body);
+      const updated = await storage.updatePersonaCaso(nro, validatedData);
+      if (!updated) {
+        return res.status(404).json({ message: 'Persona caso no encontrada' });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error updating persona caso:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Datos inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Error al actualizar persona caso' });
+    }
+  });
+
+  app.delete("/api/personas-casos/:nro", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const nro = parseInt(req.params.nro);
+      const deleted = await storage.deletePersonaCaso(nro);
+      if (!deleted) {
+        return res.status(404).json({ message: 'Persona caso no encontrada' });
+      }
+      res.json({ message: 'Persona caso eliminada correctamente' });
+    } catch (error: any) {
+      console.error('Error deleting persona caso:', error);
+      res.status(500).json({ message: 'Error al eliminar persona caso' });
+    }
+  });
+
+  // Registros Comunicación - CRUD
+  app.get("/api/registros-comunicacion", authenticateToken, async (req: any, res) => {
+    try {
+      const { abonadoA, abonadoB, fecha, page, limit } = req.query;
+      const result = await storage.getRegistrosComunicacion({
+        abonadoA: abonadoA as string,
+        abonadoB: abonadoB as string,
+        fecha: fecha as string,
+        page: page ? parseInt(page as string) : undefined,
+        limit: limit ? parseInt(limit as string) : undefined,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error getting registros comunicacion:', error);
+      res.status(500).json({ message: 'Error al obtener registros de comunicación' });
+    }
+  });
+
+  app.get("/api/registros-comunicacion/:registroId", authenticateToken, async (req: any, res) => {
+    try {
+      const registroId = parseInt(req.params.registroId);
+      const registro = await storage.getRegistroComunicacionById(registroId);
+      if (!registro) {
+        return res.status(404).json({ message: 'Registro de comunicación no encontrado' });
+      }
+      res.json(registro);
+    } catch (error: any) {
+      console.error('Error getting registro comunicacion:', error);
+      res.status(500).json({ message: 'Error al obtener registro de comunicación' });
+    }
+  });
+
+  app.get("/api/registros-comunicacion/abonado/:abonado", authenticateToken, async (req: any, res) => {
+    try {
+      const { abonado } = req.params;
+      const registros = await storage.getRegistrosComunicacionByAbonado(abonado);
+      res.json(registros);
+    } catch (error: any) {
+      console.error('Error getting registros by abonado:', error);
+      res.status(500).json({ message: 'Error al obtener registros de comunicación' });
+    }
+  });
+
+  app.post("/api/registros-comunicacion", authenticateToken, async (req: any, res) => {
+    try {
+      const validatedData = insertRegistroComunicacionSchema.parse(req.body);
+      const newRegistro = await storage.createRegistroComunicacion(validatedData);
+      res.status(201).json(newRegistro);
+    } catch (error: any) {
+      console.error('Error creating registro comunicacion:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Datos inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Error al crear registro de comunicación' });
+    }
+  });
+
+  app.post("/api/registros-comunicacion/bulk", authenticateToken, async (req: any, res) => {
+    try {
+      const { registros } = req.body;
+      if (!Array.isArray(registros)) {
+        return res.status(400).json({ message: 'Se esperaba un array de registros' });
+      }
+      const validatedData = registros.map(r => insertRegistroComunicacionSchema.parse(r));
+      const newRegistros = await storage.createRegistrosComunicacionBulk(validatedData);
+      res.status(201).json({ 
+        message: `${newRegistros.length} registros creados correctamente`,
+        registros: newRegistros 
+      });
+    } catch (error: any) {
+      console.error('Error creating bulk registros:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Datos inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Error al crear registros de comunicación' });
+    }
+  });
+
+  app.put("/api/registros-comunicacion/:registroId", authenticateToken, async (req: any, res) => {
+    try {
+      const registroId = parseInt(req.params.registroId);
+      const validatedData = insertRegistroComunicacionSchema.partial().parse(req.body);
+      const updated = await storage.updateRegistroComunicacion(registroId, validatedData);
+      if (!updated) {
+        return res.status(404).json({ message: 'Registro de comunicación no encontrado' });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error updating registro comunicacion:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Datos inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Error al actualizar registro de comunicación' });
+    }
+  });
+
+  app.delete("/api/registros-comunicacion/:registroId", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const registroId = parseInt(req.params.registroId);
+      const deleted = await storage.deleteRegistroComunicacion(registroId);
+      if (!deleted) {
+        return res.status(404).json({ message: 'Registro de comunicación no encontrado' });
+      }
+      res.json({ message: 'Registro de comunicación eliminado correctamente' });
+    } catch (error: any) {
+      console.error('Error deleting registro comunicacion:', error);
+      res.status(500).json({ message: 'Error al eliminar registro de comunicación' });
+    }
+  });
+
+  // Endpoint especial para búsqueda de trazabilidad (JOIN mejorado)
+  app.get("/api/trazabilidad/:telefono", authenticateToken, async (req: any, res) => {
+    try {
+      const { telefono } = req.params;
+      
+      // Buscar el número en el catálogo de teléfonos
+      const telefonoCatalogo = await storage.getPersonaTelefonoByNumero(telefono);
+      
+      let persona = null;
+      let todosLosTelefonos: any[] = [];
+      let registrosPorIds: any[] = [];
+      
+      if (telefonoCatalogo && telefonoCatalogo.personaId) {
+        // Si está catalogado, obtener la persona y todos sus teléfonos
+        persona = await storage.getPersonaCasoById(telefonoCatalogo.personaId);
+        todosLosTelefonos = await storage.getPersonaTelefonos(telefonoCatalogo.personaId);
+        
+        // Obtener registros usando los IDs de teléfono (más eficiente)
+        const telefonoIds = todosLosTelefonos.map(t => t.id);
+        if (telefonoIds.length > 0) {
+          registrosPorIds = await storage.getRegistrosComunicacionByTelefonoIds(telefonoIds);
+        }
+      }
+      
+      // SIEMPRE buscar también por el string del número (captura registros históricos no catalogados)
+      const registrosPorString = await storage.getRegistrosComunicacionByAbonado(telefono);
+      
+      // Combinar y eliminar duplicados (usar registroId como clave única)
+      const registrosMap = new Map();
+      [...registrosPorIds, ...registrosPorString].forEach(r => {
+        registrosMap.set(r.registroId, r);
+      });
+      const registros = Array.from(registrosMap.values());
+      
+      // Respuesta combinada
+      res.json({
+        persona,
+        telefonosAsociados: todosLosTelefonos,
+        registrosComunicacion: registros,
+        totalRegistros: registros.length,
+        esCatalogado: telefonoCatalogo !== null,
+        busqueda: {
+          porTelefonoId: registrosPorIds.length,
+          porString: registrosPorString.length,
+          total: registros.length
+        }
+      });
+    } catch (error: any) {
+      console.error('Error getting trazabilidad:', error);
+      res.status(500).json({ message: 'Error al obtener trazabilidad' });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

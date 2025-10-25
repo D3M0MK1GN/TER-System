@@ -8,6 +8,9 @@ import {
   configuracionSistema,
   chatbotMensajes,
   experticias,
+  personasCasos,
+  personaTelefonos,
+  registrosComunicacion,
   type User,
   type InsertUser,
   type Solicitud,
@@ -24,6 +27,12 @@ import {
   type InsertChatbotMensaje,
   type Experticia,
   type InsertExperticia,
+  type PersonaCaso,
+  type InsertPersonaCaso,
+  type PersonaTelefono,
+  type InsertPersonaTelefono,
+  type RegistroComunicacion,
+  type InsertRegistroComunicacion,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, ne, like, count, sql, lt, inArray, notInArray } from "drizzle-orm";
@@ -157,6 +166,44 @@ export interface IStorage {
   createExperticia(experticia: InsertExperticia): Promise<Experticia>;
   updateExperticia(id: number, experticia: Partial<InsertExperticia>): Promise<Experticia | undefined>;
   deleteExperticia(id: number): Promise<boolean>;
+
+  // Personas Casos - Análisis de Trazabilidad
+  getPersonasCasos(filters?: {
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ personasCasos: PersonaCaso[]; total: number }>;
+  getPersonaCasoById(nro: number): Promise<PersonaCaso | undefined>;
+  getPersonaCasoByTelefono(telefono: string): Promise<PersonaCaso | undefined>;
+  createPersonaCaso(personaCaso: InsertPersonaCaso): Promise<PersonaCaso>;
+  updatePersonaCaso(nro: number, personaCaso: Partial<InsertPersonaCaso>): Promise<PersonaCaso | undefined>;
+  deletePersonaCaso(nro: number): Promise<boolean>;
+
+  // Persona Teléfonos - Catálogo de números
+  getPersonaTelefonos(personaId: number): Promise<PersonaTelefono[]>;
+  getPersonaTelefonoById(id: number): Promise<PersonaTelefono | undefined>;
+  getPersonaTelefonoByNumero(numero: string): Promise<PersonaTelefono | undefined>;
+  createPersonaTelefono(telefono: InsertPersonaTelefono): Promise<PersonaTelefono>;
+  createPersonaTelefonosBulk(telefonos: InsertPersonaTelefono[]): Promise<PersonaTelefono[]>;
+  updatePersonaTelefono(id: number, telefono: Partial<InsertPersonaTelefono>): Promise<PersonaTelefono | undefined>;
+  deletePersonaTelefono(id: number): Promise<boolean>;
+  deletePersonaTelefonosByPersona(personaId: number): Promise<boolean>;
+
+  // Registros Comunicación - Análisis de Trazabilidad
+  getRegistrosComunicacion(filters?: {
+    abonadoA?: string;
+    abonadoB?: string;
+    fecha?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ registros: RegistroComunicacion[]; total: number }>;
+  getRegistroComunicacionById(registroId: number): Promise<RegistroComunicacion | undefined>;
+  getRegistrosComunicacionByAbonado(abonado: string): Promise<RegistroComunicacion[]>;
+  getRegistrosComunicacionByTelefonoIds(telefonoIds: number[]): Promise<RegistroComunicacion[]>;
+  createRegistroComunicacion(registro: InsertRegistroComunicacion): Promise<RegistroComunicacion>;
+  createRegistrosComunicacionBulk(registros: InsertRegistroComunicacion[]): Promise<RegistroComunicacion[]>;
+  updateRegistroComunicacion(registroId: number, registro: Partial<InsertRegistroComunicacion>): Promise<RegistroComunicacion | undefined>;
+  deleteRegistroComunicacion(registroId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1230,6 +1277,245 @@ export class DatabaseStorage implements IStorage {
   async deleteExperticia(id: number): Promise<boolean> {
     const result = await db.delete(experticias).where(eq(experticias.id, id));
     return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // ============================================
+  // ANÁLISIS DE TRAZABILIDAD - Implementaciones
+  // ============================================
+
+  // Personas Casos
+  async getPersonasCasos(filters?: {
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ personasCasos: PersonaCaso[]; total: number }> {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+    const offset = (page - 1) * limit;
+
+    let whereConditions: any[] = [];
+
+    if (filters?.search) {
+      const searchTerm = `%${filters.search}%`;
+      whereConditions.push(
+        or(
+          like(personasCasos.telefono, searchTerm),
+          like(personasCasos.cedula, searchTerm),
+          like(personasCasos.nombre, searchTerm),
+          like(personasCasos.apellido, searchTerm),
+          like(personasCasos.expediente, searchTerm)
+        )
+      );
+    }
+
+    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+    const [personasResult, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(personasCasos)
+        .where(whereClause)
+        .orderBy(desc(personasCasos.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(personasCasos)
+        .where(whereClause)
+    ]);
+
+    return {
+      personasCasos: personasResult,
+      total: totalResult[0]?.count || 0,
+    };
+  }
+
+  async getPersonaCasoById(nro: number): Promise<PersonaCaso | undefined> {
+    const [persona] = await db.select().from(personasCasos).where(eq(personasCasos.nro, nro));
+    return persona || undefined;
+  }
+
+  async getPersonaCasoByTelefono(telefono: string): Promise<PersonaCaso | undefined> {
+    const [persona] = await db.select().from(personasCasos).where(eq(personasCasos.telefono, telefono));
+    return persona || undefined;
+  }
+
+  async createPersonaCaso(personaCaso: InsertPersonaCaso): Promise<PersonaCaso> {
+    const [newPersona] = await db.insert(personasCasos).values(personaCaso).returning();
+    return newPersona;
+  }
+
+  async updatePersonaCaso(nro: number, personaCaso: Partial<InsertPersonaCaso>): Promise<PersonaCaso | undefined> {
+    const [updatedPersona] = await db
+      .update(personasCasos)
+      .set({ ...personaCaso, updatedAt: new Date() })
+      .where(eq(personasCasos.nro, nro))
+      .returning();
+    return updatedPersona || undefined;
+  }
+
+  async deletePersonaCaso(nro: number): Promise<boolean> {
+    // CASCADE eliminará automáticamente los teléfonos asociados de persona_telefonos
+    // Los registros de comunicación mantendrán sus strings pero perderán las FKs
+    const result = await db.delete(personasCasos).where(eq(personasCasos.nro, nro));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Registros Comunicación
+  async getRegistrosComunicacion(filters?: {
+    abonadoA?: string;
+    abonadoB?: string;
+    fecha?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ registros: RegistroComunicacion[]; total: number }> {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 50;
+    const offset = (page - 1) * limit;
+
+    let whereConditions: any[] = [];
+
+    if (filters?.abonadoA) {
+      whereConditions.push(eq(registrosComunicacion.abonadoA, filters.abonadoA));
+    }
+
+    if (filters?.abonadoB) {
+      whereConditions.push(like(registrosComunicacion.abonadoB, `%${filters.abonadoB}%`));
+    }
+
+    if (filters?.fecha) {
+      whereConditions.push(eq(registrosComunicacion.fecha, filters.fecha));
+    }
+
+    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+    const [registrosResult, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(registrosComunicacion)
+        .where(whereClause)
+        .orderBy(desc(registrosComunicacion.fecha))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(registrosComunicacion)
+        .where(whereClause)
+    ]);
+
+    return {
+      registros: registrosResult,
+      total: totalResult[0]?.count || 0,
+    };
+  }
+
+  async getRegistroComunicacionById(registroId: number): Promise<RegistroComunicacion | undefined> {
+    const [registro] = await db.select().from(registrosComunicacion).where(eq(registrosComunicacion.registroId, registroId));
+    return registro || undefined;
+  }
+
+  async getRegistrosComunicacionByAbonado(abonado: string): Promise<RegistroComunicacion[]> {
+    // Buscar tanto en abonadoA como en abonadoB para capturar llamadas entrantes y salientes
+    return await db
+      .select()
+      .from(registrosComunicacion)
+      .where(
+        or(
+          eq(registrosComunicacion.abonadoA, abonado),
+          eq(registrosComunicacion.abonadoB, abonado)
+        )
+      )
+      .orderBy(desc(registrosComunicacion.fecha));
+  }
+
+  async getRegistrosComunicacionByTelefonoIds(telefonoIds: number[]): Promise<RegistroComunicacion[]> {
+    if (telefonoIds.length === 0) return [];
+    
+    // Buscar registros donde abonadoAId o abonadoBId estén en la lista de IDs
+    return await db
+      .select()
+      .from(registrosComunicacion)
+      .where(
+        or(
+          inArray(registrosComunicacion.abonadoAId, telefonoIds),
+          inArray(registrosComunicacion.abonadoBId, telefonoIds)
+        )
+      )
+      .orderBy(desc(registrosComunicacion.fecha));
+  }
+
+  async createRegistroComunicacion(registro: InsertRegistroComunicacion): Promise<RegistroComunicacion> {
+    const [newRegistro] = await db.insert(registrosComunicacion).values(registro).returning();
+    return newRegistro;
+  }
+
+  async createRegistrosComunicacionBulk(registros: InsertRegistroComunicacion[]): Promise<RegistroComunicacion[]> {
+    if (registros.length === 0) return [];
+    const newRegistros = await db.insert(registrosComunicacion).values(registros).returning();
+    return newRegistros;
+  }
+
+  async updateRegistroComunicacion(registroId: number, registro: Partial<InsertRegistroComunicacion>): Promise<RegistroComunicacion | undefined> {
+    const [updatedRegistro] = await db
+      .update(registrosComunicacion)
+      .set(registro)
+      .where(eq(registrosComunicacion.registroId, registroId))
+      .returning();
+    return updatedRegistro || undefined;
+  }
+
+  async deleteRegistroComunicacion(registroId: number): Promise<boolean> {
+    const result = await db.delete(registrosComunicacion).where(eq(registrosComunicacion.registroId, registroId));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Persona Teléfonos - Catálogo de números
+  async getPersonaTelefonos(personaId: number): Promise<PersonaTelefono[]> {
+    return await db
+      .select()
+      .from(personaTelefonos)
+      .where(eq(personaTelefonos.personaId, personaId))
+      .orderBy(desc(personaTelefonos.activo), desc(personaTelefonos.createdAt));
+  }
+
+  async getPersonaTelefonoById(id: number): Promise<PersonaTelefono | undefined> {
+    const [telefono] = await db.select().from(personaTelefonos).where(eq(personaTelefonos.id, id));
+    return telefono || undefined;
+  }
+
+  async getPersonaTelefonoByNumero(numero: string): Promise<PersonaTelefono | undefined> {
+    const [telefono] = await db.select().from(personaTelefonos).where(eq(personaTelefonos.numero, numero));
+    return telefono || undefined;
+  }
+
+  async createPersonaTelefono(telefono: InsertPersonaTelefono): Promise<PersonaTelefono> {
+    const [newTelefono] = await db.insert(personaTelefonos).values(telefono).returning();
+    return newTelefono;
+  }
+
+  async createPersonaTelefonosBulk(telefonos: InsertPersonaTelefono[]): Promise<PersonaTelefono[]> {
+    if (telefonos.length === 0) return [];
+    const newTelefonos = await db.insert(personaTelefonos).values(telefonos).returning();
+    return newTelefonos;
+  }
+
+  async updatePersonaTelefono(id: number, telefono: Partial<InsertPersonaTelefono>): Promise<PersonaTelefono | undefined> {
+    const [updatedTelefono] = await db
+      .update(personaTelefonos)
+      .set(telefono)
+      .where(eq(personaTelefonos.id, id))
+      .returning();
+    return updatedTelefono || undefined;
+  }
+
+  async deletePersonaTelefono(id: number): Promise<boolean> {
+    const result = await db.delete(personaTelefonos).where(eq(personaTelefonos.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async deletePersonaTelefonosByPersona(personaId: number): Promise<boolean> {
+    const result = await db.delete(personaTelefonos).where(eq(personaTelefonos.personaId, personaId));
+    return (result.rowCount || 0) > 0;
   }
 }
 
