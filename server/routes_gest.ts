@@ -717,17 +717,30 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
     try {
       const numeroSolicitudOriginal = req.body.numeroDictamen;
       const numeroSolicitudLimpio = (numeroSolicitudOriginal || '').trim().toUpperCase();
-      console.log('Número de solicitud recibido:', numeroSolicitudOriginal);
-      console.log('Número de solicitud limpio:', numeroSolicitudLimpio);
+      console.log('🔍 [CREATE EXPERTICIA] Inicio del proceso');
+      console.log('📋 [CREATE EXPERTICIA] Número de dictamen recibido:', numeroSolicitudOriginal);
+      console.log('📋 [CREATE EXPERTICIA] Número de dictamen limpio:', numeroSolicitudLimpio);
+      console.log('👤 [CREATE EXPERTICIA] Usuario:', req.user?.username, 'Rol:', req.user?.rol);
+      console.log('📦 [CREATE EXPERTICIA] Body completo:', JSON.stringify(req.body, null, 2));
 
-      // Consulta para verificar duplicados
-      const existe = await storage.findSolicitudByNumero(numeroSolicitudLimpio);
-      console.log('¿Existe duplicado en la base de datos?', !!existe);
+      // Consulta para verificar duplicados en la tabla de EXPERTICIAS (no solicitudes)
+      console.log('🔎 [CREATE EXPERTICIA] Verificando duplicados en tabla experticias...');
+      const resultadoBusqueda = await storage.getExperticias({ 
+        search: numeroSolicitudLimpio,
+        limit: 1 
+      });
+      console.log('✅ [CREATE EXPERTICIA] Resultado de búsqueda:', {
+        total: resultadoBusqueda.total,
+        encontradas: resultadoBusqueda.experticias.length,
+        numerosEncontrados: resultadoBusqueda.experticias.map((e: any) => e.numeroDictamen)
+      });
 
-      if (existe) {
-        console.log('Solicitud duplicada detectada para:', numeroSolicitudLimpio);
-        return res.status(400).json({ message: 'Solicitud duplicada' });
+      if (resultadoBusqueda.total > 0 && resultadoBusqueda.experticias.length > 0) {
+        console.log('⚠️ [CREATE EXPERTICIA] Experticia duplicada detectada para:', numeroSolicitudLimpio);
+        return res.status(400).json({ message: 'Ya existe una experticia con este número de dictamen' });
       }
+      
+      console.log('✅ [CREATE EXPERTICIA] No hay duplicados, continuando con creación...');
 
       if (req.user.rol !== 'admin') {
         return res.status(403).json({ message: "No tienes permisos para crear experticias" });

@@ -17,6 +17,7 @@ import {
   X,
   Bot,
   Atom,
+  GitBranch,
 } from "lucide-react";
 
 const navItems = [
@@ -39,6 +40,12 @@ const navItems = [
     permission: "canViewAllRequests" as const,
   },
   {
+    title: "Análisis de Trazabilidad",
+    href: "/trazabilidad",
+    icon: GitBranch,
+    permission: "canViewAllRequests" as const,
+  },
+  {
     title: "Enviar Correo",
     href: "/plantillas",
     icon: Mail,
@@ -50,7 +57,6 @@ const navItems = [
     icon: Bot,
     permission: "canViewDashboard" as const,
   },
-
 ];
 
 export function Sidebar() {
@@ -61,12 +67,18 @@ export function Sidebar() {
 
   // Memoize nav items to prevent unnecessary re-renders
   const visibleNavItems = useMemo(() => {
-    return navItems.filter(item => {
-      if (item.permission === "canViewAllRequests" && item.href === "/solicitudes") {
+    return navItems.filter((item) => {
+      if (
+        item.permission === "canViewAllRequests" &&
+        item.href === "/solicitudes"
+      ) {
         // For requests, both admins and supervisors can view all, users can view their own
         return permissions.canViewAllRequests || permissions.canViewDashboard;
       }
-      if (item.permission === "canViewEmailTemplates" && item.href === "/plantillas") {
+      if (
+        item.permission === "canViewEmailTemplates" &&
+        item.href === "/plantillas"
+      ) {
         // For email templates, only admins can access this section
         return permissions.canViewEmailTemplates;
       }
@@ -75,16 +87,22 @@ export function Sidebar() {
   }, [permissions]);
 
   return (
-    <div className={cn(
-      "fixed inset-y-0 left-0 bg-white shadow-lg transition-all duration-300 z-50",
-      isOpen ? "w-64" : "w-16"
-    )}>
+    <div
+      className={cn(
+        "fixed inset-y-0 left-0 bg-white shadow-lg transition-all duration-300 z-50",
+        isOpen ? "w-64" : "w-16"
+      )}
+    >
       {/* Header with toggle button */}
       <div className="flex items-center justify-between h-16 bg-primary text-white px-4">
         <div className="flex items-center space-x-3">
           {/* <Antenna className="h-6 w-6 flex-shrink-0" /> */}
           {/*<Cambiar logo del panel Lateral y ajustar tamaño /> */}
-          <img src="/cicipc.png" className="h-12 w-12 flex-shrink-0" alt="Logo" />
+          <img
+            src="/cicipc.png"
+            className="h-12 w-12 flex-shrink-0"
+            alt="Logo"
+          />
           {isOpen && <span className="font-bold text-lg">TER-System</span>}
         </div>
         <Button
@@ -103,14 +121,16 @@ export function Sidebar() {
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.href;
-            
+
             return (
               <Link key={item.href} href={item.href}>
                 <Button
                   variant="ghost"
                   className={cn(
                     "w-full h-auto font-normal transition-all duration-200",
-                    isOpen ? "justify-start px-4 py-3" : "justify-center px-2 py-3",
+                    isOpen
+                      ? "justify-start px-4 py-3"
+                      : "justify-center px-2 py-3",
                     isActive && "bg-blue-50 text-primary hover:bg-blue-50"
                   )}
                   title={!isOpen ? item.title : undefined}

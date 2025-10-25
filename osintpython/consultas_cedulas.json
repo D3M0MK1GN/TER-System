@@ -1514,5 +1514,55 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2025-10-21T19:10:46.561384",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "11484517",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=11484517",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 11484517,
+                "fecha_nac": "1973-10-10",
+                "rif": "V114845171",
+                "cne": {
+                    "estado": "MIRANDA",
+                    "municipio": "PLAZA",
+                    "parroquia": "GUARENAS",
+                    "centro_electoral": "UNIDAD EDUCATIVA NACIONAL BOLIVARIANA MIGUEL OTERO SILVA"
+                },
+                "primer_apellido": "MARIN",
+                "segundo_apellido": "SAAVEDRA",
+                "primer_nombre": "CARY",
+                "segundo_nombre": "GUILLERMINA",
+                "request_date": "2025-10-21T23:10:46.258Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-10-21T19:11:03.172978",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "30429320",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=30429320",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 30429320,
+                "fecha_nac": "0000-00-00",
+                "rif": "V304293205",
+                "primer_apellido": "OJEDA",
+                "segundo_apellido": "MARIN",
+                "primer_nombre": "ANDERSON",
+                "segundo_nombre": "MANUEL",
+                "request_date": "2025-10-21T23:11:03.137Z"
+            }
+        },
+        "success": true
     }
 ]

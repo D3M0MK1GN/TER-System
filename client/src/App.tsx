@@ -11,6 +11,7 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Requests from "@/pages/requests";
 import { Experticias } from "@/pages/experticias";
+import Trazabilidad from "@/pages/trazabilidad";
 import Templates from "@/pages/templates";
 import Users from "@/pages/users";
 import ChatbotPage from "@/pages/chatbot";
@@ -63,6 +64,11 @@ function Router() {
       <Route path="/experticias">
         <ProtectedRoute>
           <Experticias />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/trazabilidad">
+        <ProtectedRoute>
+          <Trazabilidad />
         </ProtectedRoute>
       </Route>
       <Route path="/plantillas">

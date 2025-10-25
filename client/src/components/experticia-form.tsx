@@ -377,6 +377,89 @@ export function ExperticiasForm({
                 )}
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="respuestaFechaCorreo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Respuesta de Fecha del Correo</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="dd/mm/yyyy o dd-mm-yyyy"
+                        {...field}
+                        value={field.value || ""}
+                        onKeyDown={(e) => {
+                          const allowedKeys = [
+                            "Backspace",
+                            "Delete",
+                            "Tab",
+                            "Enter",
+                            "ArrowLeft",
+                            "ArrowRight",
+                            "ArrowUp",
+                            "ArrowDown",
+                            "Home",
+                            "End",
+                          ];
+                          const allowedChars = /[0-9\/\-\s]/;
+
+                          if (allowedKeys.includes(e.key)) {
+                            return; // Permitir teclas de navegación
+                          }
+
+                          if (!allowedChars.test(e.key)) {
+                            e.preventDefault(); // Bloquear letras y otros caracteres
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="horaRespuestaCorreo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="HH:MM (ej: 14:30)"
+                        {...field}
+                        value={field.value || ""}
+                        onKeyDown={(e) => {
+                          const allowedKeys = [
+                            "Backspace",
+                            "Delete",
+                            "Tab",
+                            "Enter",
+                            "ArrowLeft",
+                            "ArrowRight",
+                            "ArrowUp",
+                            "ArrowDown",
+                            "Home",
+                            "End",
+                          ];
+                          const allowedChars = /[0-9:]/;
+
+                          if (allowedKeys.includes(e.key)) {
+                            return; // Permitir teclas de navegación
+                          }
+
+                          if (!allowedChars.test(e.key)) {
+                            e.preventDefault(); // Bloquear letras y otros caracteres
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="createdAt"
@@ -588,7 +671,7 @@ export function ExperticiasForm({
             />
           </div>
 
-          {/* Información del abonado */}
+          {/* Información del abonado 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Información del Abonado</h3>
 
@@ -610,7 +693,7 @@ export function ExperticiasForm({
                 </FormItem>
               )}
             />
-          </div>
+          </div>*/}
 
           {/* Analisism Detalles Tecnicos de la Informacipon de la Experticia */}
           <div className="space-y-4">
@@ -918,90 +1001,6 @@ export function ExperticiasForm({
                   )}
               </div>
             )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="respuestaFechaCorreo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Respuesta de Fecha del Correo</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="dd/mm/yyyy o dd-mm-yyyy"
-                        {...field}
-                        value={field.value || ""}
-                        onKeyDown={(e) => {
-                          const allowedKeys = [
-                            "Backspace",
-                            "Delete",
-                            "Tab",
-                            "Enter",
-                            "ArrowLeft",
-                            "ArrowRight",
-                            "ArrowUp",
-                            "ArrowDown",
-                            "Home",
-                            "End",
-                          ];
-                          const allowedChars = /[0-9\/\-\s]/;
-
-                          if (allowedKeys.includes(e.key)) {
-                            return; // Permitir teclas de navegación
-                          }
-
-                          if (!allowedChars.test(e.key)) {
-                            e.preventDefault(); // Bloquear letras y otros caracteres
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="horaRespuestaCorreo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hora</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="HH:MM (ej: 14:30)"
-                        {...field}
-                        value={field.value || ""}
-                        onKeyDown={(e) => {
-                          const allowedKeys = [
-                            "Backspace",
-                            "Delete",
-                            "Tab",
-                            "Enter",
-                            "ArrowLeft",
-                            "ArrowRight",
-                            "ArrowUp",
-                            "ArrowDown",
-                            "Home",
-                            "End",
-                          ];
-                          const allowedChars = /[0-9:]/;
-
-                          if (allowedKeys.includes(e.key)) {
-                            return; // Permitir teclas de navegación
-                          }
-
-                          if (!allowedChars.test(e.key)) {
-                            e.preventDefault(); // Bloquear letras y otros caracteres
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
 
             <FormField
               control={form.control}
