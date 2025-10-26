@@ -1,9 +1,28 @@
 import { useEffect, useRef, useState } from "react";
-import { Info, ZoomIn, ZoomOut, Maximize2, Filter, X } from "lucide-react";
+import {
+  Info,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Filter,
+  X,
+  Download,
+  Upload,
+  User,
+  Users,
+  UserX,
+  Skull,
+  Smartphone,
+  Phone,
+  Laptop,
+  FolderOpen,
+  Radio,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 interface Nodo {
   id: string;
@@ -11,6 +30,7 @@ interface Nodo {
   type: "Principal" | "Coincidente" | "Externo";
   personaId: number | null;
   isCentral: boolean;
+  iconoTipo?: string | null;
   x?: number;
   y?: number;
   vx?: number;
@@ -55,8 +75,10 @@ export function GrafoTrazabilidad({
   aristas,
   onNodeClick,
 }: GrafoTrazabilidadProps) {
+  const { toast } = useToast();
   const canvasRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [nodosConPosicion, setNodosConPosicion] = useState<Nodo[]>([]);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -67,6 +89,13 @@ export function GrafoTrazabilidad({
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [showFilters, setShowFilters] = useState(false);
+
+  // Estados para menú contextual
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    nodeId: string;
+  } | null>(null);
 
   // Filtros
   const [filters, setFilters] = useState({
@@ -315,6 +344,195 @@ export function GrafoTrazabilidad({
     return { connectedNodes, connectedEdges };
   };
 
+  // Manejar clic derecho en nodo
+  const handleNodeContextMenu = (e: React.MouseEvent, nodeId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY, nodeId });
+  };
+
+  // Asignar icono a un nodo
+  const handleAsignarIcono = async (iconoTipo: string) => {
+    if (!contextMenu) return;
+
+    try {
+      const response = await fetch("/api/asignar-icono", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          numero: contextMenu.nodeId,
+          iconoTipo: iconoTipo,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Icono asignado",
+          description: `Se asignó el icono ${iconoTipo} correctamente`,
+        });
+
+        // Actualizar el nodo localmente
+        setNodosConPosicion((prev) =>
+          prev.map((nodo) =>
+            nodo.id === contextMenu.nodeId
+              ? { ...nodo, iconoTipo: iconoTipo }
+              : nodo
+          )
+        );
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo asignar el icono",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error al asignar icono:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al asignar el icono",
+        variant: "destructive",
+      });
+    } finally {
+      setContextMenu(null);
+    }
+  };
+
+  // Exportar análisis
+  const handleExportar = async () => {
+    const expediente = nodos[0]?.metadata?.expediente;
+    if (!expediente) {
+      toast({
+        title: "Error",
+        description: "No se encontró información del expediente",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/exportar-analisis/${expediente}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `analisis_${expediente}_${Date.now()}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        toast({
+          title: "Exportación exitosa",
+          description: "Archivo CSV descargado correctamente",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo exportar el análisis",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error al exportar:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al exportar el análisis",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Importar análisis
+  const handleImportar = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/importar-analisis", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "Importación exitosa",
+          description: `Se actualizaron ${data.actualizados} registros`,
+        });
+
+        // Recargar la página o actualizar los datos
+        window.location.reload();
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo importar el archivo",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error al importar:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al importar el archivo",
+        variant: "destructive",
+      });
+    }
+
+    // Limpiar el input
+    e.target.value = "";
+  };
+
+  // Obtener el icono para un nodo
+  const getNodeIcon = (
+    iconoTipo: string | null | undefined
+  ): React.ReactNode => {
+    const iconProps = { size: 20, color: "white" };
+
+    switch (iconoTipo) {
+      case "Hombre":
+        return <User {...iconProps} />;
+      case "Mujer":
+        return <Users {...iconProps} />;
+      case "Anonimo":
+        return <UserX {...iconProps} />;
+      case "Estafador":
+        return <Skull {...iconProps} />;
+      case "Telefono_Movil":
+        return <Smartphone {...iconProps} />;
+      case "Telefono_Fijo":
+        return <Phone {...iconProps} />;
+      case "Computadora":
+        return <Laptop {...iconProps} />;
+      case "Expediente":
+        return <FolderOpen {...iconProps} />;
+      case "Antena":
+        return <Radio {...iconProps} />;
+      default:
+        return null;
+    }
+  };
+
   const { connectedNodes, connectedEdges } = selectedNode
     ? getConnectedElements(selectedNode)
     : { connectedNodes: new Set(), connectedEdges: new Set() };
@@ -369,6 +587,34 @@ export function GrafoTrazabilidad({
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportar}
+              data-testid="button-exportar-config"
+              title="Exportar configuración del grafo a CSV"
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Exportar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleImportar}
+              data-testid="button-importar-config"
+              title="Importar configuración del grafo desde CSV"
+            >
+              <Upload className="h-4 w-4 mr-1" />
+              Importar
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+              style={{ display: "none" }}
+            />
+            <div className="w-px h-6 bg-gray-300 mx-1"></div>
             <Button
               size="sm"
               variant={showFilters ? "default" : "outline"}
@@ -604,6 +850,7 @@ export function GrafoTrazabilidad({
                   onMouseLeave={() => setHoveredNode(null)}
                   onMouseDown={(e) => handleNodeMouseDown(nodo.id, e)}
                   onClick={(e) => handleNodeClick(nodo, e)}
+                  onContextMenu={(e) => handleNodeContextMenu(e, nodo.id)}
                   style={{
                     cursor:
                       nodo.type === "Externo"
@@ -628,6 +875,29 @@ export function GrafoTrazabilidad({
                     }
                     strokeWidth={isSelected ? 4 : isHighlighted ? 3 : 2}
                   />
+
+                  {/* Renderizar icono si existe */}
+                  {nodo.iconoTipo && (
+                    <foreignObject
+                      x={nodo.x! - 10}
+                      y={nodo.y! - 10}
+                      width="20"
+                      height="20"
+                      style={{ pointerEvents: "none" }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: "100%",
+                          height: "100%",
+                        }}
+                      >
+                        {getNodeIcon(nodo.iconoTipo)}
+                      </div>
+                    </foreignObject>
+                  )}
 
                   <text
                     x={nodo.x}
@@ -883,6 +1153,250 @@ export function GrafoTrazabilidad({
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Menú contextual para asignar iconos */}
+      {contextMenu && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 999,
+            }}
+            onClick={() => setContextMenu(null)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: contextMenu.y,
+              left: contextMenu.x,
+              zIndex: 1000,
+              backgroundColor: "white",
+              border: "1px solid #d1d5db",
+              borderRadius: "8px",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+              padding: "8px 0",
+              minWidth: "200px",
+            }}
+            data-testid="context-menu-iconos"
+          >
+            <div
+              style={{
+                padding: "8px 16px",
+                fontSize: "12px",
+                fontWeight: "600",
+                color: "#6b7280",
+                borderBottom: "1px solid #e5e7eb",
+              }}
+            >
+              Asignar Icono
+            </div>
+            <div style={{ padding: "4px 0" }}>
+              <div
+                style={{
+                  padding: "8px 16px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#9ca3af",
+                }}
+              >
+                IDENTIDAD
+              </div>
+              <button
+                onClick={() => handleAsignarIcono("Hombre")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "8px 16px",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+                className="hover:bg-gray-100"
+                data-testid="menu-icon-hombre"
+              >
+                <User size={16} /> Hombre
+              </button>
+              <button
+                onClick={() => handleAsignarIcono("Mujer")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "8px 16px",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+                className="hover:bg-gray-100"
+                data-testid="menu-icon-mujer"
+              >
+                <Users size={16} /> Mujer
+              </button>
+              <button
+                onClick={() => handleAsignarIcono("Anonimo")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "8px 16px",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+                className="hover:bg-gray-100"
+                data-testid="menu-icon-anonimo"
+              >
+                <UserX size={16} /> Anónimo
+              </button>
+              <button
+                onClick={() => handleAsignarIcono("Estafador")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "8px 16px",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+                className="hover:bg-gray-100"
+                data-testid="menu-icon-estafador"
+              >
+                <Skull size={16} /> Estafador
+              </button>
+              <div
+                style={{ borderTop: "1px solid #e5e7eb", margin: "4px 0" }}
+              ></div>
+              <div
+                style={{
+                  padding: "8px 16px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#9ca3af",
+                }}
+              >
+                DISPOSITIVO
+              </div>
+              <button
+                onClick={() => handleAsignarIcono("Telefono_Movil")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "8px 16px",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+                className="hover:bg-gray-100"
+                data-testid="menu-icon-telefono-movil"
+              >
+                <Smartphone size={16} /> Teléfono Móvil
+              </button>
+              <button
+                onClick={() => handleAsignarIcono("Telefono_Fijo")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "8px 16px",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+                className="hover:bg-gray-100"
+                data-testid="menu-icon-telefono-fijo"
+              >
+                <Phone size={16} /> Teléfono Fijo
+              </button>
+              <button
+                onClick={() => handleAsignarIcono("Computadora")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "8px 16px",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+                className="hover:bg-gray-100"
+                data-testid="menu-icon-computadora"
+              >
+                <Laptop size={16} /> Computadora
+              </button>
+              <div
+                style={{ borderTop: "1px solid #e5e7eb", margin: "4px 0" }}
+              ></div>
+              <div
+                style={{
+                  padding: "8px 16px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#9ca3af",
+                }}
+              >
+                ROL / LUGAR
+              </div>
+              <button
+                onClick={() => handleAsignarIcono("Expediente")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "8px 16px",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+                className="hover:bg-gray-100"
+                data-testid="menu-icon-expediente"
+              >
+                <FolderOpen size={16} /> Expediente
+              </button>
+              <button
+                onClick={() => handleAsignarIcono("Antena")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "8px 16px",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+                className="hover:bg-gray-100"
+                data-testid="menu-icon-antena"
+              >
+                <Radio size={16} /> Antena (Radio Base)
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

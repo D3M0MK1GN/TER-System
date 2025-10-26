@@ -1563,23 +1563,29 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
       
       // 3. Para cada número, verificar si está asociado a una persona (coincidente) y obtener metadatos
       const numeroPersonaMap = new Map<string, any>();
+      const numeroIconoMap = new Map<string, string | null>();
       
       for (const num of Array.from(numerosUnicos)) {
         const telefonos = await db.select()
           .from(personaTelefonos)
           .where(eq(personaTelefonos.numero, num));
         
-        if (telefonos.length > 0 && telefonos[0].personaId) {
-          const persona = await storage.getPersonaCasoById(telefonos[0].personaId);
-          if (persona) {
-            numeroPersonaMap.set(num, {
-              personaId: persona.nro,
-              nombreCompleto: `${persona.nombre} ${persona.apellido}`,
-              cedula: persona.cedula,
-              delito: persona.delito,
-              expediente: persona.expediente,
-              fiscalia: persona.fiscalia
-            });
+        if (telefonos.length > 0) {
+          // Guardar el icono_tipo si existe
+          numeroIconoMap.set(num, telefonos[0].iconoTipo || null);
+          
+          if (telefonos[0].personaId) {
+            const persona = await storage.getPersonaCasoById(telefonos[0].personaId);
+            if (persona) {
+              numeroPersonaMap.set(num, {
+                personaId: persona.nro,
+                nombreCompleto: `${persona.nombre} ${persona.apellido}`,
+                cedula: persona.cedula,
+                delito: persona.delito,
+                expediente: persona.expediente,
+                fiscalia: persona.fiscalia
+              });
+            }
           }
         }
       }
@@ -1611,6 +1617,7 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
           type: type,
           personaId: personaInfo?.personaId || null,
           isCentral: isCentral,
+          iconoTipo: numeroIconoMap.get(num) || null,
           metadata: personaInfo ? {
             cedula: personaInfo.cedula,
             delito: personaInfo.delito,
@@ -1731,6 +1738,169 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
     } catch (error: any) {
       console.error('Error al buscar coincidencias:', error);
       res.status(500).json({ message: 'Error al buscar coincidencias' });
+    }
+  });
+
+  // Endpoint para asignar icono a un nodo del grafo
+  app.put("/api/asignar-icono", authenticateToken, async (req: any, res) => {
+    try {
+      const { numero, iconoTipo } = req.body;
+
+      if (!numero) {
+        return res.status(400).json({ message: 'El número es requerido' });
+      }
+
+      // Buscar el registro del teléfono
+      const telefonos = await db.select()
+        .from(personaTelefonos)
+        .where(eq(personaTelefonos.numero, numero));
+
+      if (telefonos.length === 0) {
+        return res.status(404).json({ message: 'Número no encontrado' });
+      }
+
+      // Actualizar el icono_tipo
+      await db.update(personaTelefonos)
+        .set({ iconoTipo: iconoTipo })
+        .where(eq(personaTelefonos.numero, numero));
+
+      res.json({ 
+        success: true,
+        message: 'Icono asignado correctamente',
+        numero: numero,
+        iconoTipo: iconoTipo
+      });
+    } catch (error: any) {
+      console.error('Error al asignar icono:', error);
+      res.status(500).json({ message: 'Error al asignar icono' });
+    }
+  });
+
+  // Configuración de multer para archivos CSV
+  const csvUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Solo se permiten archivos CSV') as any, false);
+      }
+    }
+  });
+
+  // Endpoint para exportar análisis a CSV
+  app.get("/api/exportar-analisis/:expediente", authenticateToken, async (req: any, res) => {
+    try {
+      const { expediente } = req.params;
+
+      // Obtener todas las personas del expediente
+      const personas = await db.select()
+        .from(personasCasos)
+        .where(eq(personasCasos.expediente, expediente));
+
+      if (personas.length === 0) {
+        return res.status(404).json({ message: 'No se encontraron registros para este expediente' });
+      }
+
+      // Obtener todos los teléfonos asociados a estas personas
+      const rows: any[] = [];
+      for (const persona of personas) {
+        const telefonos = await db.select()
+          .from(personaTelefonos)
+          .where(eq(personaTelefonos.personaId, persona.nro));
+
+        for (const tel of telefonos) {
+          rows.push({
+            Cedula: persona.cedula || '',
+            Nombre: persona.nombre || '',
+            Apellido: persona.apellido || '',
+            Numero_Asociado: tel.numero,
+            Tipo_de_Uso: tel.tipo || '',
+            icono_tipo: tel.iconoTipo || ''
+          });
+        }
+      }
+
+      if (rows.length === 0) {
+        return res.status(404).json({ message: 'No se encontraron números asociados para este expediente' });
+      }
+
+      // Generar CSV
+      const headers = 'Cedula,Nombre,Apellido,Numero_Asociado,Tipo_de_Uso,icono_tipo\n';
+      const csvRows = rows.map(row => 
+        `"${row.Cedula}","${row.Nombre}","${row.Apellido}","${row.Numero_Asociado}","${row.Tipo_de_Uso}","${row.icono_tipo}"`
+      ).join('\n');
+      
+      const csvContent = headers + csvRows;
+
+      // Enviar como descarga
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="analisis_${expediente}_${Date.now()}.csv"`);
+      res.send(csvContent);
+    } catch (error: any) {
+      console.error('Error al exportar análisis:', error);
+      res.status(500).json({ message: 'Error al exportar análisis' });
+    }
+  });
+
+  // Endpoint para importar análisis desde CSV
+  app.post("/api/importar-analisis", authenticateToken, csvUpload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No se proporcionó archivo CSV' });
+      }
+
+      // Leer el contenido del archivo
+      const csvContent = req.file.buffer.toString('utf-8');
+      const lines = csvContent.split('\n').filter((line: string) => line.trim()); // Eliminar líneas vacías Cambio
+      if (lines.length < 2) {
+        return res.status(400).json({ message: 'El archivo CSV está vacío o no tiene datos' });
+      }
+
+      // Saltar la primera línea (headers)
+      const dataLines = lines.slice(1);
+      let actualizados = 0;
+      let errores = 0;
+
+      for (const line of dataLines) {
+        try {
+          // Parsear CSV (manejo simple de comillas)
+          const match = line.match(/"([^"]*)","([^"]*)","([^"]*)","([^"]*)","([^"]*)","([^"]*)"/);
+          
+          if (match) {
+            const [, cedula, nombre, apellido, numeroAsociado, tipoDeUso, iconoTipo] = match;
+
+            // Buscar el número en la base de datos
+            const telefonos = await db.select()
+              .from(personaTelefonos)
+              .where(eq(personaTelefonos.numero, numeroAsociado));
+
+            if (telefonos.length > 0) {
+              // Actualizar el icono_tipo
+              await db.update(personaTelefonos)
+                .set({ iconoTipo: iconoTipo || null })
+                .where(eq(personaTelefonos.numero, numeroAsociado));
+              
+              actualizados++;
+            }
+          }
+        } catch (lineError) {
+          console.error('Error procesando línea:', line, lineError);
+          errores++;
+        }
+      }
+
+      res.json({
+        success: true,
+        message: 'Importación completada',
+        actualizados,
+        errores,
+        totalProcesados: dataLines.length
+      });
+    } catch (error: any) {
+      console.error('Error al importar análisis:', error);
+      res.status(500).json({ message: 'Error al importar análisis' });
     }
   });
 
@@ -1900,7 +2070,6 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
   const httpServer = createServer(app);
   return httpServer;
 }
-
 
 
 
