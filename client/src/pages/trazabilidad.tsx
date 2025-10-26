@@ -40,6 +40,7 @@ import {
   Repeat,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { GrafoTrazabilidad } from "@/components/GrafoTrazabilidad";
 
 interface ResultadoBusqueda {
   id: number;
@@ -630,6 +631,14 @@ export default function Trazabilidad() {
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-gray-700">
+                    Teléfono Principal:
+                  </label>
+                  <p className="text-gray-900 font-mono">
+                    {personaData.telefono || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">
                     Cédula:
                   </label>
                   <p className="text-gray-900">{personaData.cedula}</p>
@@ -1074,16 +1083,16 @@ export default function Trazabilidad() {
 
       {/* Modal: Análisis de Traza */}
       <Dialog open={showAnalisisModal} onOpenChange={setShowAnalisisModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Análisis Detallado de Trazabilidad
+              Análisis Detallado de Trazabilidad - Grafo de Relaciones
             </DialogTitle>
           </DialogHeader>
           {loadingModal ? (
             <div className="py-8 text-center text-gray-500">Cargando...</div>
-          ) : analisisData ? (
+          ) : analisisData && analisisData.nodos && analisisData.aristas ? (
             <div className="space-y-4">
               <div className="bg-green-50 p-4 rounded-lg">
                 <p className="text-sm text-green-900">
@@ -1100,75 +1109,59 @@ export default function Trazabilidad() {
                 </p>
               </div>
 
-              <div>
-                <h3 className="font-semibold mb-2">Números Contactados:</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {analisisData.nodos
-                    ?.filter((n: any) => n.tipo === "contacto")
-                    .map((nodo: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="bg-gray-100 p-2 rounded font-mono text-sm"
-                      >
-                        {nodo.label}
-                      </div>
-                    ))}
-                </div>
-              </div>
+              {/* Componente de Grafo Interactivo */}
+              <GrafoTrazabilidad
+                nodos={analisisData.nodos}
+                aristas={analisisData.aristas}
+                onNodeClick={async (nodo) => {
+                  // Expandir nodo externo - llamar al mismo endpoint con ese número
+                  if (nodo.type === "Externo") {
+                    try {
+                      setLoadingModal(true);
+                      const token = localStorage.getItem("token");
+                      const response = await fetch(
+                        `/api/trazabilidad/${nodo.id}`,
+                        {
+                          headers: {
+                            Authorization: `Bearer ${token}`,
+                          },
+                        }
+                      );
+                      if (!response.ok)
+                        throw new Error("Error al expandir nodo");
+                      const newData = await response.json();
 
-              {analisisData.enlaces && analisisData.enlaces.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-2">
-                    Detalle de Comunicaciones:
-                  </h3>
-                  <div className="max-h-60 overflow-y-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Origen</TableHead>
-                          <TableHead>Destino</TableHead>
-                          <TableHead>Tipo</TableHead>
-                          <TableHead>Fecha</TableHead>
-                          <TableHead>Duración</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {analisisData.enlaces
-                          .slice(0, 20)
-                          .map((enlace: any, idx: number) => (
-                            <TableRow key={idx}>
-                              <TableCell className="font-mono text-xs">
-                                {enlace.source}
-                              </TableCell>
-                              <TableCell className="font-mono text-xs">
-                                {enlace.target}
-                              </TableCell>
-                              <TableCell className="text-xs">
-                                {enlace.tipo}
-                              </TableCell>
-                              <TableCell className="text-xs">
-                                {enlace.fecha
-                                  ? new Date(enlace.fecha).toLocaleString(
-                                      "es-ES"
-                                    )
-                                  : "N/A"}
-                              </TableCell>
-                              <TableCell className="text-xs">
-                                {enlace.duracion || "N/A"}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                    {analisisData.enlaces.length > 20 && (
-                      <p className="text-sm text-gray-500 mt-2 text-center">
-                        Mostrando 20 de {analisisData.enlaces.length}{" "}
-                        comunicaciones
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
+                      // Combinar los nodos y aristas nuevas con las existentes
+                      const existingNodeIds = new Set(
+                        analisisData.nodos.map((n: any) => n.id)
+                      );
+                      const newNodos = newData.nodos.filter(
+                        (n: any) => !existingNodeIds.has(n.id)
+                      );
+
+                      setAnalisisData({
+                        ...analisisData,
+                        nodos: [...analisisData.nodos, ...newNodos],
+                        aristas: [...analisisData.aristas, ...newData.aristas],
+                      });
+
+                      toast({
+                        title: "Nodo expandido",
+                        description: `Se agregaron ${newNodos.length} nuevos nodos`,
+                      });
+                    } catch (error) {
+                      console.error("Error al expandir nodo:", error);
+                      toast({
+                        title: "Error",
+                        description: "No se pudo expandir el nodo",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setLoadingModal(false);
+                    }
+                  }
+                }}
+              />
             </div>
           ) : (
             <div className="py-8 text-center text-gray-500">

@@ -1549,46 +1549,104 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
     try {
       const { numero } = req.params;
       
-      // Obtener todos los registros donde este número aparece como abonadoA o abonadoB
+      // 1. Obtener todos los registros donde este número aparece como abonadoA o abonadoB
       const registros = await storage.getRegistrosComunicacionByAbonado(numero);
       
-      // Construir nodos y enlaces para el grafo
-      const nodos = new Map();
-      const enlaces: any[] = [];
+      // 2. Identificar todos los números únicos involucrados
+      const numerosUnicos = new Set<string>();
+      numerosUnicos.add(numero); // El número central
       
-      // Agregar el número principal
-      nodos.set(numero, {
-        id: numero,
-        tipo: 'principal',
-        label: numero
+      registros.forEach(reg => {
+        if (reg.abonadoA) numerosUnicos.add(reg.abonadoA);
+        if (reg.abonadoB) numerosUnicos.add(reg.abonadoB);
       });
       
-      // Procesar cada registro
-      for (const registro of registros) {
-        const otroNumero = registro.abonadoA === numero ? registro.abonadoB : registro.abonadoA;
+      // 3. Para cada número, verificar si está asociado a una persona (coincidente)
+      const numeroPersonaMap = new Map<string, { personaId: number; nombreCompleto: string }>();
+      
+      for (const num of Array.from(numerosUnicos)) {
+        const telefonos = await db.select()
+          .from(personaTelefonos)
+          .where(eq(personaTelefonos.numero, num));
         
-        if (!nodos.has(otroNumero)) {
-          nodos.set(otroNumero, {
-            id: otroNumero,
-            tipo: 'contacto',
-            label: otroNumero
-          });
+        if (telefonos.length > 0 && telefonos[0].personaId) {
+          const persona = await storage.getPersonaCasoById(telefonos[0].personaId);
+          if (persona) {
+            numeroPersonaMap.set(num, {
+              personaId: persona.nro,
+              nombreCompleto: `${persona.nombre} ${persona.apellido}`
+            });
+          }
+        }
+      }
+      
+      // 4. Construir nodos con clasificación: Principal, Coincidente, Externo
+      const nodos: any[] = [];
+      
+      for (const num of Array.from(numerosUnicos)) {
+        const isCentral = num === numero;
+        const personaInfo = numeroPersonaMap.get(num);
+        
+        let type: string;
+        let label: string;
+        
+        if (isCentral) {
+          type = "Principal";
+          label = personaInfo ? `${num} (${personaInfo.nombreCompleto})` : num;
+        } else if (personaInfo) {
+          type = "Coincidente";
+          label = `${num} (${personaInfo.nombreCompleto})`;
+        } else {
+          type = "Externo";
+          label = num;
         }
         
-        enlaces.push({
-          source: registro.abonadoA,
-          target: registro.abonadoB || '',
-          tipo: registro.tipoYTransaccion,
-          fecha: registro.fecha,
-          duracion: registro.segundos,
-          hora: registro.hora
+        nodos.push({
+          id: num,
+          label: label,
+          type: type,
+          personaId: personaInfo?.personaId || null,
+          isCentral: isCentral
         });
       }
       
+      // 5. Construir aristas (relaciones) con peso calculado
+      const aristas: any[] = [];
+      const weightMap = new Map<string, number>(); // Mapa para contar interacciones entre pares
+      
+      registros.forEach(reg => {
+        const from = reg.abonadoA;
+        const to = reg.abonadoB || '';
+        const key = `${from}-${to}`;
+        weightMap.set(key, (weightMap.get(key) || 0) + 1);
+        
+        // Construir título descriptivo para tooltip
+        const duracion = reg.segundos ? `${reg.segundos}s` : 'N/A';
+        const fechaHora = reg.fecha && reg.hora 
+          ? `${reg.fecha} ${reg.hora}` 
+          : reg.fecha || 'Sin fecha';
+        const title = `${reg.tipoYTransaccion || 'Comunicación'} (${duracion}) - ${fechaHora}`;
+        
+        aristas.push({
+          id: reg.registroId,
+          from: from,
+          to: to,
+          title: title,
+          weight: 1, // Se actualizará después
+          transactionType: reg.tipoYTransaccion || 'Desconocido'
+        });
+      });
+      
+      // 6. Actualizar weight en cada arista según el total de interacciones
+      aristas.forEach(arista => {
+        const key = `${arista.from}-${arista.to}`;
+        arista.weight = weightMap.get(key) || 1;
+      });
+      
       res.json({
         numeroAnalizado: numero,
-        nodos: Array.from(nodos.values()),
-        enlaces: enlaces,
+        nodos: nodos,
+        aristas: aristas,
         totalComunicaciones: registros.length
       });
     } catch (error: any) {
@@ -1819,4 +1877,6 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
   const httpServer = createServer(app);
   return httpServer;
 }
+
+
 
