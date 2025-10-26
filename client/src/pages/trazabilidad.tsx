@@ -38,9 +38,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Repeat,
+  Upload,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { GrafoTrazabilidad } from "@/components/GrafoTrazabilidad";
+import { CargarDatosModal } from "@/components/cargar-datos-modal";
 
 interface ResultadoBusqueda {
   id: number;
@@ -65,6 +67,7 @@ export default function Trazabilidad() {
   const [showRegistrosModal, setShowRegistrosModal] = useState(false);
   const [showCoincidenciasModal, setShowCoincidenciasModal] = useState(false);
   const [showAnalisisModal, setShowAnalisisModal] = useState(false);
+  const [showCargarDatosModal, setShowCargarDatosModal] = useState(false);
 
   // Datos de los modales
   const [personaData, setPersonaData] = useState<any>(null);
@@ -475,7 +478,16 @@ export default function Trazabilidad() {
                     }}
                   />
                 </div>
-                <div>
+                <div className="flex gap-2">
+                  <Button
+                    data-testid="button-cargar-datos"
+                    onClick={() => setShowCargarDatosModal(true)}
+                    variant="outline"
+                    className="w-full md:w-auto"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Cargar Datos
+                  </Button>
                   <Button
                     data-testid="button-buscar"
                     onClick={handleSearch}
@@ -1083,6 +1095,18 @@ export default function Trazabilidad() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal: Cargar Datos */}
+      <CargarDatosModal
+        open={showCargarDatosModal}
+        onOpenChange={setShowCargarDatosModal}
+        onSuccess={() => {
+          toast({
+            title: "Datos cargados",
+            description: "Los datos se han cargado correctamente",
+          });
+        }}
+      />
 
       {/* Modal: Análisis de Traza */}
       <Dialog open={showAnalisisModal} onOpenChange={setShowAnalisisModal}>

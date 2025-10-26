@@ -33,6 +33,7 @@ import { parseWithPrefixes } from '../tools/utils_I';
 // import { readFileSync, existsSync } from 'fs';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
+import ExcelJS from 'exceljs';
 
 
  // Al inicio del archivo routes.ts
@@ -57,6 +58,28 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Solo se permiten archivos Word (.doc, .docx)') as any, false);
+    }
+  }
+});
+
+// Configure multer for data import files (Excel, CSV, TXT)
+const uploadData = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow Excel, CSV, TXT files
+    const allowedMimes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+      'text/csv', // .csv
+      'text/plain', // .txt
+    ];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos Excel (.xlsx, .xls), CSV (.csv) o TXT (.txt)') as any, false);
     }
   }
 });
@@ -1979,6 +2002,174 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
         return res.status(400).json({ message: 'Datos inválidos', errors: error.errors });
       }
       res.status(500).json({ message: 'Error al crear registros de comunicación' });
+    }
+  });
+
+  // Endpoint para importar registros de comunicación desde archivo (Excel/CSV/TXT)
+  app.post("/api/registros-comunicacion/importar", authenticateToken, uploadData.single('archivo'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No se ha enviado ningún archivo' });
+      }
+
+      const file = req.file;
+      const numeroAsociado = req.body.numeroAsociado; // Opcional
+      let registrosParaImportar: any[] = [];
+
+      // Función auxiliar para mapear columnas del archivo a campos de BD
+      const mapearRegistro = (row: any): any => {
+        return {
+          abonadoA: row['ABONADO A'] || row['abonado_a'] || row['AbonadoA'] || '',
+          abonadoB: row['ABONADO B'] || row['abonado_b'] || row['AbonadoB'] || '',
+          imei1A: row['IMSI ABONADO A'] || row['imsi_abonado_a'] || '',
+          imei2A: row['IMEI ABONADO A'] || row['imei_abonado_a'] || '',
+          imei1B: row['IMSI ABONADO B'] || row['imsi_abonado_b'] || '',
+          imei2B: row['IMEI ABONADO B'] || row['imei_abonado_b'] || '',
+          tipoYTransaccion: row['TIPO DE TRANSACCION'] || row['tipo_de_transaccion'] || row['TipoTransaccion'] || '',
+          fecha: row['FECHA'] || row['fecha'] || '',
+          hora: row['HORA'] || row['hora'] || '',
+          segundos: row['SEG'] || row['seg'] || row['segundos'] || null,
+          direccionInicialA: row['Atena'] || row['atena'] || row['DIRECCION'] || '',
+          latitudInicialA: row['LATITUD CELDAD INICIO A'] || row['latitud_celda_inicio_a'] || row['LATITUD'] || '',
+          longitudInicialA: row['LONGITUD CELDA INICIO A'] || row['longitud_celda_inicio_a'] || row['LONGITUD'] || '',
+          archivo: file.originalname,
+          peso: '',
+        };
+      };
+
+      // Procesar según el tipo de archivo
+      if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+          file.mimetype === 'application/vnd.ms-excel') {
+        // Procesar archivo Excel
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(file.buffer);
+        const worksheet = workbook.getWorksheet(1);
+
+        if (!worksheet) {
+          return res.status(400).json({ message: 'El archivo Excel no contiene hojas' });
+        }
+
+        const headers: any = {};
+        const rows: any[] = [];
+
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) {
+            // Primera fila son los encabezados
+            row.eachCell((cell, colNumber) => {
+              headers[colNumber] = cell.value?.toString().trim() || '';
+            });
+          } else {
+            // Filas de datos
+            const rowData: any = {};
+            row.eachCell((cell, colNumber) => {
+              const headerName = headers[colNumber];
+              if (headerName) {
+                rowData[headerName] = cell.value?.toString().trim() || '';
+              }
+            });
+            if (Object.keys(rowData).length > 0) {
+              rows.push(rowData);
+            }
+          }
+        });
+
+        registrosParaImportar = rows.map(mapearRegistro);
+
+      } else if (file.mimetype === 'text/csv') {
+        // Procesar archivo CSV
+        const csvContent = file.buffer.toString('utf-8');
+        const lines = csvContent.split('\n').filter((line: string) => line.trim());
+        
+        if (lines.length < 2) {
+          return res.status(400).json({ message: 'El archivo CSV debe contener al menos una fila de encabezados y una fila de datos' });
+        }
+
+        const headers = lines[0].split(',').map((h: string) => h.trim().replace(/"/g, ''));
+        
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map((v: string) => v.trim().replace(/"/g, ''));
+          const rowData: any = {};
+          headers.forEach((header: string, index: number) => {
+            rowData[header] = values[index] || '';
+          });
+          registrosParaImportar.push(mapearRegistro(rowData));
+        }
+
+      } else if (file.mimetype === 'text/plain') {
+        // Procesar archivo TXT (asumimos formato delimitado por tabulaciones o comas)
+        const txtContent = file.buffer.toString('utf-8');
+        const lines = txtContent.split('\n').filter((line: string) => line.trim());
+        
+        if (lines.length < 2) {
+          return res.status(400).json({ message: 'El archivo TXT debe contener al menos una fila de encabezados y una fila de datos' });
+        }
+
+        // Detectar delimitador (tabulación o coma)
+        const delimiter = lines[0].includes('\t') ? '\t' : ',';
+        const headers = lines[0].split(delimiter).map((h: string) => h.trim().replace(/"/g, ''));
+        
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(delimiter).map((v: string) => v.trim().replace(/"/g, ''));
+          const rowData: any = {};
+          headers.forEach((header: string, index: number) => {
+            rowData[header] = values[index] || '';
+          });
+          registrosParaImportar.push(mapearRegistro(rowData));
+        }
+      }
+
+      // Filtrar registros vacíos
+      registrosParaImportar = registrosParaImportar.filter(r => r.abonadoA && r.abonadoA.trim());
+
+      if (registrosParaImportar.length === 0) {
+        return res.status(400).json({ message: 'No se encontraron registros válidos en el archivo' });
+      }
+
+      // Obtener o crear números de teléfono en el catálogo
+      const numerosUnicos = new Set<string>();
+      registrosParaImportar.forEach(r => {
+        if (r.abonadoA) numerosUnicos.add(r.abonadoA.trim());
+        if (r.abonadoB) numerosUnicos.add(r.abonadoB.trim());
+      });
+
+      const numerosTelefonoMap = new Map<string, number>();
+      for (const numero of Array.from(numerosUnicos)) {
+        let telefono = await storage.getPersonaTelefonoByNumero(numero);
+        if (!telefono) {
+          // Crear nuevo número en el catálogo
+          telefono = await storage.createPersonaTelefono({
+            numero,
+            tipo: 'móvil',
+            activo: true,
+            personaId: null,
+          });
+        }
+        numerosTelefonoMap.set(numero, telefono.id);
+      }
+
+      // Asignar IDs de teléfono a los registros
+      const registrosConIds = registrosParaImportar.map(r => ({
+        ...r,
+        abonadoAId: r.abonadoA ? numerosTelefonoMap.get(r.abonadoA.trim()) || null : null,
+        abonadoBId: r.abonadoB ? numerosTelefonoMap.get(r.abonadoB.trim()) || null : null,
+        segundos: r.segundos ? parseInt(r.segundos) : null,
+      }));
+
+      // Insertar registros en la base de datos usando bulk
+      const newRegistros = await storage.createRegistrosComunicacionBulk(registrosConIds);
+
+      res.status(201).json({
+        message: 'Registros importados correctamente',
+        registrosImportados: newRegistros.length,
+        telefonosNuevos: Array.from(numerosUnicos).length,
+      });
+
+    } catch (error: any) {
+      console.error('Error importing registros:', error);
+      res.status(500).json({ 
+        message: 'Error al importar registros de comunicación',
+        error: error.message 
+      });
     }
   });
 
