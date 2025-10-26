@@ -26,7 +26,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Activity, User, Phone, GitMerge, Info } from "lucide-react";
+import {
+  Search,
+  Activity,
+  User,
+  Phone,
+  GitMerge,
+  Info,
+  Download,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  Repeat,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ResultadoBusqueda {
@@ -59,6 +71,14 @@ export default function Trazabilidad() {
   const [coincidenciasData, setCoincidenciasData] = useState<any>(null);
   const [analisisData, setAnalisisData] = useState<any>(null);
   const [loadingModal, setLoadingModal] = useState(false);
+
+  // Estados para tabla de registros
+  const [filtroGlobal, setFiltroGlobal] = useState("");
+  const [fechaInicio, setFechaInicio] = useState("");
+  const [fechaFin, setFechaFin] = useState("");
+  const [tipoEvento, setTipoEvento] = useState("todos");
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(50);
 
   const handleSearch = async () => {
     setIsSearching(true);
@@ -147,8 +167,13 @@ export default function Trazabilidad() {
   };
 
   const handleVerRegistros = async (numero: string) => {
-    // Limpiar datos anteriores antes de abrir el modal
+    // Limpiar datos anteriores y filtros antes de abrir el modal
     setRegistrosData([]);
+    setFiltroGlobal("");
+    setFechaInicio("");
+    setFechaFin("");
+    setTipoEvento("todos");
+    setPaginaActual(1);
     setLoadingModal(true);
     setShowRegistrosModal(true);
 
@@ -166,7 +191,6 @@ export default function Trazabilidad() {
         const data = await response.json();
         setRegistrosData(data);
       } else {
-        // En caso de error, cerrar el modal
         setShowRegistrosModal(false);
         toast({
           title: "Error",
@@ -176,7 +200,6 @@ export default function Trazabilidad() {
       }
     } catch (error) {
       console.error("Error al obtener registros:", error);
-      // En caso de error, cerrar el modal
       setShowRegistrosModal(false);
       toast({
         title: "Error",
@@ -185,6 +208,115 @@ export default function Trazabilidad() {
       });
     } finally {
       setLoadingModal(false);
+    }
+  };
+
+  // Función para filtrar registros
+  const getRegistrosFiltrados = () => {
+    let filtrados = [...registrosData];
+
+    // Filtro global
+    if (filtroGlobal.trim()) {
+      const busqueda = filtroGlobal.toLowerCase();
+      filtrados = filtrados.filter((reg) =>
+        Object.values(reg).some((val) =>
+          String(val).toLowerCase().includes(busqueda)
+        )
+      );
+    }
+
+    // Filtro por fecha
+    if (fechaInicio) {
+      filtrados = filtrados.filter((reg) => reg.fecha >= fechaInicio);
+    }
+    if (fechaFin) {
+      filtrados = filtrados.filter((reg) => reg.fecha <= fechaFin);
+    }
+
+    // Filtro por tipo de evento
+    if (tipoEvento !== "todos") {
+      filtrados = filtrados.filter((reg) =>
+        reg.tipoYTransaccion?.toLowerCase().includes(tipoEvento.toLowerCase())
+      );
+    }
+
+    return filtrados;
+  };
+
+  // Función para exportar a CSV
+  const exportarRegistrosCSV = () => {
+    const registrosFiltrados = getRegistrosFiltrados();
+    if (registrosFiltrados.length === 0) {
+      toast({
+        title: "Sin datos",
+        description: "No hay registros para exportar",
+        variant: "default",
+      });
+      return;
+    }
+
+    const headers = [
+      "Abonado A",
+      "Abonado B",
+      "Fecha",
+      "Hora",
+      "Tipo y Transacción",
+      "Segundos",
+      "Dirección Inicial A",
+      "Latitud",
+      "Longitud",
+      "IMEI1 A",
+      "IMEI2 A",
+      "IMEI1 B",
+      "IMEI2 B",
+      "Archivo",
+      "Peso",
+    ];
+
+    const rows = registrosFiltrados.map((reg) => [
+      reg.abonadoA || "",
+      reg.abonadoB || "",
+      reg.fecha || "",
+      reg.hora || "",
+      reg.tipoYTransaccion || "",
+      reg.segundos || "",
+      reg.direccionInicialA || "",
+      reg.latitudInicialA || "",
+      reg.longitudInicialA || "",
+      reg.imei1A || "",
+      reg.imei2A || "",
+      reg.imei1B || "",
+      reg.imei2B || "",
+      reg.archivo || "",
+      reg.peso || "",
+    ]);
+
+    const csvContent =
+      headers.join(",") +
+      "\n" +
+      rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `registros_comunicacion_${new Date().getTime()}.csv`;
+    link.click();
+
+    toast({
+      title: "Exportación exitosa",
+      description: `Se exportaron ${registrosFiltrados.length} registros`,
+    });
+  };
+
+  // Función para iniciar análisis de un contacto
+  const handleAnalizarContacto = (numeroContacto: string) => {
+    if (
+      confirm(
+        `¿Desea iniciar un nuevo análisis para el número ${numeroContacto}?`
+      )
+    ) {
+      setShowRegistrosModal(false);
+      handleAnalizarTraza(numeroContacto);
     }
   };
 
@@ -558,6 +690,15 @@ export default function Trazabilidad() {
 
               <div>
                 <label className="text-sm font-semibold text-gray-700">
+                  Dirección:
+                </label>
+                <p className="text-gray-900">
+                  {personaData.direccion || "N/A"}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
                   Descripción:
                 </label>
                 <p className="text-gray-900 whitespace-pre-wrap">
@@ -575,53 +716,280 @@ export default function Trazabilidad() {
 
       {/* Modal: Ver Registros de Comunicación */}
       <Dialog open={showRegistrosModal} onOpenChange={setShowRegistrosModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Phone className="h-5 w-5" />
-              Registros de Comunicación
+              Registros de Comunicación Detallados
             </DialogTitle>
           </DialogHeader>
           {loadingModal ? (
             <div className="py-8 text-center text-gray-500">Cargando...</div>
-          ) : registrosData.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Abonado A</TableHead>
-                    <TableHead>Abonado B</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Duración</TableHead>
-                    <TableHead>Celda</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {registrosData.map((registro, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-mono text-sm">
-                        {registro.abonadoA}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {registro.abonadoB}
-                      </TableCell>
-                      <TableCell>{registro.tipo}</TableCell>
-                      <TableCell>
-                        {registro.fecha
-                          ? new Date(registro.fecha).toLocaleString("es-ES")
-                          : "N/A"}
-                      </TableCell>
-                      <TableCell>{registro.duracion || "N/A"}</TableCell>
-                      <TableCell>{registro.celda || "N/A"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
           ) : (
-            <div className="py-8 text-center text-gray-500">
-              No hay registros de comunicación
+            <div className="space-y-4">
+              {/* Controles de filtrado y exportación */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg">
+                {/* Filtro Global */}
+                <div className="lg:col-span-2">
+                  <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                    <Filter className="h-3 w-3 inline mr-1" />
+                    Filtro Global
+                  </label>
+                  <Input
+                    data-testid="input-filtro-global"
+                    type="text"
+                    placeholder="Buscar en todos los campos..."
+                    value={filtroGlobal}
+                    onChange={(e) => {
+                      setFiltroGlobal(e.target.value);
+                      setPaginaActual(1);
+                    }}
+                    className="text-sm"
+                  />
+                </div>
+
+                {/* Filtro Fecha Inicio */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                    Fecha Inicio
+                  </label>
+                  <Input
+                    data-testid="input-fecha-inicio"
+                    type="date"
+                    value={fechaInicio}
+                    onChange={(e) => {
+                      setFechaInicio(e.target.value);
+                      setPaginaActual(1);
+                    }}
+                    className="text-sm"
+                  />
+                </div>
+
+                {/* Filtro Fecha Fin */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                    Fecha Fin
+                  </label>
+                  <Input
+                    data-testid="input-fecha-fin"
+                    type="date"
+                    value={fechaFin}
+                    onChange={(e) => {
+                      setFechaFin(e.target.value);
+                      setPaginaActual(1);
+                    }}
+                    className="text-sm"
+                  />
+                </div>
+
+                {/* Filtro Tipo de Evento */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                    Tipo de Evento
+                  </label>
+                  <Select
+                    value={tipoEvento}
+                    onValueChange={(value) => {
+                      setTipoEvento(value);
+                      setPaginaActual(1);
+                    }}
+                  >
+                    <SelectTrigger
+                      data-testid="select-tipo-evento"
+                      className="text-sm"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="llamada">Llamadas</SelectItem>
+                      <SelectItem value="sms">SMS</SelectItem>
+                      <SelectItem value="saliente">Salientes</SelectItem>
+                      <SelectItem value="entrante">Entrantes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Registros por página */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                    Registros por página
+                  </label>
+                  <Select
+                    value={String(registrosPorPagina)}
+                    onValueChange={(value) => {
+                      setRegistrosPorPagina(Number(value));
+                      setPaginaActual(1);
+                    }}
+                  >
+                    <SelectTrigger
+                      data-testid="select-registros-pagina"
+                      className="text-sm"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="500">500</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Botón Exportar */}
+                <div className="flex items-end">
+                  <Button
+                    data-testid="button-exportar-csv"
+                    onClick={exportarRegistrosCSV}
+                    variant="outline"
+                    className="w-full text-sm"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Exportar CSV
+                  </Button>
+                </div>
+              </div>
+
+              {/* Tabla de registros */}
+              {(() => {
+                const registrosFiltrados = getRegistrosFiltrados();
+                const totalPaginas = Math.ceil(
+                  registrosFiltrados.length / registrosPorPagina
+                );
+                const inicio = (paginaActual - 1) * registrosPorPagina;
+                const fin = inicio + registrosPorPagina;
+                const registrosPagina = registrosFiltrados.slice(inicio, fin);
+
+                return registrosFiltrados.length > 0 ? (
+                  <>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Abonado A</TableHead>
+                            <TableHead className="text-xs">Abonado B</TableHead>
+                            <TableHead className="text-xs">Fecha</TableHead>
+                            <TableHead className="text-xs">Hora</TableHead>
+                            <TableHead className="text-xs">Tipo</TableHead>
+                            <TableHead className="text-xs">Seg.</TableHead>
+                            <TableHead className="text-xs">Dirección</TableHead>
+                            <TableHead className="text-xs">Lat/Long</TableHead>
+                            <TableHead className="text-xs">IMEI A</TableHead>
+                            <TableHead className="text-xs">IMEI B</TableHead>
+                            <TableHead className="text-xs text-center">
+                              Acciones
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {registrosPagina.map((registro, idx) => (
+                            <TableRow
+                              key={idx}
+                              data-testid={`row-registro-${idx}`}
+                            >
+                              <TableCell
+                                className="font-mono text-xs"
+                                data-testid={`text-abonado-a-${idx}`}
+                              >
+                                {registro.abonadoA || "N/A"}
+                              </TableCell>
+                              <TableCell
+                                className="font-mono text-xs"
+                                data-testid={`text-abonado-b-${idx}`}
+                              >
+                                {registro.abonadoB || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {registro.fecha || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {registro.hora || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {registro.tipoYTransaccion || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {registro.segundos || "0"}
+                              </TableCell>
+                              <TableCell className="text-xs max-w-[150px] truncate">
+                                {registro.direccionInicialA || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {registro.latitudInicialA &&
+                                registro.longitudInicialA
+                                  ? `${registro.latitudInicialA}, ${registro.longitudInicialA}`
+                                  : "N/A"}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {registro.imei1A || "N/A"}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {registro.imei1B || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  data-testid={`button-trazar-contacto-${idx}`}
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleAnalizarContacto(registro.abonadoB)
+                                  }
+                                  disabled={!registro.abonadoB}
+                                  title="Ver Traza de Contacto"
+                                >
+                                  <Repeat className="h-3 w-3" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Paginación */}
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-sm text-gray-600">
+                        Mostrando {inicio + 1} a{" "}
+                        {Math.min(fin, registrosFiltrados.length)} de{" "}
+                        {registrosFiltrados.length} registros
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          data-testid="button-pagina-anterior"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setPaginaActual((prev) => Math.max(1, prev - 1))
+                          }
+                          disabled={paginaActual === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm">
+                          Página {paginaActual} de {totalPaginas || 1}
+                        </span>
+                        <Button
+                          data-testid="button-pagina-siguiente"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setPaginaActual((prev) =>
+                              Math.min(totalPaginas, prev + 1)
+                            )
+                          }
+                          disabled={paginaActual >= totalPaginas}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-8 text-center text-gray-500">
+                    No hay registros que coincidan con los filtros
+                  </div>
+                );
+              })()}
             </div>
           )}
         </DialogContent>
