@@ -1561,8 +1561,8 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
         if (reg.abonadoB) numerosUnicos.add(reg.abonadoB);
       });
       
-      // 3. Para cada número, verificar si está asociado a una persona (coincidente)
-      const numeroPersonaMap = new Map<string, { personaId: number; nombreCompleto: string }>();
+      // 3. Para cada número, verificar si está asociado a una persona (coincidente) y obtener metadatos
+      const numeroPersonaMap = new Map<string, any>();
       
       for (const num of Array.from(numerosUnicos)) {
         const telefonos = await db.select()
@@ -1574,13 +1574,17 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
           if (persona) {
             numeroPersonaMap.set(num, {
               personaId: persona.nro,
-              nombreCompleto: `${persona.nombre} ${persona.apellido}`
+              nombreCompleto: `${persona.nombre} ${persona.apellido}`,
+              cedula: persona.cedula,
+              delito: persona.delito,
+              expediente: persona.expediente,
+              fiscalia: persona.fiscalia
             });
           }
         }
       }
       
-      // 4. Construir nodos con clasificación: Principal, Coincidente, Externo
+      // 4. Construir nodos con clasificación y metadatos completos
       const nodos: any[] = [];
       
       for (const num of Array.from(numerosUnicos)) {
@@ -1606,11 +1610,18 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
           label: label,
           type: type,
           personaId: personaInfo?.personaId || null,
-          isCentral: isCentral
+          isCentral: isCentral,
+          metadata: personaInfo ? {
+            cedula: personaInfo.cedula,
+            delito: personaInfo.delito,
+            expediente: personaInfo.expediente,
+            nombreCompleto: personaInfo.nombreCompleto,
+            fiscalia: personaInfo.fiscalia
+          } : undefined
         });
       }
       
-      // 5. Construir aristas (relaciones) con peso calculado
+      // 5. Construir aristas (relaciones) con peso calculado y metadatos completos
       const aristas: any[] = [];
       const weightMap = new Map<string, number>(); // Mapa para contar interacciones entre pares
       
@@ -1633,7 +1644,19 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
           to: to,
           title: title,
           weight: 1, // Se actualizará después
-          transactionType: reg.tipoYTransaccion || 'Desconocido'
+          transactionType: reg.tipoYTransaccion || 'Desconocido',
+          metadata: {
+            fecha: reg.fecha,
+            hora: reg.hora,
+            segundos: reg.segundos,
+            latitud: reg.latitudInicialA,
+            longitud: reg.longitudInicialA,
+            direccion: reg.direccionInicialA,
+            imei1A: reg.imei1A,
+            imei2A: reg.imei2A,
+            imei1B: reg.imei1B,
+            imei2B: reg.imei2B
+          }
         });
       });
       
@@ -1877,6 +1900,10 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
   const httpServer = createServer(app);
   return httpServer;
 }
+
+
+
+
 
 
 
