@@ -3,8 +3,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, personasCasos, personaTelefonos } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 import {
   insertUserSchema,
   insertSolicitudSchema,
@@ -1399,6 +1399,257 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
     } catch (error: any) {
       console.error('Error deleting persona caso:', error);
       res.status(500).json({ message: 'Error al eliminar persona caso' });
+    }
+  });
+
+  // Endpoint para obtener persona/caso completo por ID
+  app.get("/api/personas-casos/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const persona = await storage.getPersonaCasoById(id);
+      if (!persona) {
+        return res.status(404).json({ message: 'Persona/caso no encontrado' });
+      }
+      
+      // Obtener todos los números asociados a esta persona
+      const telefonos = await db.select()
+        .from(personaTelefonos)
+        .where(eq(personaTelefonos.personaId, id));
+      
+      res.json({
+        ...persona,
+        telefonosAsociados: telefonos
+      });
+    } catch (error: any) {
+      console.error('Error getting persona caso:', error);
+      res.status(500).json({ message: 'Error al obtener persona/caso' });
+    }
+  });
+
+  // Endpoint de búsqueda general para trazabilidad
+  app.get("/api/trazabilidad/buscar", authenticateToken, async (req: any, res) => {
+    try {
+      const { tipo, valor } = req.query;
+      
+      if (!tipo || !valor) {
+        return res.status(400).json({ message: 'Se requieren los parámetros tipo y valor' });
+      }
+
+      let resultados: any[] = [];
+      
+      // Búsqueda según el tipo
+      switch (tipo) {
+        case 'cedula':
+          const personaPorCedula = await db.select()
+            .from(personasCasos)
+            .where(eq(personasCasos.cedula, valor as string));
+          resultados = personaPorCedula.map(p => ({
+            id: p.nro,
+            expediente: p.expediente,
+            cedula: p.cedula,
+            nombreCompleto: `${p.nombre} ${p.apellido}`,
+            numeroAsociado: p.telefono,
+            delito: p.delito,
+            fechaInicio: p.fechaDeInicio
+          }));
+          break;
+          
+        case 'nombre':
+          const personasPorNombre = await db.select()
+            .from(personasCasos)
+            .where(sql`LOWER(${personasCasos.nombre}) LIKE LOWER(${'%' + valor + '%'}) OR LOWER(${personasCasos.apellido}) LIKE LOWER(${'%' + valor + '%'})`);
+          resultados = personasPorNombre.map(p => ({
+            id: p.nro,
+            expediente: p.expediente,
+            cedula: p.cedula,
+            nombreCompleto: `${p.nombre} ${p.apellido}`,
+            numeroAsociado: p.telefono,
+            delito: p.delito,
+            fechaInicio: p.fechaDeInicio
+          }));
+          break;
+          
+        case 'seudonimo':
+          const personasPorSeudonimo = await db.select()
+            .from(personasCasos)
+            .where(sql`LOWER(${personasCasos.pseudonimo}) LIKE LOWER(${'%' + valor + '%'})`);
+          resultados = personasPorSeudonimo.map(p => ({
+            id: p.nro,
+            expediente: p.expediente,
+            cedula: p.cedula,
+            nombreCompleto: `${p.nombre} ${p.apellido}`,
+            numeroAsociado: p.telefono,
+            delito: p.delito,
+            fechaInicio: p.fechaDeInicio
+          }));
+          break;
+          
+        case 'numero':
+          // Buscar en la tabla de teléfonos
+          const telefonos = await db.select()
+            .from(personaTelefonos)
+            .where(sql`${personaTelefonos.numero} LIKE ${'%' + valor + '%'}`);
+          
+          // Para cada teléfono, obtener la persona asociada
+          const personasPromises = telefonos.map(async (tel) => {
+            if (tel.personaId) {
+              const persona = await storage.getPersonaCasoById(tel.personaId);
+              if (persona) {
+                return {
+                  id: persona.nro,
+                  expediente: persona.expediente,
+                  cedula: persona.cedula,
+                  nombreCompleto: `${persona.nombre} ${persona.apellido}`,
+                  numeroAsociado: tel.numero,
+                  delito: persona.delito,
+                  fechaInicio: persona.fechaDeInicio
+                };
+              }
+            }
+            return null;
+          });
+          
+          const personasResults = await Promise.all(personasPromises);
+          resultados = personasResults.filter(p => p !== null);
+          break;
+          
+        case 'expediente':
+          const personasPorExpediente = await db.select()
+            .from(personasCasos)
+            .where(sql`LOWER(${personasCasos.expediente}) LIKE LOWER(${'%' + valor + '%'})`);
+          resultados = personasPorExpediente.map(p => ({
+            id: p.nro,
+            expediente: p.expediente,
+            cedula: p.cedula,
+            nombreCompleto: `${p.nombre} ${p.apellido}`,
+            numeroAsociado: p.telefono,
+            delito: p.delito,
+            fechaInicio: p.fechaDeInicio
+          }));
+          break;
+          
+        default:
+          return res.status(400).json({ message: 'Tipo de búsqueda no válido' });
+      }
+      
+      res.json({
+        resultados,
+        total: resultados.length,
+        tipoBusqueda: tipo,
+        valorBusqueda: valor
+      });
+    } catch (error: any) {
+      console.error('Error en búsqueda de trazabilidad:', error);
+      res.status(500).json({ message: 'Error al buscar trazabilidad' });
+    }
+  });
+
+  // Endpoint para análisis detallado de traza (grafo/mapa de comunicaciones)
+  app.get("/api/trazabilidad/:numero", authenticateToken, async (req: any, res) => {
+    try {
+      const { numero } = req.params;
+      
+      // Obtener todos los registros donde este número aparece como abonadoA o abonadoB
+      const registros = await storage.getRegistrosComunicacionByAbonado(numero);
+      
+      // Construir nodos y enlaces para el grafo
+      const nodos = new Map();
+      const enlaces: any[] = [];
+      
+      // Agregar el número principal
+      nodos.set(numero, {
+        id: numero,
+        tipo: 'principal',
+        label: numero
+      });
+      
+      // Procesar cada registro
+      for (const registro of registros) {
+        const otroNumero = registro.abonadoA === numero ? registro.abonadoB : registro.abonadoA;
+        
+        if (!nodos.has(otroNumero)) {
+          nodos.set(otroNumero, {
+            id: otroNumero,
+            tipo: 'contacto',
+            label: otroNumero
+          });
+        }
+        
+        enlaces.push({
+          source: registro.abonadoA,
+          target: registro.abonadoB || '',
+          tipo: registro.tipoYTransaccion,
+          fecha: registro.fecha,
+          duracion: registro.segundos,
+          hora: registro.hora
+        });
+      }
+      
+      res.json({
+        numeroAnalizado: numero,
+        nodos: Array.from(nodos.values()),
+        enlaces: enlaces,
+        totalComunicaciones: registros.length
+      });
+    } catch (error: any) {
+      console.error('Error al analizar traza:', error);
+      res.status(500).json({ message: 'Error al analizar trazabilidad' });
+    }
+  });
+
+  // Endpoint para encontrar coincidencias/casos vinculados
+  app.get("/api/trazabilidad/coincidencias/:numero", authenticateToken, async (req: any, res) => {
+    try {
+      const { numero } = req.params;
+      
+      // 1. Obtener todos los números con los que este número se ha comunicado
+      const registros = await storage.getRegistrosComunicacionByAbonado(numero);
+      const numerosContactados = new Set<string>();
+      
+      registros.forEach(reg => {
+        if (reg.abonadoA === numero && reg.abonadoB) {
+          numerosContactados.add(reg.abonadoB);
+        } else if (reg.abonadoA !== numero) {
+          numerosContactados.add(reg.abonadoA);
+        }
+      });
+      
+      // 2. Para cada número contactado, buscar si está asociado a alguna persona/caso
+      const coincidencias = [];
+      
+      for (const numContactado of Array.from(numerosContactados)) {
+        const telefonos = await db.select()
+          .from(personaTelefonos)
+          .where(eq(personaTelefonos.numero, numContactado));
+        
+        for (const tel of telefonos) {
+          if (tel.personaId) {
+            const persona = await storage.getPersonaCasoById(tel.personaId);
+            if (persona) {
+              coincidencias.push({
+                numeroContactado: numContactado,
+                persona: {
+                  id: persona.nro,
+                  cedula: persona.cedula,
+                  nombreCompleto: `${persona.nombre} ${persona.apellido}`,
+                  expediente: persona.expediente,
+                  delito: persona.delito
+                }
+              });
+            }
+          }
+        }
+      }
+      
+      res.json({
+        numeroAnalizado: numero,
+        totalContactos: numerosContactados.size,
+        coincidenciasEncontradas: coincidencias.length,
+        coincidencias: coincidencias
+      });
+    } catch (error: any) {
+      console.error('Error al buscar coincidencias:', error);
+      res.status(500).json({ message: 'Error al buscar coincidencias' });
     }
   });
 
