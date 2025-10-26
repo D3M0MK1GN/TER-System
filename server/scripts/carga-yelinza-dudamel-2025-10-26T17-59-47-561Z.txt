@@ -1,0 +1,58 @@
+================================================================================
+CARGA DE DATOS: YELINZA DUDAMEL - CRISMARY CRESPO
+Fecha y hora: 26/10/2025, 5:59:47 p. m.
+================================================================================
+
+PASO 1: INSERCIÓN DE PERSONA
+--------------------------------------------------------------------------------
+INSERT INTO personas_casos (cedula, nombre, apellido, pseudonimo, telefono, expediente, delito, usuario_id)
+VALUES ('7431905', 'Yelinza', 'Dudamel', 'Crismary Crespo', '4125223014', 'Caso-Yelinza-2025', 'Por determinar', 1);
+-- Resultado: ID 4 insertado exitosamente
+
+PASO 2: INSERCIÓN DE TELÉFONO PRINCIPAL
+--------------------------------------------------------------------------------
+INSERT INTO persona_telefonos (persona_id, numero, tipo, activo)
+VALUES (4, '4125223014', 'móvil', true);
+-- Resultado: ID 7 insertado exitosamente
+
+PASO 3: CARGA DE REGISTROS DE COMUNICACIÓN
+--------------------------------------------------------------------------------
+Total de líneas en archivo: 820
+Total de registros a insertar: 819 (excluyendo encabezado)
+
+Registros procesados exitosamente: 268
+Registros con error: 0
+
+EJEMPLO DE INSERTS GENERADOS:
+--------------------------------------------------------------------------------
+INSERT INTO registros_comunicacion (
+  abonado_a, abonado_b, abonado_a_id, abonado_b_id,
+  imei1_a, imei1_b, tipo_y_transaccion,
+  segundos, hora, fecha,
+  direccion_inicial_a, latitud_inicial_a, longitud_inicial_a,
+  archivo
+) VALUES
+  ('4125223014', '4245866167', 7, NULL,
+   '355201897190570', NULL, 'LLAMADA SALIENTE',
+   27, '8:56:35 p. m.', '01/02/2025',
+   'AV. BAUDULIO LARA...', '9.925.750', '-69.623.111',
+   'comunicaciones-yelinza-dudamel.txt'),
+  ... (268 registros en total);
+
+================================================================================
+RESUMEN FINAL
+================================================================================
+Persona: Yelinza Dudamel (Cédula: V-7431905)
+Seudónimo: Crismary Crespo
+Teléfono principal: 4125223014
+ID Persona: 4
+ID Teléfono: 7
+Total registros de comunicación: 268
+
+TABLAS AFECTADAS:
+  1. personas_casos (1 registro)
+  2. persona_telefonos (1 registro)
+  3. registros_comunicacion (268 registros)
+
+Proceso completado: 26/10/2025, 5:59:47 p. m.
+================================================================================

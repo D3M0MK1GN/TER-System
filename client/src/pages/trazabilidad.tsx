@@ -81,6 +81,9 @@ export default function Trazabilidad() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [registrosPorPagina, setRegistrosPorPagina] = useState(50);
 
+  // Estado para pantalla completa del modal de análisis
+  const [isModalFullscreen, setIsModalFullscreen] = useState(false);
+
   const handleSearch = async () => {
     setIsSearching(true);
 
@@ -1083,7 +1086,13 @@ export default function Trazabilidad() {
 
       {/* Modal: Análisis de Traza */}
       <Dialog open={showAnalisisModal} onOpenChange={setShowAnalisisModal}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className={
+            isModalFullscreen
+              ? "max-w-full max-h-full w-screen h-screen overflow-y-auto m-0 p-6"
+              : "max-w-6xl max-h-[90vh] overflow-y-auto"
+          }
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
@@ -1113,6 +1122,10 @@ export default function Trazabilidad() {
               <GrafoTrazabilidad
                 nodos={analisisData.nodos}
                 aristas={analisisData.aristas}
+                isFullscreen={isModalFullscreen}
+                onToggleFullscreen={() =>
+                  setIsModalFullscreen(!isModalFullscreen)
+                }
                 onNodeClick={async (nodo) => {
                   // Expandir nodo externo - llamar al mismo endpoint con ese número
                   if (nodo.type === "Externo") {

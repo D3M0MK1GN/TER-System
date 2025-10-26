@@ -67,12 +67,16 @@ interface Arista {
 interface GrafoTrazabilidadProps {
   nodos: Nodo[];
   aristas: Arista[];
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
   onNodeClick?: (nodo: Nodo) => void;
 }
 
 export function GrafoTrazabilidad({
   nodos,
   aristas,
+  isFullscreen,
+  onToggleFullscreen,
   onNodeClick,
 }: GrafoTrazabilidadProps) {
   const { toast } = useToast();
@@ -643,9 +647,9 @@ export function GrafoTrazabilidad({
             <Button
               size="sm"
               variant="outline"
-              onClick={handleFitView}
+              onClick={onToggleFullscreen || handleFitView}
               data-testid="button-fit-view"
-              title="Ajustar vista"
+              title={onToggleFullscreen ? "Pantalla completa" : "Ajustar vista"}
             >
               <Maximize2 className="h-4 w-4" />
             </Button>
@@ -745,8 +749,8 @@ export function GrafoTrazabilidad({
         {/* Canvas del Grafo */}
         <div
           ref={canvasRef}
-          className="border rounded-lg bg-white overflow-hidden relative cursor-grab active:cursor-grabbing"
-          style={{ width: WIDTH, height: HEIGHT }}
+          className="border rounded-lg bg-white overflow-hidden relative cursor-grab active:cursor-grabbing w-full"
+          style={{ height: HEIGHT }}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
@@ -756,8 +760,10 @@ export function GrafoTrazabilidad({
         >
           <svg
             ref={svgRef}
-            width={WIDTH}
+            width="100%"
             height={HEIGHT}
+            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+            preserveAspectRatio="xMidYMid meet"
             style={{
               transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
               transformOrigin: "0 0",
