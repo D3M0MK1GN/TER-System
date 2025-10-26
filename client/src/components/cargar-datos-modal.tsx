@@ -38,16 +38,23 @@ interface CargarDatosModalProps {
 
 // Esquema de validación para el formulario de Persona/Caso
 const personaCasoSchema = z.object({
-  telefono: z.string().optional(),
-  cedula: z.string().min(1, "La cédula es requerida"),
-  nombre: z.string().optional(),
+  telefono: z
+    .string()
+    .optional()
+    .refine((val) => {
+      if (!val || val.trim() === "") return true;
+      const numeros = val.replace(/\D/g, "");
+      return numeros.length === 10;
+    }, "El teléfono debe tener exactamente 10 dígitos"),
+  cedula: z.string().optional(),
+  nombre: z.string().min(1, "El nombre es requerido"),
   apellido: z.string().optional(),
   pseudonimo: z.string().optional(),
   edad: z.string().optional(),
   fechaDeNacimiento: z.string().optional(),
   profesion: z.string().optional(),
   direccion: z.string().optional(),
-  expediente: z.string().min(1, "El expediente es requerido"),
+  expediente: z.string().optional(),
   fechaDeInicio: z.string().optional(),
   delito: z.string().optional(),
   nOficio: z.string().optional(),
@@ -65,12 +72,14 @@ export function CargarDatosModal({
 }: CargarDatosModalProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const [opcionSeleccionada, setOpcionSeleccionada] = useState<number | null>(null);
+
+  const [opcionSeleccionada, setOpcionSeleccionada] = useState<number | null>(
+    null
+  );
   const [paso, setPaso] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [archivo, setArchivo] = useState<File | null>(null);
-  
+
   const form = useForm<PersonaCasoFormData>({
     resolver: zodResolver(personaCasoSchema),
     defaultValues: {
@@ -103,11 +112,12 @@ export function CargarDatosModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const extension = file.name.split('.').pop()?.toLowerCase();
-      if (!['xlsx', 'xls', 'csv', 'txt'].includes(extension || '')) {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      if (!["xlsx", "xls", "csv", "txt"].includes(extension || "")) {
         toast({
           title: "Formato no válido",
-          description: "Solo se permiten archivos Excel (.xlsx, .xls), CSV (.csv) o TXT (.txt)",
+          description:
+            "Solo se permiten archivos Excel (.xlsx, .xls), CSV (.csv) o TXT (.txt)",
           variant: "destructive",
         });
         return;
@@ -136,7 +146,7 @@ export function CargarDatosModal({
           title: "Éxito",
           description: "Persona/Caso creado correctamente",
         });
-        
+
         if (opcionSeleccionada === 1) {
           setPaso(2);
         } else {
@@ -177,7 +187,7 @@ export function CargarDatosModal({
     setIsLoading(true);
     const formDataToSend = new FormData();
     formDataToSend.append("archivo", archivo);
-    
+
     const telefono = form.getValues("telefono");
     if (opcionSeleccionada === 1 && telefono) {
       formDataToSend.append("numeroAsociado", telefono);
@@ -226,7 +236,7 @@ export function CargarDatosModal({
       <p className="text-sm text-gray-600 mb-6">
         Selecciona el tipo de carga que deseas realizar:
       </p>
-      
+
       <Card
         className="cursor-pointer hover:border-primary hover:shadow-md transition-all"
         onClick={() => setOpcionSeleccionada(1)}
@@ -238,9 +248,12 @@ export function CargarDatosModal({
               <User className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-2">Opción 1: Cargar Caso Completo</h3>
+              <h3 className="font-semibold text-lg mb-2">
+                Opción 1: Cargar Caso Completo
+              </h3>
               <p className="text-sm text-gray-600">
-                Crea una nueva persona/caso y luego importa sus registros de comunicación
+                Crea una nueva persona/caso y luego importa sus registros de
+                comunicación
               </p>
               <div className="mt-3 text-xs text-gray-500">
                 <div className="flex items-center gap-2">
@@ -268,9 +281,12 @@ export function CargarDatosModal({
               <FileSpreadsheet className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-2">Opción 2: Cargar Solo Registros</h3>
+              <h3 className="font-semibold text-lg mb-2">
+                Opción 2: Cargar Solo Registros
+              </h3>
               <p className="text-sm text-gray-600">
-                Importa únicamente registros de comunicación sin crear una persona/caso
+                Importa únicamente registros de comunicación sin crear una
+                persona/caso
               </p>
               <div className="mt-3 text-xs text-gray-500">
                 <div className="flex items-center gap-2">
@@ -287,16 +303,32 @@ export function CargarDatosModal({
 
   const renderFormularioPersona = () => (
     <Form {...form}>
-      <form className="space-y-4 py-4 max-h-[60vh] overflow-y-auto" data-testid="formulario-persona-caso">
+      <form className="space-y-4 py-4" data-testid="formulario-persona-caso">
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="cedula"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cédula *</FormLabel>
+                <FormLabel>Cédula</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="V-12345678" data-testid="input-cedula" />
+                  <Input
+                    {...field}
+                    placeholder="V-12345678"
+                    data-testid="input-cedula"
+                    onChange={(e) => {
+                      let value = e.target.value.toUpperCase();
+                      if (value.startsWith("V-") || value.startsWith("E-")) {
+                        field.onChange(value);
+                      } else if (value.match(/^\d/)) {
+                        field.onChange("V-" + value.replace(/[^0-9]/g, ""));
+                      } else if (value.length > 0) {
+                        field.onChange(value);
+                      } else {
+                        field.onChange("");
+                      }
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -307,9 +339,13 @@ export function CargarDatosModal({
             name="expediente"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Expediente *</FormLabel>
+                <FormLabel>Expediente</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="EXP-2024-001" data-testid="input-expediente" />
+                  <Input
+                    {...field}
+                    placeholder="EXP-2024-001"
+                    data-testid="input-expediente"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -320,7 +356,7 @@ export function CargarDatosModal({
             name="nombre"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nombre</FormLabel>
+                <FormLabel>Nombre *</FormLabel>
                 <FormControl>
                   <Input {...field} data-testid="input-nombre" />
                 </FormControl>
@@ -348,7 +384,19 @@ export function CargarDatosModal({
               <FormItem>
                 <FormLabel>Teléfono Principal</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="0414-1234567" data-testid="input-telefono" />
+                  <Input
+                    {...field}
+                    placeholder="4121234567"
+                    data-testid="input-telefono"
+                    maxLength={10}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/\D/g, "");
+                      if (value.startsWith("0")) {
+                        value = value.substring(1);
+                      }
+                      field.onChange(value);
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -387,7 +435,11 @@ export function CargarDatosModal({
               <FormItem>
                 <FormLabel>Fecha de Nacimiento</FormLabel>
                 <FormControl>
-                  <Input {...field} type="date" data-testid="input-fecha-nacimiento" />
+                  <Input
+                    {...field}
+                    type="date"
+                    data-testid="input-fecha-nacimiento"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -413,7 +465,11 @@ export function CargarDatosModal({
               <FormItem>
                 <FormLabel>Fecha de Inicio</FormLabel>
                 <FormControl>
-                  <Input {...field} type="date" data-testid="input-fecha-inicio" />
+                  <Input
+                    {...field}
+                    type="date"
+                    data-testid="input-fecha-inicio"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -439,7 +495,14 @@ export function CargarDatosModal({
               <FormItem>
                 <FormLabel>N° Oficio</FormLabel>
                 <FormControl>
-                  <Input {...field} data-testid="input-n-oficio" />
+                  <Input
+                    {...field}
+                    data-testid="input-n-oficio"
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9-]/g, "");
+                      field.onChange(value);
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -483,7 +546,11 @@ export function CargarDatosModal({
                 <FormItem>
                   <FormLabel>Descripción</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={3} data-testid="textarea-descripcion" />
+                    <Textarea
+                      {...field}
+                      rows={3}
+                      data-testid="textarea-descripcion"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -498,7 +565,11 @@ export function CargarDatosModal({
                 <FormItem>
                   <FormLabel>Observación</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={3} data-testid="textarea-observacion" />
+                    <Textarea
+                      {...field}
+                      rows={3}
+                      data-testid="textarea-observacion"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -512,7 +583,10 @@ export function CargarDatosModal({
 
   const renderImportarArchivo = () => (
     <div className="space-y-4 py-4" data-testid="seccion-importar-archivo">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4" data-testid="info-formato-archivo">
+      <div
+        className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4"
+        data-testid="info-formato-archivo"
+      >
         <h4 className="font-semibold text-sm text-blue-900 mb-2">
           Formato del archivo
         </h4>
@@ -539,7 +613,10 @@ export function CargarDatosModal({
         </p>
       </div>
 
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center" data-testid="zona-carga-archivo">
+      <div
+        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center"
+        data-testid="zona-carga-archivo"
+      >
         <input
           ref={fileInputRef}
           type="file"
@@ -548,12 +625,17 @@ export function CargarDatosModal({
           className="hidden"
           data-testid="file-input"
         />
-        
+
         {archivo ? (
           <div className="space-y-4" data-testid="archivo-seleccionado">
             <FileSpreadsheet className="h-12 w-12 mx-auto text-green-600" />
             <div>
-              <p className="font-medium text-gray-900" data-testid="nombre-archivo">{archivo.name}</p>
+              <p
+                className="font-medium text-gray-900"
+                data-testid="nombre-archivo"
+              >
+                {archivo.name}
+              </p>
               <p className="text-sm text-gray-500" data-testid="tamano-archivo">
                 {(archivo.size / 1024).toFixed(2)} KB
               </p>
@@ -600,7 +682,9 @@ export function CargarDatosModal({
         return (
           <>
             <div className="mb-4">
-              <h3 className="font-semibold text-lg">Paso 1: Datos de la Persona/Caso</h3>
+              <h3 className="font-semibold text-lg">
+                Paso 1: Datos de la Persona/Caso
+              </h3>
               <p className="text-sm text-gray-600">
                 Completa la información básica del caso
               </p>
@@ -612,7 +696,9 @@ export function CargarDatosModal({
         return (
           <>
             <div className="mb-4">
-              <h3 className="font-semibold text-lg">Paso 2: Importar Registros de Comunicación</h3>
+              <h3 className="font-semibold text-lg">
+                Paso 2: Importar Registros de Comunicación
+              </h3>
               <p className="text-sm text-gray-600">
                 Sube el archivo con los registros de comunicación
               </p>
@@ -627,7 +713,9 @@ export function CargarDatosModal({
       return (
         <>
           <div className="mb-4">
-            <h3 className="font-semibold text-lg">Importar Registros de Comunicación</h3>
+            <h3 className="font-semibold text-lg">
+              Importar Registros de Comunicación
+            </h3>
             <p className="text-sm text-gray-600">
               Sube el archivo con los registros de comunicación
             </p>
@@ -642,8 +730,8 @@ export function CargarDatosModal({
     if (!opcionSeleccionada) {
       return (
         <div className="flex justify-end gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => onOpenChange(false)}
             data-testid="button-cancelar"
           >
@@ -668,8 +756,8 @@ export function CargarDatosModal({
               <ChevronLeft className="h-4 w-4 mr-2" />
               Atrás
             </Button>
-            <Button 
-              onClick={form.handleSubmit(handleCrearPersonaCaso)} 
+            <Button
+              onClick={form.handleSubmit(handleCrearPersonaCaso)}
               disabled={isLoading}
               data-testid="button-siguiente-paso"
             >
@@ -690,8 +778,8 @@ export function CargarDatosModal({
               <ChevronLeft className="h-4 w-4 mr-2" />
               Atrás
             </Button>
-            <Button 
-              onClick={handleImportarRegistros} 
+            <Button
+              onClick={handleImportarRegistros}
               disabled={isLoading || !archivo}
               data-testid="button-finalizar"
             >
@@ -714,8 +802,8 @@ export function CargarDatosModal({
             <ChevronLeft className="h-4 w-4 mr-2" />
             Atrás
           </Button>
-          <Button 
-            onClick={handleImportarRegistros} 
+          <Button
+            onClick={handleImportarRegistros}
             disabled={isLoading || !archivo}
             data-testid="button-importar"
           >
@@ -736,19 +824,20 @@ export function CargarDatosModal({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="modal-cargar-datos">
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        data-testid="modal-cargar-datos"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
             Cargar Datos
           </DialogTitle>
         </DialogHeader>
-        
+
         {renderContenido()}
-        
-        <div className="mt-6">
-          {renderBotones()}
-        </div>
+
+        <div className="mt-6">{renderBotones()}</div>
       </DialogContent>
     </Dialog>
   );
