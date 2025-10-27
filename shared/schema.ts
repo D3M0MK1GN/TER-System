@@ -495,18 +495,100 @@ export const insertPersonaCasoSchema = createInsertSchema(personasCasos).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
-  telefono: z.string()
-    .max(20, "Teléfono muy largo")
+  telefono: z.union([z.string(), z.null()])
     .optional()
-    .transform(val => val && val.trim() !== "" ? val.trim() : undefined),
-  cedula: z.string()
-    .max(20, "Cédula muy larga")
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  cedula: z.union([z.string(), z.null()])
     .optional()
-    .transform(val => val && val.trim() !== "" ? val.trim() : undefined),
-  expediente: z.string()
-    .max(100, "Expediente muy largo")
+    .transform(val => {
+      if (val === null) return null;
+      if (val === undefined) return undefined;
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        return trimmed === '' ? null : trimmed;
+      }
+      return undefined;
+    }),
+  expediente: z.union([z.string(), z.null()])
     .optional()
-    .transform(val => val && val.trim() !== "" ? val.trim() : undefined),
+    .transform(val => {
+      if (val === null) return null;
+      if (val === undefined) return undefined;
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        return trimmed === '' ? null : trimmed;
+      }
+      return undefined;
+    }),
+  apellido: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  pseudonimo: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  fechaDeNacimiento: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  profesion: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  direccion: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  fechaDeInicio: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  delito: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  nOficio: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  fiscalia: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  descripcion: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
+  observacion: z.union([z.string(), z.null()])
+    .optional()
+    .transform(val => {
+      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+      return typeof val === 'string' ? val.trim() : undefined;
+    }),
 });
 
 export const insertPersonaTelefonoSchema = createInsertSchema(personaTelefonos).omit({

@@ -484,7 +484,7 @@ export default function Trazabilidad() {
 
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/personas-casos/${editData.id}`, {
+      const response = await fetch(`/api/personas-casos/${editData.nro}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

@@ -1396,8 +1396,11 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
   app.put("/api/personas-casos/:nro", authenticateToken, async (req: any, res) => {
     try {
       const nro = parseInt(req.params.nro);
+      console.log('[DEBUG PUT] Datos recibidos del frontend:', JSON.stringify(req.body));
       const validatedData = insertPersonaCasoSchema.partial().parse(req.body);
+      console.log('[DEBUG PUT] Datos después de validación Zod:', JSON.stringify(validatedData));
       const updated = await storage.updatePersonaCaso(nro, validatedData);
+      console.log('[DEBUG PUT] Datos devueltos por DB:', JSON.stringify(updated));
       if (!updated) {
         return res.status(404).json({ message: 'Persona caso no encontrada' });
       }
@@ -2261,6 +2264,7 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
   const httpServer = createServer(app);
   return httpServer;
 }
+
 
 
 
