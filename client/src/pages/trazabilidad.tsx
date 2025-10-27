@@ -39,6 +39,8 @@ import {
   ChevronRight,
   Repeat,
   Upload,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { GrafoTrazabilidad } from "@/components/GrafoTrazabilidad";
@@ -411,6 +413,55 @@ export default function Trazabilidad() {
     }
   };
 
+  const handleEdit = (personaId: number) => {
+    toast({
+      title: "Editar Persona/Caso",
+      description: `Función de edición para ID: ${personaId}`,
+    });
+  };
+
+  const handleDelete = async (personaId: number, nombreCompleto: string) => {
+    if (
+      !confirm(
+        `¿Está seguro que desea eliminar el registro de ${nombreCompleto}?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/personas-casos/${personaId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Éxito",
+          description: "Persona/Caso eliminado correctamente",
+        });
+        // Actualizar la lista de resultados
+        setResultados(resultados.filter((r) => r.id !== personaId));
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo eliminar la persona/caso",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error al eliminar:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al eliminar",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
@@ -610,6 +661,29 @@ export default function Trazabilidad() {
                                 title="Coincidencias"
                               >
                                 <GitMerge className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                data-testid={`button-edit-${index}`}
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(resultado.id)}
+                                title="Editar"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                data-testid={`button-delete-${index}`}
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  handleDelete(
+                                    resultado.id,
+                                    resultado.nombreCompleto
+                                  )
+                                }
+                                title="Borrar"
+                              >
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>

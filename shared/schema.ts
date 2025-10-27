@@ -497,13 +497,16 @@ export const insertPersonaCasoSchema = createInsertSchema(personasCasos).omit({
 }).extend({
   telefono: z.string()
     .max(20, "Teléfono muy largo")
-    .optional(),
+    .optional()
+    .transform(val => val && val.trim() !== "" ? val.trim() : undefined),
   cedula: z.string()
     .max(20, "Cédula muy larga")
-    .optional(),
+    .optional()
+    .transform(val => val && val.trim() !== "" ? val.trim() : undefined),
   expediente: z.string()
     .max(100, "Expediente muy largo")
-    .optional(),
+    .optional()
+    .transform(val => val && val.trim() !== "" ? val.trim() : undefined),
 });
 
 export const insertPersonaTelefonoSchema = createInsertSchema(personaTelefonos).omit({
