@@ -45,6 +45,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { GrafoTrazabilidad } from "@/components/GrafoTrazabilidad";
 import { CargarDatosModal } from "@/components/cargar-datos-modal";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ResultadoBusqueda {
   id: number;
@@ -70,6 +71,7 @@ export default function Trazabilidad() {
   const [showCoincidenciasModal, setShowCoincidenciasModal] = useState(false);
   const [showAnalisisModal, setShowAnalisisModal] = useState(false);
   const [showCargarDatosModal, setShowCargarDatosModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Datos de los modales
   const [personaData, setPersonaData] = useState<any>(null);
@@ -77,6 +79,13 @@ export default function Trazabilidad() {
   const [coincidenciasData, setCoincidenciasData] = useState<any>(null);
   const [analisisData, setAnalisisData] = useState<any>(null);
   const [loadingModal, setLoadingModal] = useState(false);
+  const [editData, setEditData] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editRegistros, setEditRegistros] = useState<any[]>([]);
+  const [archivoNuevoRegistro, setArchivoNuevoRegistro] = useState<File | null>(
+    null
+  );
+  const [isUploadingRegistro, setIsUploadingRegistro] = useState(false);
 
   // Estados para tabla de registros
   const [filtroGlobal, setFiltroGlobal] = useState("");
@@ -413,11 +422,235 @@ export default function Trazabilidad() {
     }
   };
 
-  const handleEdit = (personaId: number) => {
-    toast({
-      title: "Editar Persona/Caso",
-      description: `Función de edición para ID: ${personaId}`,
-    });
+  const handleEdit = async (personaId: number) => {
+    setEditData(null);
+    setEditRegistros([]);
+    setArchivoNuevoRegistro(null);
+    setLoadingModal(true);
+    setShowEditModal(true);
+
+    try {
+      const response = await fetch(`/api/personas-casos/${personaId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEditData(data);
+
+        // Cargar registros comunicacionales si hay un teléfono
+        if (data.telefono) {
+          const registrosResponse = await fetch(
+            `/api/registros-comunicacion/abonado/${encodeURIComponent(
+              data.telefono
+            )}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+
+          if (registrosResponse.ok) {
+            const registrosData = await registrosResponse.json();
+            setEditRegistros(registrosData);
+          }
+        }
+      } else {
+        setShowEditModal(false);
+        toast({
+          title: "Error",
+          description: "No se pudo obtener la información para editar",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error al obtener datos para editar:", error);
+      setShowEditModal(false);
+      toast({
+        title: "Error",
+        description: "No se pudo obtener la información para editar",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingModal(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editData) return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(`/api/personas-casos/${editData.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(editData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Éxito",
+          description: "Persona/Caso actualizado correctamente",
+        });
+        setShowEditModal(false);
+        handleSearch();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo actualizar la persona/caso",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error al actualizar:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al actualizar",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteAllRegistros = async () => {
+    if (!editData?.telefono) {
+      toast({
+        title: "Error",
+        description: "No hay un teléfono asociado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      !confirm(
+        "¿Está seguro que desea eliminar todos los registros comunicacionales de este número?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/registros-comunicacion/abonado/${encodeURIComponent(
+          editData.telefono
+        )}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        toast({
+          title: "Éxito",
+          description: "Todos los registros fueron eliminados correctamente",
+        });
+        setEditRegistros([]);
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo eliminar los registros",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error al eliminar registros:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al eliminar los registros",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUploadRegistros = async () => {
+    if (!archivoNuevoRegistro) {
+      toast({
+        title: "Archivo requerido",
+        description: "Por favor selecciona un archivo para importar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editData?.telefono) {
+      toast({
+        title: "Teléfono requerido",
+        description:
+          "La persona/caso debe tener un número de teléfono asociado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingRegistro(true);
+    const formDataToSend = new FormData();
+    formDataToSend.append("archivo", archivoNuevoRegistro);
+    formDataToSend.append("numeroAsociado", editData.telefono);
+
+    try {
+      const response = await fetch("/api/registros-comunicacion/importar", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formDataToSend,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "Importación exitosa",
+          description: `Se importaron ${data.registrosImportados} registros correctamente`,
+        });
+        setArchivoNuevoRegistro(null);
+
+        // Recargar registros
+        const registrosResponse = await fetch(
+          `/api/registros-comunicacion/abonado/${encodeURIComponent(
+            editData.telefono
+          )}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (registrosResponse.ok) {
+          const registrosData = await registrosResponse.json();
+          setEditRegistros(registrosData);
+        }
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo importar el archivo",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error al importar registros:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al importar los registros",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingRegistro(false);
+    }
   };
 
   const handleDelete = async (personaId: number, nombreCompleto: string) => {
@@ -1181,6 +1414,305 @@ export default function Trazabilidad() {
           });
         }}
       />
+
+      {/* Modal: Editar Persona/Caso */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Editar Persona/Caso
+            </DialogTitle>
+          </DialogHeader>
+          {loadingModal ? (
+            <div className="py-8 text-center text-gray-500">Cargando...</div>
+          ) : editData ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Cédula
+                  </label>
+                  <Input
+                    value={editData.cedula || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, cedula: e.target.value })
+                    }
+                    placeholder="V-12345678"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Expediente
+                  </label>
+                  <Input
+                    value={editData.expediente || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, expediente: e.target.value })
+                    }
+                    placeholder="EXP-2024-001"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Nombre *
+                  </label>
+                  <Input
+                    value={editData.nombre || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, nombre: e.target.value })
+                    }
+                    placeholder="Nombre"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Apellido
+                  </label>
+                  <Input
+                    value={editData.apellido || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, apellido: e.target.value })
+                    }
+                    placeholder="Apellido"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Teléfono
+                  </label>
+                  <Input
+                    value={editData.telefono || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, telefono: e.target.value })
+                    }
+                    placeholder="0412XXXXXXX"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Seudónimo
+                  </label>
+                  <Input
+                    value={editData.pseudonimo || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, pseudonimo: e.target.value })
+                    }
+                    placeholder="Seudónimo o alias"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Edad
+                  </label>
+                  <Input
+                    type="number"
+                    value={editData.edad || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, edad: e.target.value })
+                    }
+                    placeholder="Edad"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Fecha de Nacimiento
+                  </label>
+                  <Input
+                    type="date"
+                    value={editData.fechaDeNacimiento || ""}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        fechaDeNacimiento: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Profesión
+                  </label>
+                  <Input
+                    value={editData.profesion || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, profesion: e.target.value })
+                    }
+                    placeholder="Profesión u ocupación"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Fecha de Inicio
+                  </label>
+                  <Input
+                    type="date"
+                    value={editData.fechaDeInicio || ""}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        fechaDeInicio: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Delito
+                  </label>
+                  <Input
+                    value={editData.delito || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, delito: e.target.value })
+                    }
+                    placeholder="Delito imputado"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    N° de Oficio
+                  </label>
+                  <Input
+                    value={editData.nOficio || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, nOficio: e.target.value })
+                    }
+                    placeholder="Número de oficio"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Fiscalía
+                  </label>
+                  <Input
+                    value={editData.fiscalia || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, fiscalia: e.target.value })
+                    }
+                    placeholder="Fiscalía asignada"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Dirección
+                  </label>
+                  <Input
+                    value={editData.direccion || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, direccion: e.target.value })
+                    }
+                    placeholder="Dirección de residencia"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Descripción
+                  </label>
+                  <Textarea
+                    value={editData.descripcion || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, descripcion: e.target.value })
+                    }
+                    placeholder="Descripción detallada del caso"
+                    rows={3}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Observación
+                  </label>
+                  <Textarea
+                    value={editData.observacion || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, observacion: e.target.value })
+                    }
+                    placeholder="Observaciones adicionales"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Sección de Registros Comunicacionales */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Phone className="h-5 w-5" />
+                  Registros Comunicacionales
+                </h3>
+
+                {/* Registro actual */}
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 block mb-1">
+                        Registro Comunicacional Actual
+                      </label>
+                      <p className="text-sm text-gray-600">
+                        ({editRegistros.length} comunicaciones)
+                      </p>
+                    </div>
+                    {editRegistros.length > 0 && (
+                      <Button
+                        onClick={handleDeleteAllRegistros}
+                        variant="destructive"
+                        size="sm"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Borrar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Subir nuevo archivo de registros */}
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Agregar Nuevo Registro
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="file"
+                      accept=".xlsx,.xls,.csv,.txt"
+                      onChange={(e) =>
+                        setArchivoNuevoRegistro(e.target.files?.[0] || null)
+                      }
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleUploadRegistros}
+                      disabled={!archivoNuevoRegistro || isUploadingRegistro}
+                      variant="outline"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {isUploadingRegistro ? "Importando..." : "Importar"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Formatos permitidos: Excel (.xlsx, .xls), CSV (.csv) o TXT
+                    (.txt)
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditModal(false)}
+                  disabled={isSaving}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveEdit} disabled={isSaving}>
+                  {isSaving ? "Guardando..." : "Guardar Cambios"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="py-8 text-center text-gray-500">
+              No se pudo cargar la información
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal: Análisis de Traza */}
       <Dialog open={showAnalisisModal} onOpenChange={setShowAnalisisModal}>

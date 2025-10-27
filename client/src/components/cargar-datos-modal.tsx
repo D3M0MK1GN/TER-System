@@ -76,7 +76,6 @@ export function CargarDatosModal({
   const [opcionSeleccionada, setOpcionSeleccionada] = useState<number | null>(
     null
   );
-  const [paso, setPaso] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [archivo, setArchivo] = useState<File | null>(null);
 
@@ -104,7 +103,6 @@ export function CargarDatosModal({
 
   const handleReset = () => {
     setOpcionSeleccionada(null);
-    setPaso(1);
     setArchivo(null);
     form.reset();
   };
@@ -126,7 +124,7 @@ export function CargarDatosModal({
     }
   };
 
-  const handleCrearPersonaCaso = async (data: PersonaCasoFormData) => {
+  const handleGuardarCasoCompleto = async (data: PersonaCasoFormData) => {
     setIsLoading(true);
     try {
       const response = await fetch("/api/personas-casos", {
@@ -142,18 +140,46 @@ export function CargarDatosModal({
       });
 
       if (response.ok) {
-        toast({
-          title: "Éxito",
-          description: "Persona/Caso creado correctamente",
-        });
+        if (archivo && data.telefono) {
+          const formDataToSend = new FormData();
+          formDataToSend.append("archivo", archivo);
+          formDataToSend.append("numeroAsociado", data.telefono);
 
-        if (opcionSeleccionada === 1) {
-          setPaso(2);
+          const registrosResponse = await fetch(
+            "/api/registros-comunicacion/importar",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+              body: formDataToSend,
+            }
+          );
+
+          if (registrosResponse.ok) {
+            const registrosData = await registrosResponse.json();
+            toast({
+              title: "Éxito",
+              description: `Caso creado con ${registrosData.registrosImportados} registros importados`,
+            });
+          } else {
+            toast({
+              title: "Parcialmente exitoso",
+              description:
+                "Caso creado, pero hubo un error al importar los registros",
+              variant: "destructive",
+            });
+          }
         } else {
-          handleReset();
-          onOpenChange(false);
-          onSuccess?.();
+          toast({
+            title: "Éxito",
+            description: "Persona/Caso creado correctamente",
+          });
         }
+
+        handleReset();
+        onOpenChange(false);
+        onSuccess?.();
       } else {
         const error = await response.json();
         toast({
@@ -252,19 +278,9 @@ export function CargarDatosModal({
                 Opción 1: Cargar Caso Completo
               </h3>
               <p className="text-sm text-gray-600">
-                Crea una nueva persona/caso y luego importa sus registros de
-                comunicación
+                Crea una nueva persona/caso y opcionalmente importa sus
+                registros de comunicación
               </p>
-              <div className="mt-3 text-xs text-gray-500">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Paso 1: Formulario de Persona/Caso
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Paso 2: Importar Registros (Excel/CSV/TXT)
-                </div>
-              </div>
             </div>
           </div>
         </CardContent>
@@ -672,41 +688,330 @@ export function CargarDatosModal({
     </div>
   );
 
+  const renderFormularioCasoCompleto = () => (
+    <>
+      <div className="mb-4">
+        <h3 className="font-semibold text-lg">Cargar Caso Completo</h3>
+        <p className="text-sm text-gray-600">
+          Completa los datos de la persona/caso y opcionalmente agrega registros
+        </p>
+      </div>
+      <Form {...form}>
+        <form className="space-y-4 py-4" data-testid="formulario-persona-caso">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="cedula"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cédula</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="V-12345678"
+                      data-testid="input-cedula"
+                      onChange={(e) => {
+                        let value = e.target.value.toUpperCase();
+                        if (value.startsWith("V-") || value.startsWith("E-")) {
+                          field.onChange(value);
+                        } else if (value.match(/^\d/)) {
+                          field.onChange("V-" + value.replace(/[^0-9]/g, ""));
+                        } else if (value.length > 0) {
+                          field.onChange(value);
+                        } else {
+                          field.onChange("");
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="expediente"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Expediente</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="EXP-2024-001"
+                      data-testid="input-expediente"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="nombre"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nombre *</FormLabel>
+                  <FormControl>
+                    <Input {...field} data-testid="input-nombre" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="apellido"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Apellido</FormLabel>
+                  <FormControl>
+                    <Input {...field} data-testid="input-apellido" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="telefono"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teléfono Principal</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="4121234567"
+                      data-testid="input-telefono"
+                      maxLength={10}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(/\D/g, "");
+                        if (value.startsWith("0")) {
+                          value = value.substring(1);
+                        }
+                        field.onChange(value);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="pseudonimo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Seudónimo</FormLabel>
+                  <FormControl>
+                    <Input {...field} data-testid="input-pseudonimo" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="edad"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Edad</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="number" data-testid="input-edad" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fechaDeNacimiento"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de Nacimiento</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="date"
+                      data-testid="input-fecha-nacimiento"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="profesion"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Profesión</FormLabel>
+                  <FormControl>
+                    <Input {...field} data-testid="input-profesion" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fechaDeInicio"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de Inicio</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="date"
+                      data-testid="input-fecha-inicio"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="delito"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Delito</FormLabel>
+                  <FormControl>
+                    <Input {...field} data-testid="input-delito" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="nOficio"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>N° Oficio</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      data-testid="input-n-oficio"
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9-]/g, "");
+                        field.onChange(value);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="col-span-2">
+              <FormField
+                control={form.control}
+                name="fiscalia"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fiscalía</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-fiscalia" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="col-span-2">
+              <FormField
+                control={form.control}
+                name="direccion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-direccion" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="col-span-2">
+              <FormField
+                control={form.control}
+                name="descripcion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descripción</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        rows={3}
+                        data-testid="textarea-descripcion"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="col-span-2">
+              <FormField
+                control={form.control}
+                name="observacion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Observación</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        rows={3}
+                        data-testid="textarea-observacion"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Sección de Registros Comunicacionales */}
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-md font-semibold mb-3">
+              Agregar Nuevo Registro (Opcional)
+            </h3>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <label className="text-sm font-semibold text-gray-700 block mb-2">
+                Archivo de Registros Comunicacionales
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.txt"
+                  onChange={handleFileChange}
+                  className="flex-1"
+                />
+              </div>
+              {archivo && (
+                <p className="text-xs text-green-600 mt-2">
+                  ✓ Archivo seleccionado: {archivo.name}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-2">
+                Formatos permitidos: Excel (.xlsx, .xls), CSV (.csv) o TXT
+                (.txt)
+              </p>
+            </div>
+          </div>
+        </form>
+      </Form>
+    </>
+  );
+
   const renderContenido = () => {
     if (!opcionSeleccionada) {
       return renderSeleccionOpcion();
     }
 
     if (opcionSeleccionada === 1) {
-      if (paso === 1) {
-        return (
-          <>
-            <div className="mb-4">
-              <h3 className="font-semibold text-lg">
-                Paso 1: Datos de la Persona/Caso
-              </h3>
-              <p className="text-sm text-gray-600">
-                Completa la información básica del caso
-              </p>
-            </div>
-            {renderFormularioPersona()}
-          </>
-        );
-      } else {
-        return (
-          <>
-            <div className="mb-4">
-              <h3 className="font-semibold text-lg">
-                Paso 2: Importar Registros de Comunicación
-              </h3>
-              <p className="text-sm text-gray-600">
-                Sube el archivo con los registros de comunicación
-              </p>
-            </div>
-            {renderImportarArchivo()}
-          </>
-        );
-      }
+      return renderFormularioCasoCompleto();
     }
 
     if (opcionSeleccionada === 2) {
@@ -742,52 +1047,26 @@ export function CargarDatosModal({
     }
 
     if (opcionSeleccionada === 1) {
-      if (paso === 1) {
-        return (
-          <div className="flex justify-between gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setOpcionSeleccionada(null);
-                setPaso(1);
-              }}
-              data-testid="button-atras-opcion"
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Atrás
-            </Button>
-            <Button
-              onClick={form.handleSubmit(handleCrearPersonaCaso)}
-              disabled={isLoading}
-              data-testid="button-siguiente-paso"
-            >
-              {isLoading ? "Guardando..." : "Siguiente"}
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        );
-      } else {
-        return (
-          <div className="flex justify-between gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setPaso(1)}
-              disabled={isLoading}
-              data-testid="button-atras-paso"
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Atrás
-            </Button>
-            <Button
-              onClick={handleImportarRegistros}
-              disabled={isLoading || !archivo}
-              data-testid="button-finalizar"
-            >
-              {isLoading ? "Importando..." : "Finalizar"}
-            </Button>
-          </div>
-        );
-      }
+      return (
+        <div className="flex justify-between gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setOpcionSeleccionada(null)}
+            disabled={isLoading}
+            data-testid="button-atras-opcion"
+          >
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Atrás
+          </Button>
+          <Button
+            onClick={form.handleSubmit(handleGuardarCasoCompleto)}
+            disabled={isLoading}
+            data-testid="button-guardar"
+          >
+            {isLoading ? "Guardando..." : "Guardar"}
+          </Button>
+        </div>
+      );
     }
 
     if (opcionSeleccionada === 2) {
