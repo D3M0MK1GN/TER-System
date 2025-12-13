@@ -1,7 +1,12 @@
 import { useForm } from "react-hook-form";
 import { useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -35,6 +40,7 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  Eye,
 } from "lucide-react";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -86,6 +92,25 @@ export function ExperticiasForm({
     results: null,
     error: null,
   });
+
+  // Estado para el modal de tabla expandida
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+
+  // Estado para las filas seleccionadas
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+
+  // Toggle selección de fila
+  const toggleRowSelection = (index: number) => {
+    setSelectedRows((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
 
   // Helper para formatear tamaño de archivo
   const formatFileSize = (bytes: number): string => {
@@ -907,9 +932,20 @@ export function ExperticiasForm({
                 {btsAnalysisState.results &&
                   btsAnalysisState.results.length > 0 && (
                     <div className="space-y-2">
-                      <div className="text-sm text-green-600 font-medium">
-                        Resultados encontrados:{" "}
-                        {btsAnalysisState.results.length}
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-green-600 font-medium">
+                          Resultados encontrados:{" "}
+                          {btsAnalysisState.results.length}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsTableModalOpen(true)}
+                          title="Ver tabla completa"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
                       <div className="max-h-60 overflow-y-auto border rounded-lg">
                         <Table>
@@ -926,7 +962,14 @@ export function ExperticiasForm({
                           </TableHeader>
                           <TableBody>
                             {btsAnalysisState.results.map((result, index) => (
-                              <TableRow key={index}>
+                              <TableRow
+                                key={index}
+                                className={
+                                  selectedRows.has(index)
+                                    ? "bg-blue-100 dark:bg-blue-900/40"
+                                    : ""
+                                }
+                              >
                                 <TableCell>
                                   {result["ABONADO A"] || "-"}
                                 </TableCell>
@@ -990,6 +1033,54 @@ export function ExperticiasForm({
           </div>
         </form>
       </Form>
+
+      <Dialog open={isTableModalOpen} onOpenChange={setIsTableModalOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Resultados del Análisis BTS</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto max-h-[75vh]">
+            {btsAnalysisState.results &&
+              btsAnalysisState.results.length > 0 && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ABONADO A</TableHead>
+                      <TableHead>ABONADO B</TableHead>
+                      <TableHead>FECHA</TableHead>
+                      <TableHead>HORA</TableHead>
+                      <TableHead>TIME</TableHead>
+                      <TableHead>DIRECCION</TableHead>
+                      <TableHead>CORDENADAS</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {btsAnalysisState.results.map((result, index) => (
+                      <TableRow
+                        key={index}
+                        onClick={() => toggleRowSelection(index)}
+                        className={`cursor-pointer transition-colors ${
+                          selectedRows.has(index)
+                            ? "bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                            : "hover:bg-muted/50"
+                        }`}
+                        data-testid={`row-bts-result-${index}`}
+                      >
+                        <TableCell>{result["ABONADO A"] || "-"}</TableCell>
+                        <TableCell>{result["ABONADO B"] || "-"}</TableCell>
+                        <TableCell>{result["FECHA"] || "-"}</TableCell>
+                        <TableCell>{result["HORA"] || "-"}</TableCell>
+                        <TableCell>{result["TIME"] || "-"}</TableCell>
+                        <TableCell>{result["DIRECCION"] || "-"}</TableCell>
+                        <TableCell>{result["CORDENADAS"] || "-"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
