@@ -601,6 +601,9 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       // Preparar datos para la plantilla de experticia
       const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
       
+      // Parsear fechaRespuesta para extraer desde/hasta
+      const regFechas = parseWithPrefixes(requestData.fechaRespuesta || '', ['desde', 'hasta']);
+      
       const desp = 'BARQUISIMETO';
       const templateData = {
         FECHA: currentDate,
@@ -619,8 +622,8 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         EXP: requestData.expediente || '',
         DIREC: requestData.motivo || '',
         abonado: requestData.abonado || '',
-        desde: requestData.fechaComunicacion || '',
-        hasta: requestData.fechaRespuesta || '',
+        desde: regFechas.desde || '',
+        hasta: regFechas.hasta || '',
         JERC: '',
       };
 

@@ -296,7 +296,6 @@ export const experticias = pgTable("experticias", {
   motivo: text("motivo").notNull(),
   operador: operadorEnum("operador").notNull(),
   fechaRespuesta: text("fecha_respuesta"),
-  usoHorario: text("uso_horario"),
   archivoAdjunto: text("archivo_adjunto"), // Ruta del archivo adjunto
   nombreArchivo: text("nombre_archivo"), // Nombre exacto del archivo
   tamañoArchivo: integer("tamaño_archivo"), // Tamaño en bytes del archivo

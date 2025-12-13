@@ -114,7 +114,6 @@ export function ExperticiasForm({
         experticia?.fechaRespuesta?.toString() ||
         preloadData?.fechaRespuesta ||
         "",
-      usoHorario: experticia?.usoHorario ?? preloadData?.usoHorario ?? "",
       archivoAdjunto:
         experticia?.archivoAdjunto ?? preloadData?.archivoAdjunto ?? "",
       nombreArchivo:
@@ -332,36 +331,13 @@ export function ExperticiasForm({
                 name="fechaRespuesta"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>R.Fecha</FormLabel>
+                    <FormLabel>Reg Desde/Hasta</FormLabel>
                     <FormControl>
                       {permissions.canEditCreationDates ? (
                         <Input
-                          placeholder="dd/mm/yyyy o dd-mm-yyyy"
+                          placeholder="desde: 20-11-2024 hasta: 19-11-2025"
                           {...field}
                           value={field.value?.toString() || ""}
-                          onKeyDown={(e) => {
-                            const allowedKeys = [
-                              "Backspace",
-                              "Delete",
-                              "Tab",
-                              "Enter",
-                              "ArrowLeft",
-                              "ArrowRight",
-                              "ArrowUp",
-                              "ArrowDown",
-                              "Home",
-                              "End",
-                            ];
-                            const allowedChars = /[0-9\/\-\s]/;
-
-                            if (allowedKeys.includes(e.key)) {
-                              return; // Permitir teclas de navegación
-                            }
-
-                            if (!allowedChars.test(e.key)) {
-                              e.preventDefault(); // Bloquear letras y otros caracteres
-                            }
-                          }}
                         />
                       ) : (
                         <div className="flex items-center p-3 border rounded-md bg-gray-50">
@@ -628,24 +604,6 @@ export function ExperticiasForm({
                         <SelectItem value="qr_ausente">QR Ausente</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="usoHorario"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Uso Horario</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="ej: GMT-4 (Venezuela)"
-                        {...field}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

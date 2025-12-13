@@ -602,10 +602,6 @@ export function ExperticiasTable({
                       ]
                     }
                   />
-                  <DetailField
-                    label="Uso Horario"
-                    value={viewingExperticia.usoHorario}
-                  />
                 </div>
                 <DetailField label="Motivo" value={viewingExperticia.motivo} />
               </div>
