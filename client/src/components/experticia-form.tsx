@@ -657,10 +657,10 @@ export function ExperticiasForm({
               name="motivo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Motivo*</FormLabel>
+                  <FormLabel>Dirección*</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Motivo de la solicitud de experticia..."
+                      placeholder="Dirección del lugar de interés criminalístico..."
                       {...field}
                       rows={3}
                     />

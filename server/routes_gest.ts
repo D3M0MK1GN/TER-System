@@ -601,8 +601,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       // Preparar datos para la plantilla de experticia
       const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
       
-      console.log(req.user.credencial);
-      const desp = 'BARQUISIMETO'
+      const desp = 'BARQUISIMETO';
       const templateData = {
         FECHA: currentDate,
         UBICA: desp,
@@ -610,31 +609,19 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         DICTAME: requestData.numeroDictamen || '',
         EXPERTO: requestData.experto || '',
         COMUNICACION: requestData.numeroComunicacion || '',
-        FECHA_R: requestData.fechaRespuesta || '',
+        FECHA_R: requestData.fechaComunicacion || '',
         CRED: req.user.credencial || 'No hay credencial',
-        OPERADOR: (requestData.operador || '').toUpperCase(),
-        FRR: 'g',
-        RTIME: 'gg',
-        EXCEL: experticias.nombreArchivo,
-        TAMAÑO: experticias.tamañoArchivo,
-        /*
-        DICTAMEN: requestData.numeroDictamen || '',
-        'F.RR': requestData.fechaRespuesta || '',
-        'R.TIME': requestData.usoHorario || '',
-        EXCEL: 'Archivo Excel generado',
-        TAMAÑO: requestData.tamaño || '',
+        OPER: (requestData.operador || '').toUpperCase(),
+        FRR: requestData.respuestaFechaCorreo || '',
+        RTIME: requestData.horaRespuestaCorreo || '',
+        EXCEL: requestData.nombreArchivo || '',
+        TAMAÑO: requestData.tamañoArchivo ? Number(requestData.tamañoArchivo).toLocaleString('es-ES') : '',
         EXP: requestData.expediente || '',
+        DIREC: requestData.motivo || '',
         abonado: requestData.abonado || '',
         desde: requestData.fechaComunicacion || '',
-        FECHA_COMUNICACION: requestData.fechaComunicacion || '',
-        MOTIVO: requestData.motivo || '',
-        OPERADOR: (requestData.operador || '').toUpperCase(),
-        FECHA_RESPUESTA: requestData.fechaRespuesta || '',
-        USO_HORARIO: requestData.usoHorario || '',
-        ABONADO: requestData.abonado || '',
-        DATOS_ABONADO: requestData.datosAbonado || '',
-        CONCLUSION: requestData.conclusion || '',
-        EXPEDIENTE: requestData.expediente || '',*/
+        hasta: requestData.fechaRespuesta || '',
+        JERC: '',
       };
 
       let busArchivo: Buffer;
