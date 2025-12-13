@@ -14,6 +14,8 @@ export function ExperticiasManagement() {
   const [editingExperticia, setEditingExperticia] = useState<Experticia | null>(
     null
   );
+  const [duplicatingExperticia, setDuplicatingExperticia] =
+    useState<Experticia | null>(null);
   const pageSize = 10;
 
   const { user } = useAuth();
@@ -41,6 +43,7 @@ export function ExperticiasManagement() {
         usuarioId: user?.id,
       });
       setShowCreateModal(false);
+      setDuplicatingExperticia(null);
 
       // Intentar generar automáticamente el documento Word de experticia
       try {
@@ -121,6 +124,10 @@ export function ExperticiasManagement() {
 
   const handleEdit = (experticia: Experticia) => {
     setEditingExperticia(experticia);
+  };
+
+  const handleDuplicate = (experticia: Experticia) => {
+    setDuplicatingExperticia(experticia);
   };
 
   const handleExportExcel = async () => {
@@ -214,6 +221,7 @@ export function ExperticiasManagement() {
         onDelete={handleDelete}
         onView={() => {}}
         onCreateNew={() => setShowCreateModal(true)}
+        onDuplicate={handleDuplicate}
         onExportExcel={handleExportExcel}
         loading={isLoading}
         permissions={permissions}
@@ -241,6 +249,29 @@ export function ExperticiasManagement() {
             onSubmit={handleUpdate}
             onCancel={() => setEditingExperticia(null)}
             isLoading={updateMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate Modal */}
+      <Dialog
+        open={!!duplicatingExperticia}
+        onOpenChange={() => setDuplicatingExperticia(null)}
+      >
+        <DialogContent className="max-w-4xl">
+          <ExperticiasForm
+            experticia={
+              duplicatingExperticia
+                ? {
+                    ...duplicatingExperticia,
+                    id: undefined as any,
+                    numeroDictamen: "",
+                  }
+                : null
+            }
+            onSubmit={handleCreate}
+            onCancel={() => setDuplicatingExperticia(null)}
+            isLoading={createMutation.isPending}
           />
         </DialogContent>
       </Dialog>

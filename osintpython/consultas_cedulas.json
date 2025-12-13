@@ -1564,5 +1564,108 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2025-10-29T00:27:42.985626",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "12851460",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=12851460",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 12851460,
+                "fecha_nac": "1976-07-22",
+                "rif": "V128514607",
+                "cne": {
+                    "estado": "MONAGAS",
+                    "municipio": "CARIPE",
+                    "parroquia": "LA GUANOTA",
+                    "centro_electoral": "ESCUELA BÁSICA RAMONA ROCCA DE LÓPEZ"
+                },
+                "primer_apellido": "ARGUELLES",
+                "segundo_apellido": "DE GALINDEZ",
+                "primer_nombre": "GLORIA",
+                "segundo_nombre": "JOSE",
+                "request_date": "2025-10-29T04:27:42.919Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2025-11-06T00:01:48.552571",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "31041502",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=31041502",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 31041502,
+                "fecha_nac": "0000-00-00",
+                "rif": "V310415029",
+                "primer_apellido": "MACHADO",
+                "segundo_apellido": "SANCHEZ",
+                "primer_nombre": "ABRAHAM",
+                "segundo_nombre": "DAVID",
+                "request_date": "2025-11-06T04:01:48.466Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-11-06T00:02:17.107848",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "29890057",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=29890057",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 29890057,
+                "fecha_nac": "2003-05-21",
+                "rif": "V298900579",
+                "primer_apellido": "ZAMBRANO",
+                "segundo_apellido": "ORDOÑEZ",
+                "primer_nombre": "GERARDO",
+                "segundo_nombre": "JOSE",
+                "request_date": "2025-11-06T04:02:17.042Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2025-11-18T10:31:48.408332",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "27761581",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=27761581",
+        "error": "500 Server Error: Internal Server Error for url: http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=27761581",
+        "success": false
+    },
+    {
+        "timestamp": "2025-11-18T10:32:06.372495",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "27761581",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=27761581",
+        "error": "500 Server Error: Internal Server Error for url: http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=27761581",
+        "success": false
+    },
+    {
+        "timestamp": "2025-11-18T10:32:28.468500",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
+        "error": "500 Server Error: Internal Server Error for url: http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
+        "success": false
+    },
+    {
+        "timestamp": "2025-11-18T10:34:02.546995",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
+        "error": "500 Server Error: Internal Server Error for url: http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
+        "success": false
     }
 ]

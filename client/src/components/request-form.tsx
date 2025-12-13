@@ -60,6 +60,7 @@ const requestFormSchema = insertSolicitudSchema
       .min(1, "Coordinación solicitante es requerida"),
     operador: z.string().min(1, "Operador es requerido"),
     fechaSolicitud: z.string().optional(),
+    direc: z.string().min(1, "La dirección solicitada es requerida"),
   })
   .refine(
     (data) => {
@@ -73,6 +74,43 @@ const requestFormSchema = insertSolicitudSchema
       message:
         "El motivo de rechazo es requerido cuando el estado es 'rechazada'",
       path: ["motivoRechazo"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Validación especial para Identificar Radio Bases (BTS)
+      if (data.tipoExperticia === "identificar_radio_bases_bts") {
+        const informacion = data.informacionLinea || "";
+
+        // Si está vacío, no validar (el campo es opcional)
+        if (!informacion.trim()) {
+          return true;
+        }
+
+        // Buscar todos los números después de prefijos (e:, r:, etc.)
+        const regex = /([a-z]+):\s*(\d+)/gi;
+        const matches = Array.from(informacion.matchAll(regex));
+
+        for (const match of matches) {
+          const numero = match[2];
+
+          // Validar que tenga exactamente 10 dígitos
+          if (numero.length !== 10) {
+            return false;
+          }
+
+          // Validar que NO empiece con 0
+          if (numero.startsWith("0")) {
+            return false;
+          }
+        }
+      }
+      return true;
+    },
+    {
+      message:
+        "Para Identificar Radio Bases (BTS), los números telefónicos deben tener exactamente 10 dígitos y no pueden empezar con 0. Ejemplo: e:4125565998",
+      path: ["informacionLinea"],
     }
   );
 
@@ -492,9 +530,14 @@ export function RequestForm({
               <Label htmlFor="informacionLinea">Información Solicitada</Label>
               <Input
                 id="informacionLinea"
-                placeholder="Numeros, IMEI, etc. Ejm. e: 04121556598 r: 04121556599"
+                placeholder="Números, IMEI, etc. Ejm. e:4125565998 r:4125565999"
                 {...form.register("informacionLinea")}
               />
+              {form.formState.errors.informacionLinea && (
+                <p className="text-sm text-red-600 mt-1">
+                  {form.formState.errors.informacionLinea.message}
+                </p>
+              )}
             </div>
 
             {/* Hide for Identificar datos de un numero */}
@@ -515,12 +558,17 @@ export function RequestForm({
             form.watch("tipoExperticia") !==
               "determinar_contacto_frecuente" && (
               <div>
-                <Label htmlFor="direc">Direccion Solicitada</Label>
+                <Label htmlFor="direc">Dirección Solicitada *</Label>
                 <Textarea
                   id="direc"
-                  placeholder="Direcion Exacta el Hecho."
+                  placeholder="Dirección Exacta del Hecho."
                   {...form.register("direc")}
                 />
+                {form.formState.errors.direc && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {form.formState.errors.direc.message}
+                  </p>
+                )}
               </div>
             )}
 

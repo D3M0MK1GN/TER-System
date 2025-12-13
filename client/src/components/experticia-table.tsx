@@ -40,6 +40,7 @@ import {
   MessageSquare,
   Files,
   Bug,
+  FilePlus,
 } from "lucide-react";
 import {
   Dialog,
@@ -63,6 +64,7 @@ interface ExperticiasTableProps {
   onDelete: (id: number) => void;
   onView: (experticia: Experticia) => void;
   onCreateNew: () => void;
+  onDuplicate: (experticia: Experticia) => void;
   onExportExcel: () => void;
   loading?: boolean;
   permissions: Permission;
@@ -124,6 +126,7 @@ export function ExperticiasTable({
   onDelete,
   onView,
   onCreateNew,
+  onDuplicate,
   onExportExcel,
   loading = false,
   permissions,
@@ -422,6 +425,15 @@ export function ExperticiasTable({
                         </Button>
                         {permissions.canManageUsers && (
                           <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onDuplicate(experticia)}
+                              title="Duplicar Experticia"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <FilePlus className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
