@@ -605,6 +605,19 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       const regFechas = parseWithPrefixes(requestData.fechaRespuesta || '', ['desde', 'hasta']);
       
       const desp = 'BARQUISIMETO';
+      // Procesar filas seleccionadas para la tabla dinámica
+      const tabla = Array.isArray(requestData.filasSeleccionadas) 
+        ? requestData.filasSeleccionadas.map((fila: any) => ({
+            ABONADO_A: fila.ABONADO_A || '',
+            ABONADO_B: fila.ABONADO_B || '',
+            FECHA: fila.FECHA || '',
+            HORA: fila.HORA || '',
+            TIME: fila.TIME || '',
+            DIRECCION: fila.DIRECCION || '',
+            CORDENADAS: fila.CORDENADAS || '',
+          }))
+        : [];
+
       const templateData = {
         FECHA: currentDate,
         UBICA: desp,
@@ -625,6 +638,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         desde: regFechas.desde || '',
         hasta: regFechas.hasta || '',
         JERC: '',
+        tabla: tabla,
       };
 
       let busArchivo: Buffer;

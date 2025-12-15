@@ -174,7 +174,27 @@ export function ExperticiasForm({
     if (fileUploadState.isUploading) {
       return; // Prevenir submit durante subida
     }
-    onSubmit(data);
+
+    // Convertir filas seleccionadas a lista de diccionarios para la tabla dinámica
+    const filasSeleccionadas: any[] = [];
+    if (btsAnalysisState.results && selectedRows.size > 0) {
+      selectedRows.forEach((index) => {
+        const fila = btsAnalysisState.results![index];
+        if (fila) {
+          filasSeleccionadas.push({
+            ABONADO_A: fila["ABONADO A"] || fila.ABONADO_A || "",
+            ABONADO_B: fila["ABONADO B"] || fila.ABONADO_B || "",
+            FECHA: fila.FECHA || "",
+            HORA: fila.HORA || "",
+            TIME: fila.TIME || "",
+            DIRECCION: fila.DIRECCION || "",
+            CORDENADAS: fila.CORDENADAS || "",
+          });
+        }
+      });
+    }
+
+    onSubmit({ ...data, filasSeleccionadas } as any);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
