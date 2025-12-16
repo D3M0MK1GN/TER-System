@@ -67,7 +67,8 @@ export function ExperticiasForm({
   isLoading,
   preloadData,
 }: ExperticiasFormProps) {
-  const isEditing = !!experticia;
+  const isEditing = !!experticia?.id;
+  const isDuplicating = !!experticia && !experticia.id;
   const scrollContainerRef = useRef<HTMLFormElement>(null);
   const permissions = usePermissions();
 
@@ -226,7 +227,13 @@ export function ExperticiasForm({
       <DialogHeader>
         <DialogTitle className="flex items-center space-x-2">
           <Atom className="h-5 w-5" />
-          <span>{isEditing ? "Editar Experticia" : "Nueva Experticia"}</span>
+          <span>
+            {isEditing
+              ? "Editar Experticia"
+              : isDuplicating
+              ? "Duplicar Experticia"
+              : "Nueva Experticia"}
+          </span>
         </DialogTitle>
       </DialogHeader>
 
@@ -1048,7 +1055,13 @@ export function ExperticiasForm({
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Guardando..." : isEditing ? "Actualizar" : "Crear"}
+              {isLoading
+                ? "Guardando..."
+                : isEditing
+                ? "Actualizar"
+                : isDuplicating
+                ? "Duplicar"
+                : "Crear"}
             </Button>
           </div>
         </form>
