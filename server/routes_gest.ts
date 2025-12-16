@@ -598,6 +598,15 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         return res.status(404).json({ message: "Archivo de plantilla de experticia no encontrado" });
       }
 
+      // Si viene experticiaid, buscar datos guardados de la base de datos
+      let filasSeleccionadas = requestData.filasSeleccionadas;
+      if (requestData.experticiaid && !filasSeleccionadas) {
+        const experticia = await storage.getExperticia(parseInt(requestData.experticiaid));
+        if (experticia?.datosSeleccionados) {
+          filasSeleccionadas = experticia.datosSeleccionados;
+        }
+      }
+
       // Preparar datos para la plantilla de experticia
       const currentDate = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
       
@@ -606,8 +615,8 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       
       const desp = 'BARQUISIMETO';
       // Procesar filas seleccionadas para la tabla dinámica
-      const tabla = Array.isArray(requestData.filasSeleccionadas) 
-        ? requestData.filasSeleccionadas.map((fila: any) => ({
+      const tabla = Array.isArray(filasSeleccionadas) 
+        ? filasSeleccionadas.map((fila: any) => ({
             ABONADO_A: fila.ABONADO_A || '',
             ABONADO_B: fila.ABONADO_B || '',
             FECHA: fila.FECHA || '',
@@ -818,6 +827,31 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       if (error.code === '23505') { // Unique constraint violation
         return res.status(409).json({ message: "Ya existe una experticia con ese código" });
       }
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
+
+  // PUT /api/experticias/:id/datos-seleccionados - Guardar datos seleccionados
+  app.put("/api/experticias/:id/datos-seleccionados", authenticateToken, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { datosSeleccionados } = req.body;
+      
+      if (!datosSeleccionados) {
+        return res.status(400).json({ message: "Datos seleccionados son requeridos" });
+      }
+
+      const experticia = await storage.updateExperticia(id, { 
+        datosSeleccionados: datosSeleccionados 
+      });
+      
+      if (!experticia) {
+        return res.status(404).json({ message: "Experticia no encontrada" });
+      }
+
+      res.json({ message: "Datos seleccionados guardados exitosamente", experticia });
+    } catch (error) {
+      console.error("Error guardando datos seleccionados:", error);
       res.status(500).json({ message: "Error interno del servidor" });
     }
   });

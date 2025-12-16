@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
@@ -112,6 +112,27 @@ export function ExperticiasForm({
       return newSet;
     });
   };
+
+  // Cargar datos seleccionados guardados cuando se edita una experticia
+  useEffect(() => {
+    if (
+      experticia?.datosSeleccionados &&
+      Array.isArray(experticia.datosSeleccionados)
+    ) {
+      const datosGuardados = experticia.datosSeleccionados as any[];
+      if (datosGuardados.length > 0) {
+        // Poblar los resultados del análisis BTS con los datos guardados
+        setBtsAnalysisState({
+          isAnalyzing: false,
+          results: datosGuardados,
+          error: null,
+        });
+        // Seleccionar todas las filas cargadas
+        const allIndices = new Set(datosGuardados.map((_, index) => index));
+        setSelectedRows(allIndices);
+      }
+    }
+  }, [experticia?.datosSeleccionados]);
 
   // Helper para formatear tamaño de archivo
   const formatFileSize = (bytes: number): string => {

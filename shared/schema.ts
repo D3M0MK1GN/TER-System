@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -307,6 +307,7 @@ export const experticias = pgTable("experticias", {
   horaRespuestaCorreo: text("hora_respuesta_correo"),
   expediente: text("expediente").notNull(),
   estado: estadoExperticiasEnum("estado").default("procesando"),
+  datosSeleccionados: jsonb("datos_seleccionados"), // Almacena filas/columnas seleccionadas en formato JSON
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   usuarioId: integer("usuario_id").references(() => users.id),

@@ -35,15 +35,40 @@ export function ExperticiasManagement() {
     updateMutation,
   } = useExperticias(1, pageSize);
 
-  const handleCreate = async (data: InsertExperticia) => {
+  const handleCreate = async (
+    data: InsertExperticia & { filasSeleccionadas?: any[] }
+  ) => {
     try {
-      // Crear la experticia
+      // Crear la experticia con los datos seleccionados
       const experticia = await createMutation.mutateAsync({
         ...data,
+        datosSeleccionados: data.filasSeleccionadas || null,
         usuarioId: user?.id,
       });
       setShowCreateModal(false);
       setDuplicatingExperticia(null);
+
+      // Si hay filas seleccionadas, guardarlas en la base de datos
+      if (
+        data.filasSeleccionadas &&
+        data.filasSeleccionadas.length > 0 &&
+        experticia?.id
+      ) {
+        try {
+          await fetch(`/api/experticias/${experticia.id}/datos-seleccionados`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({
+              datosSeleccionados: data.filasSeleccionadas,
+            }),
+          });
+        } catch (saveError) {
+          console.log("Error guardando datos seleccionados:", saveError);
+        }
+      }
 
       // Intentar generar automáticamente el documento Word de experticia
       try {
@@ -57,6 +82,7 @@ export function ExperticiasManagement() {
             },
             body: JSON.stringify({
               ...data,
+              experticiaid: experticia?.id,
               numeroDictamen: data.numeroDictamen,
               experto: data.experto,
               numeroComunicacion: data.numeroComunicacion,
@@ -68,6 +94,7 @@ export function ExperticiasManagement() {
               datosAbonado: data.datosAbonado,
               conclusion: data.conclusion,
               expediente: data.expediente,
+              filasSeleccionadas: data.filasSeleccionadas,
             }),
           }
         );
@@ -111,12 +138,40 @@ export function ExperticiasManagement() {
     }
   };
 
-  const handleUpdate = (data: InsertExperticia) => {
+  const handleUpdate = async (
+    data: InsertExperticia & { filasSeleccionadas?: any[] }
+  ) => {
     if (editingExperticia) {
+      // Actualizar la experticia
       updateMutation.mutate({
         id: editingExperticia.id,
-        data,
+        data: {
+          ...data,
+          datosSeleccionados: data.filasSeleccionadas || null,
+        },
       });
+
+      // Si hay filas seleccionadas, guardarlas en la base de datos
+      if (data.filasSeleccionadas && data.filasSeleccionadas.length > 0) {
+        try {
+          await fetch(
+            `/api/experticias/${editingExperticia.id}/datos-seleccionados`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+              body: JSON.stringify({
+                datosSeleccionados: data.filasSeleccionadas,
+              }),
+            }
+          );
+        } catch (saveError) {
+          console.log("Error guardando datos seleccionados:", saveError);
+        }
+      }
+
       setEditingExperticia(null);
     }
   };
