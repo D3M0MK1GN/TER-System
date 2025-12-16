@@ -1018,19 +1018,29 @@ export function ExperticiasForm({
                                     : ""
                                 }
                               >
-                                <TableCell>
-                                  {result["ABONADO A"] || "-"}
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {result["ABONADO A"] ||
+                                    result["ABONADO_A"] ||
+                                    "-"}
                                 </TableCell>
-                                <TableCell>
-                                  {result["ABONADO B"] || "-"}
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {result["ABONADO B"] ||
+                                    result["ABONADO_B"] ||
+                                    "-"}
                                 </TableCell>
-                                <TableCell>{result["FECHA"] || "-"}</TableCell>
-                                <TableCell>{result["HORA"] || "-"}</TableCell>
-                                <TableCell>{result["TIME"] || "-"}</TableCell>
-                                <TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {result["FECHA"] || "-"}
+                                </TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {result["HORA"] || "-"}
+                                </TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {result["TIME"] || "-"}
+                                </TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
                                   {result["DIRECCION"] || "-"}
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
                                   {result["CORDENADAS"] || "-"}
                                 </TableCell>
                               </TableRow>
@@ -1113,20 +1123,34 @@ export function ExperticiasForm({
                       <TableRow
                         key={index}
                         onClick={() => toggleRowSelection(index)}
-                        className={`cursor-pointer transition-colors ${
+                        className={`cursor-pointer transition-colors py-1 text-sm ${
                           selectedRows.has(index)
                             ? "bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-800/50"
                             : "hover:bg-muted/50"
                         }`}
                         data-testid={`row-bts-result-${index}`}
                       >
-                        <TableCell>{result["ABONADO A"] || "-"}</TableCell>
-                        <TableCell>{result["ABONADO B"] || "-"}</TableCell>
-                        <TableCell>{result["FECHA"] || "-"}</TableCell>
-                        <TableCell>{result["HORA"] || "-"}</TableCell>
-                        <TableCell>{result["TIME"] || "-"}</TableCell>
-                        <TableCell>{result["DIRECCION"] || "-"}</TableCell>
-                        <TableCell>{result["CORDENADAS"] || "-"}</TableCell>
+                        <TableCell className="py-1 px-2 text-xs">
+                          {result["ABONADO A"] || result["ABONADO_A"] || "-"}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-xs">
+                          {result["ABONADO B"] || result["ABONADO_B"] || "-"}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-xs">
+                          {result["FECHA"] || "-"}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-xs">
+                          {result["HORA"] || "-"}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-xs">
+                          {result["TIME"] || "-"}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-xs">
+                          {result["DIRECCION"] || "-"}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-xs">
+                          {result["CORDENADAS"] || "-"}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
