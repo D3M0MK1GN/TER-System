@@ -1029,6 +1029,8 @@ export function ExperticiasForm({
                                     "-"}
                                 </TableCell>
                                 <TableCell className="py-1 px-2 text-xs">
+                                  {" "}
+                                  {/* py-1 alto px ancho text-xs ajustar texto */}
                                   {result["FECHA"] || "-"}
                                 </TableCell>
                                 <TableCell className="py-1 px-2 text-xs">
