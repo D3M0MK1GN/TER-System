@@ -161,7 +161,11 @@ export function ExperticiasTable({
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          body: JSON.stringify(viewingExperticia),
+          body: JSON.stringify({
+            ...viewingExperticia,
+            experticiaid: viewingExperticia.id,
+            filasSeleccionadas: viewingExperticia.datosSeleccionados,
+          }),
         }
       );
 
@@ -653,6 +657,62 @@ export function ExperticiasTable({
                   </div>
                 </div>
               )}
+
+              {/* Tabla de datos seleccionados */}
+              {viewingExperticia.datosSeleccionados &&
+                Array.isArray(viewingExperticia.datosSeleccionados) &&
+                viewingExperticia.datosSeleccionados.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-medium text-gray-900">
+                      Datos Seleccionados (
+                      {viewingExperticia.datosSeleccionados.length} registros)
+                    </h4>
+                    <div className="max-h-60 overflow-y-auto border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>ABONADO A</TableHead>
+                            <TableHead>ABONADO B</TableHead>
+                            <TableHead>FECHA</TableHead>
+                            <TableHead>HORA</TableHead>
+                            <TableHead>TIME</TableHead>
+                            <TableHead>DIRECCION</TableHead>
+                            <TableHead>CORDENADAS</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(viewingExperticia.datosSeleccionados as any[]).map(
+                            (fila, index) => (
+                              <TableRow key={index}>
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {fila["ABONADO A"] || fila.ABONADO_A || "-"}
+                                </TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {fila["ABONADO B"] || fila.ABONADO_B || "-"}
+                                </TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {fila.FECHA || "-"}
+                                </TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {fila.HORA || "-"}
+                                </TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {fila.TIME || "-"}
+                                </TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {fila.DIRECCION || "-"}
+                                </TableCell>
+                                <TableCell className="py-1 px-2 text-xs">
+                                  {fila.CORDENADAS || "-"}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
 
               <Separator />
 
