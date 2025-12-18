@@ -7,7 +7,38 @@ import { ExperticiasForm } from "@/components/experticia-form";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { downloadFile } from "@/lib/experticia-utils";
 import { type Experticia, type InsertExperticia } from "@shared/schema";
+
+const TOKEN = () => localStorage.getItem("token");
+const AUTH_HEADER = () => ({ Authorization: `Bearer ${TOKEN()}` });
+
+const saveDatosSeleccionados = async (id: number, datos: any[]) => {
+  if (!datos.length) return;
+  try {
+    await fetch(`/api/experticias/${id}/datos-seleccionados`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...AUTH_HEADER() },
+      body: JSON.stringify({ datosSeleccionados: datos }),
+    });
+  } catch (error) {
+    console.log("Error guardando datos seleccionados:", error);
+  }
+};
+
+const generateDocument = async (
+  data: InsertExperticia & { filasSeleccionadas?: any[] },
+  experticiaid?: number
+) => {
+  const url = `/api/plantillas-word/experticia/${data.tipoExperticia}/generate`;
+  const filename = `experticia-${data.numeroDictamen || "documento"}.docx`;
+
+  try {
+    await downloadFile(url, filename, { authorization: `Bearer ${TOKEN()}` });
+  } catch {
+    throw new Error("No se pudo generar el documento");
+  }
+};
 
 export function ExperticiasManagement() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -35,146 +66,65 @@ export function ExperticiasManagement() {
     updateMutation,
   } = useExperticias(1, pageSize);
 
-  const handleCreate = async (
-    data: InsertExperticia & { filasSeleccionadas?: any[] }
+  const handleSaveExperticia = async (
+    data: InsertExperticia & { filasSeleccionadas?: any[] },
+    isCreating: boolean
   ) => {
     try {
-      // Crear la experticia con los datos seleccionados
-      const experticia = await createMutation.mutateAsync({
-        ...data,
-        datosSeleccionados: data.filasSeleccionadas || null,
-        usuarioId: user?.id,
-      });
-      setShowCreateModal(false);
-      setDuplicatingExperticia(null);
-
-      // Si hay filas seleccionadas, guardarlas en la base de datos
-      if (
-        data.filasSeleccionadas &&
-        data.filasSeleccionadas.length > 0 &&
-        experticia?.id
-      ) {
-        try {
-          await fetch(`/api/experticias/${experticia.id}/datos-seleccionados`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
+      const experticia = isCreating
+        ? await createMutation.mutateAsync({
+            ...data,
+            datosSeleccionados: data.filasSeleccionadas || null,
+            usuarioId: user?.id,
+          })
+        : (updateMutation.mutate({
+            id: editingExperticia!.id,
+            data: {
+              ...data,
+              datosSeleccionados: data.filasSeleccionadas || null,
             },
-            body: JSON.stringify({
-              datosSeleccionados: data.filasSeleccionadas,
-            }),
-          });
-        } catch (saveError) {
-          console.log("Error guardando datos seleccionados:", saveError);
-        }
+          }),
+          editingExperticia);
+
+      if (experticia?.id && data.filasSeleccionadas?.length) {
+        await saveDatosSeleccionados(experticia.id, data.filasSeleccionadas);
       }
 
-      // Intentar generar automáticamente el documento Word de experticia
       try {
-        const response = await fetch(
-          `/api/plantillas-word/experticia/${data.tipoExperticia}/generate`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({
-              ...data,
-              experticiaid: experticia?.id,
-              numeroDictamen: data.numeroDictamen,
-              experto: data.experto,
-              numeroComunicacion: data.numeroComunicacion,
-              fechaComunicacion: data.fechaComunicacion,
-              motivo: data.motivo,
-              operador: data.operador,
-              fechaRespuesta: data.fechaRespuesta,
-              abonado: data.abonado,
-              datosAbonado: data.datosAbonado,
-              conclusion: data.conclusion,
-              expediente: data.expediente,
-              filasSeleccionadas: data.filasSeleccionadas,
-            }),
-          }
-        );
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `experticia-${
-            data.numeroDictamen || "documento"
-          }.docx`;
-          document.body.appendChild(link);
-          link.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(link);
-
-          toast({
-            title: "Experticia creada",
-            description:
-              "Experticia creada exitosamente y documento generado automáticamente",
-          });
-        } else {
-          // Experticia creada pero sin documento
-          toast({
-            title: "Experticia creada",
-            description:
-              "Experticia creada exitosamente (sin plantilla de documento disponible)",
-          });
-        }
-      } catch (docError) {
-        console.log("Error generando documento:", docError);
+        await generateDocument(data, experticia?.id);
         toast({
-          title: "Experticia creada",
+          title: "Experticia " + (isCreating ? "creada" : "actualizada"),
           description:
-            "Experticia creada exitosamente (sin plantilla de documento disponible)",
+            (isCreating ? "creada" : "actualizada") +
+            " exitosamente y documento generado",
+        });
+      } catch {
+        toast({
+          title: "Experticia " + (isCreating ? "creada" : "actualizada"),
+          description:
+            (isCreating ? "creada" : "actualizada") +
+            " exitosamente (sin documento)",
         });
       }
-    } catch (error) {
-      console.error("Error creando experticia:", error);
-    }
-  };
 
-  const handleUpdate = async (
-    data: InsertExperticia & { filasSeleccionadas?: any[] }
-  ) => {
-    if (editingExperticia) {
-      // Actualizar la experticia
-      updateMutation.mutate({
-        id: editingExperticia.id,
-        data: {
-          ...data,
-          datosSeleccionados: data.filasSeleccionadas || null,
-        },
-      });
-
-      // Si hay filas seleccionadas, guardarlas en la base de datos
-      if (data.filasSeleccionadas && data.filasSeleccionadas.length > 0) {
-        try {
-          await fetch(
-            `/api/experticias/${editingExperticia.id}/datos-seleccionados`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-              body: JSON.stringify({
-                datosSeleccionados: data.filasSeleccionadas,
-              }),
-            }
-          );
-        } catch (saveError) {
-          console.log("Error guardando datos seleccionados:", saveError);
-        }
+      if (isCreating) {
+        setShowCreateModal(false);
+        setDuplicatingExperticia(null);
+      } else {
+        setEditingExperticia(null);
       }
-
-      setEditingExperticia(null);
+    } catch (error) {
+      console.error("Error:", error);
     }
   };
+
+  const handleCreate = (
+    data: InsertExperticia & { filasSeleccionadas?: any[] }
+  ) => handleSaveExperticia(data, true);
+
+  const handleUpdate = (
+    data: InsertExperticia & { filasSeleccionadas?: any[] }
+  ) => handleSaveExperticia(data, false);
 
   const handleEdit = (experticia: Experticia) => {
     setEditingExperticia(experticia);

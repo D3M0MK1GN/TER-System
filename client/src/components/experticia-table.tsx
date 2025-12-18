@@ -33,14 +33,13 @@ import {
   XCircle,
   Clock,
   QrCode,
-  Calendar,
   FileText,
   Download,
   Printer,
+  FilePlus,
   MessageSquare,
   Files,
   Bug,
-  FilePlus,
 } from "lucide-react";
 import {
   Dialog,
@@ -51,6 +50,16 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { type Experticia } from "@shared/schema";
 import { type Permission } from "@/hooks/use-permissions";
+import {
+  formatOperator,
+  formatStatus,
+  OPERATOR_COLORS,
+  STATUS_COLORS,
+  downloadFile,
+  OPERATORS,
+  STATUSES,
+  EXPERTICIA_TYPES,
+} from "@/lib/experticia-utils";
 import { CombinarArchivosModal } from "./combinar-archivos-modal";
 
 interface ExperticiasTableProps {
@@ -69,39 +78,6 @@ interface ExperticiasTableProps {
   loading?: boolean;
   permissions: Permission;
 }
-
-const operatorColors = {
-  digitel: "bg-red-100 text-red-800",
-  movistar: "bg-blue-100 text-blue-800",
-  movilnet: "bg-green-100 text-green-800",
-};
-
-const statusColors = {
-  completada: "bg-green-100 text-green-800",
-  negativa: "bg-red-100 text-red-800",
-  procesando: "bg-yellow-100 text-yellow-800",
-  qr_ausente: "bg-orange-100 text-orange-800",
-};
-
-const formatOperator = (operador: string) => {
-  const names = {
-    digitel: "Digitel",
-    movistar: "Movistar",
-    movilnet: "Movilnet",
-  };
-  return names[operador as keyof typeof names] || operador;
-};
-
-const formatStatus = (estado: string | null) => {
-  if (!estado) return "N/A";
-  const names = {
-    completada: "Completada",
-    negativa: "Negativa",
-    procesando: "Procesando",
-    qr_ausente: "QR Ausente",
-  };
-  return names[estado as keyof typeof names] || estado;
-};
 
 const statsConfig = [
   {
@@ -131,73 +107,67 @@ export function ExperticiasTable({
   loading = false,
   permissions,
 }: ExperticiasTableProps) {
+  // Estado local: controla los filtros activos (búsqueda, operador, estado, tipo)
   const [filters, setFilters] = useState({
     operador: "all",
     estado: "all",
     tipoExperticia: "all",
     search: "",
   });
+
+  // Estado local: experticia actualmente visualizada en el modal de detalles
   const [viewingExperticia, setViewingExperticia] = useState<Experticia | null>(
     null
   );
+
+  // Estado local: controla visibilidad del menú flotante (Chat, Combinar, Rastrear)
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Estado local: controla visibilidad del modal para combinar archivos
   const [isCombinarModalOpen, setIsCombinarModalOpen] = useState(false);
 
-  // Función para imprimir el reporte
+  /**
+   * Activa la impresión del navegador para el documento actualmente visible
+   */
   const handlePrint = () => {
     window.print();
   };
 
-  // Función para generar documento Word de experticia
+  /**
+   * Descarga un documento Word con los datos de la experticia seleccionada
+   * Usa el tipo de experticia para obtener la plantilla correcta
+   */
   const handleGenerateDocument = async () => {
     if (!viewingExperticia) return;
-
     try {
-      const response = await fetch(
+      await downloadFile(
         `/api/plantillas-word/experticia/${viewingExperticia.tipoExperticia}/generate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            ...viewingExperticia,
-            experticiaid: viewingExperticia.id,
-            filasSeleccionadas: viewingExperticia.datosSeleccionados,
-          }),
-        }
+        `experticia-${viewingExperticia.numeroDictamen}.docx`,
+        { authorization: `Bearer ${localStorage.getItem("token")}` }
       );
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `experticia-${viewingExperticia.numeroDictamen}.docx`;
-        document.body.appendChild(link);
-        link.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(link);
-      } else {
-        console.error("Error generando documento");
-      }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error generando documento:", error);
     }
   };
 
+  /**
+   * Actualiza los filtros y notifica al padre (componente de gestión)
+   * para que recargue las experticias filtradas
+   */
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     onFiltersChange(newFilters);
   };
 
+  // Calcula el número total de páginas para la paginación
   const totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className="space-y-6">
-      {/* Header with Stats */}
+      {/* SECCIÓN 1: Cards de estadísticas
+          Muestra el total de experticias y un desglose por estado
+          Actualiza dinámicamente según los datos actuales */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <StatCard icon={BarChart3} label="Total" count={total} color="blue" />
         {statsConfig.map((stat) => (
@@ -211,7 +181,9 @@ export function ExperticiasTable({
         ))}
       </div>
 
-      {/* Filters and Actions */}
+      {/* SECCIÓN 2: Panel de filtros, búsqueda y acciones principales
+          Permite filtrar por: texto, tipo, operador, estado
+          Botones: Exportar Excel, Nueva Experticia (si hay permisos) */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
@@ -239,7 +211,9 @@ export function ExperticiasTable({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search and Filters */}
+          {/* Controles de búsqueda y filtrado
+              Cambios en estos selects/inputs disparan handleFilterChange
+              que notifica al padre para actualizar los datos */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -272,40 +246,11 @@ export function ExperticiasTable({
                 <SelectItem value="all">
                   Todos los tipos de experticia
                 </SelectItem>
-                <SelectItem value="determinar_contacto_frecuente">
-                  Determinar contacto frecuente
-                </SelectItem>
-                <SelectItem value="identificar_numeros_bts">
-                  Identificar números que se conectan a la BTS
-                </SelectItem>
-                <SelectItem value="identificar_radio_bases_bts">
-                  Identificar Radio Bases (BTS)
-                </SelectItem>
-                <SelectItem value="determinar_ubicacion_llamadas">
-                  Determinar ubicación mediante registros de llamadas
-                </SelectItem>
-                <SelectItem value="determinar_ubicacion_trazas">
-                  Determinar ubicación mediante registros de trazas telefónicas
-                </SelectItem>
-                <SelectItem value="determinar_contaminacion_equipo_imei">
-                  Determinar contaminación de equipo (IMEI)
-                </SelectItem>
-                <SelectItem value="identificar_numeros_comun_bts">
-                  Identificar números en común en dos o más Radio Base (BTS)
-                </SelectItem>
-                <SelectItem value="identificar_numeros_desconectan_bts">
-                  Identificar números que se desconectan de la Radio Base (BTS)
-                  después del hecho
-                </SelectItem>
-                <SelectItem value="identificar_numeros_repetidos_bts">
-                  Identificar números repetidos en la Radio Base (BTS)
-                </SelectItem>
-                <SelectItem value="determinar_numero_internacional">
-                  Determinar número internacional
-                </SelectItem>
-                <SelectItem value="identificar_linea_sim_card">
-                  Identificar línea mediante SIM CARD
-                </SelectItem>
+                {EXPERTICIA_TYPES.slice(0, 11).map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    {type.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -320,9 +265,11 @@ export function ExperticiasTable({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los operadores</SelectItem>
-                <SelectItem value="digitel">Digitel</SelectItem>
-                <SelectItem value="movistar">Movistar</SelectItem>
-                <SelectItem value="movilnet">Movilnet</SelectItem>
+                {OPERATORS.map((op) => (
+                  <SelectItem key={op.id} value={op.id}>
+                    {op.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -337,10 +284,11 @@ export function ExperticiasTable({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="completada">Completada</SelectItem>
-                <SelectItem value="negativa">Negativa</SelectItem>
-                <SelectItem value="procesando">Procesando</SelectItem>
-                <SelectItem value="qr_ausente">QR Ausente</SelectItem>
+                {STATUSES.map((st) => (
+                  <SelectItem key={st.id} value={st.id}>
+                    {st.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -349,7 +297,9 @@ export function ExperticiasTable({
             </div>
           </div>
 
-          {/* Table */}
+          {/* SECCIÓN 3: Tabla de experticias
+              Columnas: Nº Dictamen, Expediente, Operador, Tipo, Nº Comunicación, Fecha, Estado
+              Última columna: Botones de acción (Ver, Editar, Duplicar, Eliminar) */}
           <div className="border rounded-lg">
             <Table>
               <TableHeader>
@@ -365,6 +315,9 @@ export function ExperticiasTable({
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {/* Renderiza cada experticia como una fila
+                    Códigos de color: Operador y Estado usan colores predefinidos
+                    Acciones disponibles dependen de permisos del usuario */}
                 {experticias.map((experticia) => (
                   <TableRow key={experticia.id}>
                     <TableCell className="font-medium">
@@ -383,7 +336,7 @@ export function ExperticiasTable({
                     <TableCell>
                       <Badge
                         className={
-                          operatorColors[experticia.operador] ||
+                          OPERATOR_COLORS[experticia.operador] ||
                           "bg-gray-100 text-gray-800"
                         }
                       >
@@ -410,8 +363,8 @@ export function ExperticiasTable({
                     <TableCell>
                       <Badge
                         className={
-                          statusColors[
-                            experticia.estado as keyof typeof statusColors
+                          STATUS_COLORS[
+                            experticia.estado as keyof typeof STATUS_COLORS
                           ]
                         }
                       >
@@ -420,6 +373,7 @@ export function ExperticiasTable({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end space-x-1">
+                        {/* Botón Ver: siempre disponible - abre modal de detalles */}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -427,8 +381,10 @@ export function ExperticiasTable({
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        {/* Botones de edición: solo si usuario tiene permisos canManageUsers */}
                         {permissions.canManageUsers && (
                           <>
+                            {/* Duplicar: crea copia de la experticia */}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -438,6 +394,7 @@ export function ExperticiasTable({
                             >
                               <FilePlus className="h-4 w-4" />
                             </Button>
+                            {/* Editar: abre formulario de edición */}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -445,6 +402,7 @@ export function ExperticiasTable({
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
+                            {/* Eliminar: borra la experticia (requiere confirmación en padre) */}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -463,9 +421,12 @@ export function ExperticiasTable({
             </Table>
           </div>
 
-          {/* Pagination */}
+          {/* SECCIÓN 4: Paginación
+              Solo se muestra si hay más de una página
+              Navega entre páginas: Anterior/Siguiente */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
+              {/* Texto informativo: cuántos registros se están mostrando */}
               <p className="text-sm text-gray-700">
                 Mostrando {(currentPage - 1) * pageSize + 1} a{" "}
                 {Math.min(currentPage * pageSize, total)} de {total} experticias
@@ -498,7 +459,10 @@ export function ExperticiasTable({
         </CardContent>
       </Card>
 
-      {/* View Details Modal */}
+      {/* SECCIÓN 5: Modal de detalles
+          Se abre cuando usuario hace clic en botón "Ver"
+          Muestra toda la información de la experticia seleccionada
+          Incluye botones: Imprimir, Generar Documento (Word) */}
       <Dialog
         open={!!viewingExperticia}
         onOpenChange={() => setViewingExperticia(null)}
@@ -510,7 +474,9 @@ export function ExperticiasTable({
                 <Eye className="h-5 w-5" />
                 <span>Detalles de Experticia</span>
               </div>
+              {/* Botones de exportación disponibles en el modal */}
               <div className="flex gap-2">
+                {/* Imprimir: activa diálogo del navegador para imprimir el modal */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -520,6 +486,7 @@ export function ExperticiasTable({
                   <Printer className="h-4 w-4 mr-2" />
                   Imprimir Reporte
                 </Button>
+                {/* Generar Documento: descarga un archivo Word con datos de la experticia */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -532,6 +499,7 @@ export function ExperticiasTable({
               </div>
             </DialogTitle>
           </DialogHeader>
+          {/* Contenido del modal: secciones con información detallada */}
           {viewingExperticia && (
             <div className="space-y-6 px-6 pb-6 max-h-[60vh] overflow-y-auto">
               {/* Información básica */}
@@ -587,27 +555,30 @@ export function ExperticiasTable({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <DetailField
                     label="Operador"
-                    value={viewingExperticia.operador}
+                    value={viewingExperticia.operador ?? ""}
                     isBadge
                     badgeVariant="outline"
                     badgeClassName="capitalize"
                   />
                   <DetailField
                     label="Tipo de Experticia"
-                    value={viewingExperticia.tipoExperticia}
+                    value={viewingExperticia.tipoExperticia ?? ""}
                   />
                   <DetailField
                     label="Estado"
-                    value={formatStatus(viewingExperticia.estado)}
+                    value={formatStatus(viewingExperticia.estado) ?? ""}
                     isBadge
-                    badgeClassName={
-                      statusColors[
-                        viewingExperticia.estado as keyof typeof statusColors
-                      ]
-                    }
+                    badgeClassName={String(
+                      STATUS_COLORS[
+                        viewingExperticia.estado as keyof typeof STATUS_COLORS
+                      ] ?? "bg-gray-100 text-gray-800"
+                    )}
                   />
                 </div>
-                <DetailField label="Motivo" value={viewingExperticia.motivo} />
+                <DetailField
+                  label="Motivo"
+                  value={viewingExperticia.motivo ?? ""}
+                />
               </div>
 
               {/* Información del abonado */}
@@ -733,24 +704,26 @@ export function ExperticiasTable({
         </DialogContent>
       </Dialog>
 
-      {/* Burbuja flotante con menú */}
+      {/* SECCIÓN 6: Menú flotante (botón +)
+          Acciones secundarias: Chat, Combinar Archivos, Rastrear (Araña)
+          Se despliega/oculta al hacer clic en el botón redondo azul */}
       <div className="fixed bottom-4 right-3 z-50">
-        {/* Menú desplegable */}
+        {/* Menú desplegable: solo visible si isMenuOpen es true */}
         {isMenuOpen && (
           <div
             className="absolute bottom-12 right-5 bg-white rounded-lg shadow-lg border border-gray-200 py-2 w-56 mb-2"
             data-testid="menu-flotante"
           >
+            {/* Opción 1: Abre funcionalidad de chat */}
             <button
-              onClick={() => {
-                setIsMenuOpen(false);
-              }}
+              onClick={() => setIsMenuOpen(false)}
               className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 transition-colors"
               data-testid="button-chat"
             >
               <MessageSquare className="h-5 w-5 text-blue-600" />
               <span className="text-sm font-medium">Chat</span>
             </button>
+            {/* Opción 2: Abre modal para combinar archivos de experticias */}
             <button
               onClick={() => {
                 setIsMenuOpen(false);
@@ -762,45 +735,18 @@ export function ExperticiasTable({
               <Files className="h-5 w-5 text-green-600" />
               <span className="text-sm font-medium">Combinar Archivos</span>
             </button>
+            {/* Opción 3: Funcionalidad de rastreo/análisis (Araña) */}
             <button
-              onClick={() => {
-                setIsMenuOpen(false);
-              }}
+              onClick={() => setIsMenuOpen(false)}
               className="w-full px-4 py-3 text-left hover:bg-purple-100 bg-purple-50 flex items-center space-x-3 transition-colors relative"
               data-testid="button-rastrear"
             >
-              <div className="relative">
-                <Bug className="h-5 w-5 text-red-600 relative z-10" />
-                <div className="absolute inset-0 opacity-20 ">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5">
-                    <path
-                      d="M12 2L2 7L12 12L22 7L12 2Z"
-                      fill="currentColor"
-                      className="text-gray-400"
-                    />
-                    <path
-                      d="M2 17L12 22L22 17"
-                      stroke="currentColor"
-                      className="text-gray-400"
-                      fill="none"
-                      strokeWidth="2"
-                    />
-                    <path
-                      d="M2 12L12 17L22 12"
-                      stroke="currentColor"
-                      className="text-gray-400"
-                      fill="none"
-                      strokeWidth="2"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Bug className="h-5 w-5 text-red-600" />
               <span className="text-sm font-medium">Rastrear (Araña)</span>
             </button>
           </div>
         )}
-
-        {/* Botón de burbuja */}
+        {/* Botón principal del menú: gira 45° cuando está abierto */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition-all hover:scale-110"

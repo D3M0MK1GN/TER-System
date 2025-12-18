@@ -44,14 +44,34 @@ import {
 } from "lucide-react";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
 import { usePermissions } from "@/hooks/use-permissions";
+import {
+  OPERATORS,
+  STATUSES,
+  EXPERTICIA_TYPES,
+  ALLOWED_KEYS,
+  CHAR_PATTERNS,
+  handleDateInputKeyDown,
+  extractSelectedRows,
+} from "@/lib/experticia-utils";
 import { z } from "zod";
 
+// Esquema de validación para el formulario de experticias
+// Extiende el esquema base con un campo createdAt opcional
 const experticiasFormSchema = insertExperticiasSchema.extend({
   createdAt: z.string().optional(),
 });
 
+// Tipo de datos del formulario (inferido del esquema Zod)
 type FormData = z.infer<typeof experticiasFormSchema>;
 
+/**
+ * Props para el componente ExperticiasForm
+ * @property experticia - Experticia a editar (si es null, es modo creación; si id es undefined, es modo duplicación)
+ * @property onSubmit - Callback cuando se envía el formulario
+ * @property onCancel - Callback para cancelar y cerrar el formulario
+ * @property isLoading - Indica si hay operación en curso (deshabilita botón submit)
+ * @property preloadData - Datos precargados para inicializar campos
+ */
 interface ExperticiasFormProps {
   experticia?: Experticia | null;
   onSubmit: (data: FormData) => void;
@@ -60,6 +80,17 @@ interface ExperticiasFormProps {
   preloadData?: Partial<FormData> | null;
 }
 
+/**
+ * Componente: Formulario para crear, editar o duplicar experticias
+ *
+ * Funcionalidades principales:
+ * - Creación de nuevas experticias
+ * - Edición de experticias existentes
+ * - Duplicación de experticias
+ * - Subida de archivos Excel (análisis BTS)
+ * - Selección de filas del análisis BTS
+ * - Validación de campos con Zod
+ */
 export function ExperticiasForm({
   experticia,
   onSubmit,
@@ -67,12 +98,18 @@ export function ExperticiasForm({
   isLoading,
   preloadData,
 }: ExperticiasFormProps) {
-  const isEditing = !!experticia?.id;
-  const isDuplicating = !!experticia && !experticia.id;
-  const scrollContainerRef = useRef<HTMLFormElement>(null);
-  const permissions = usePermissions();
+  // Detecta modo de operación
+  const isEditing = !!experticia?.id; // true si estamos editando
+  const isDuplicating = !!experticia && !experticia.id; // true si estamos duplicando
+  const scrollContainerRef = useRef<HTMLFormElement>(null); // Ref para scroll suave del formulario
+  const permissions = usePermissions(); // Permisos del usuario (ej: canEditCreationDates)
 
-  // Estado para la subida de archivos
+  /**
+   * Estado para la subida de archivos Excel
+   * - isUploading: indica si hay carga en progreso
+   * - uploadedFile: nombre y tamaño del archivo subido (null si no hay)
+   * - error: mensaje de error si la carga falla
+   */
   const [fileUploadState, setFileUploadState] = useState<{
     isUploading: boolean;
     uploadedFile: { name: string; size: string } | null;
@@ -83,7 +120,12 @@ export function ExperticiasForm({
     error: null,
   });
 
-  // Estado para los resultados del análisis BTS
+  /**
+   * Estado para los resultados del análisis BTS (Base Transceptora Sistema)
+   * - isAnalyzing: true mientras se procesa el archivo
+   * - results: array de filas del análisis (null si no hay análisis)
+   * - error: mensaje de error si el análisis falla
+   */
   const [btsAnalysisState, setBtsAnalysisState] = useState<{
     isAnalyzing: boolean;
     results: any[] | null;
@@ -94,13 +136,16 @@ export function ExperticiasForm({
     error: null,
   });
 
-  // Estado para el modal de tabla expandida
+  // Controla si el modal expandido de resultados BTS está abierto
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
 
-  // Estado para las filas seleccionadas
+  // Set de índices de filas seleccionadas en la tabla de resultados BTS
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
-  // Toggle selección de fila
+  /**
+   * Alterna la selección de una fila en la tabla BTS
+   * Agrega o elimina el índice del set de filas seleccionadas
+   */
   const toggleRowSelection = (index: number) => {
     setSelectedRows((prev) => {
       const newSet = new Set(prev);
@@ -113,7 +158,11 @@ export function ExperticiasForm({
     });
   };
 
-  // Cargar datos seleccionados guardados cuando se edita una experticia
+  /**
+   * Effect: Carga datos guardados cuando se edita una experticia
+   * Si la experticia tiene datosSeleccionados (filas previas), los restaura
+   * y marca todas las filas como seleccionadas por defecto
+   */
   useEffect(() => {
     if (
       experticia?.datosSeleccionados &&
@@ -121,20 +170,24 @@ export function ExperticiasForm({
     ) {
       const datosGuardados = experticia.datosSeleccionados as any[];
       if (datosGuardados.length > 0) {
-        // Poblar los resultados del análisis BTS con los datos guardados
+        // Restaura resultados previos del análisis BTS
         setBtsAnalysisState({
           isAnalyzing: false,
           results: datosGuardados,
           error: null,
         });
-        // Seleccionar todas las filas cargadas
+        // Auto-selecciona todas las filas restauradas
         const allIndices = new Set(datosGuardados.map((_, index) => index));
         setSelectedRows(allIndices);
       }
     }
   }, [experticia?.datosSeleccionados]);
 
-  // Helper para formatear tamaño de archivo
+  /**
+   * Convierte bytes a formato legible (Bytes, KB, MB, GB)
+   * @param bytes - Tamaño en bytes
+   * @returns String formateado ej: "2.45 MB"
+   */
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -143,9 +196,16 @@ export function ExperticiasForm({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  /**
+   * Hook: Inicializa el formulario con react-hook-form
+   * - Usa Zod para validar todos los campos
+   * - Carga valores previos de experticia o preloadData
+   * - Mantiene sincronización automática entre estado y UI
+   */
   const form = useForm<FormData>({
     resolver: zodResolver(experticiasFormSchema),
     defaultValues: {
+      // Prioridad: experticia > preloadData > valor vacío/default
       numeroDictamen:
         experticia?.numeroDictamen || preloadData?.numeroDictamen || "",
       experto: experticia?.experto || preloadData?.experto || "",
@@ -189,41 +249,39 @@ export function ExperticiasForm({
     },
   });
 
-  // Monitorear campo abonado para habilitar/deshabilitar subida de archivo
+  /**
+   * Observa cambios en el campo "abonado" en tiempo real
+   * Se usa para habilitar/deshabilitar la subida de archivos
+   * (solo permite subir si hay un número de abonado ingresado)
+   */
   const abonadoValue = form.watch("abonado");
 
+  /**
+   * Maneja el envío del formulario
+   * - Valida que no haya carga de archivo en progreso
+   * - Extrae y procesa las filas BTS seleccionadas
+   * - Envía datos completos al callback onSubmit del padre
+   */
   const handleSubmit = (data: FormData) => {
-    if (fileUploadState.isUploading) {
-      return; // Prevenir submit durante subida
-    }
-
-    // Convertir filas seleccionadas a lista de diccionarios para la tabla dinámica
-    const filasSeleccionadas: any[] = [];
-    if (btsAnalysisState.results && selectedRows.size > 0) {
-      selectedRows.forEach((index) => {
-        const fila = btsAnalysisState.results![index];
-        if (fila) {
-          filasSeleccionadas.push({
-            ABONADO_A: fila["ABONADO A"] || fila.ABONADO_A || "",
-            ABONADO_B: fila["ABONADO B"] || fila.ABONADO_B || "",
-            FECHA: fila.FECHA || "",
-            HORA: fila.HORA || "",
-            TIME: fila.TIME || "",
-            DIRECCION: fila.DIRECCION || "",
-            CORDENADAS: fila.CORDENADAS || "",
-          });
-        }
-      });
-    }
-
+    if (fileUploadState.isUploading) return; // Previene envío durante carga
+    // Extrae las filas seleccionadas desde el análisis BTS
+    const filasSeleccionadas = btsAnalysisState.results
+      ? extractSelectedRows(btsAnalysisState.results, selectedRows)
+      : [];
     onSubmit({ ...data, filasSeleccionadas } as any);
   };
 
+  /**
+   * Maneja scroll suave del formulario con teclas de flecha
+   * - ArrowUp: scroll hacia arriba
+   * - ArrowDown: scroll hacia abajo
+   * Permite navegar el formulario largo de forma fluida
+   */
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer) return;
 
-    const scrollAmount = 80; // Cantidad de scroll en píxeles (más rápido)
+    const scrollAmount = 80; // Píxeles a desplazar por cada pulsación
 
     if (e.key === "ArrowUp") {
       e.preventDefault();
@@ -362,29 +420,9 @@ export function ExperticiasForm({
                           placeholder="dd/mm/yyyy o dd-mm-yyyy"
                           {...field}
                           value={field.value?.toString() || ""}
-                          onKeyDown={(e) => {
-                            const allowedKeys = [
-                              "Backspace",
-                              "Delete",
-                              "Tab",
-                              "Enter",
-                              "ArrowLeft",
-                              "ArrowRight",
-                              "ArrowUp",
-                              "ArrowDown",
-                              "Home",
-                              "End",
-                            ];
-                            const allowedChars = /[0-9\/\-\s]/;
-
-                            if (allowedKeys.includes(e.key)) {
-                              return; // Permitir teclas de navegación
-                            }
-
-                            if (!allowedChars.test(e.key)) {
-                              e.preventDefault(); // Bloquear letras y otros caracteres
-                            }
-                          }}
+                          onKeyDown={(e) =>
+                            handleDateInputKeyDown(e, CHAR_PATTERNS.dateTime)
+                          }
                         />
                       ) : (
                         <div className="flex items-center p-3 border rounded-md bg-gray-50">
@@ -479,29 +517,9 @@ export function ExperticiasForm({
                         placeholder="HH:MM (ej: 14:30)"
                         {...field}
                         value={field.value || ""}
-                        onKeyDown={(e) => {
-                          const allowedKeys = [
-                            "Backspace",
-                            "Delete",
-                            "Tab",
-                            "Enter",
-                            "ArrowLeft",
-                            "ArrowRight",
-                            "ArrowUp",
-                            "ArrowDown",
-                            "Home",
-                            "End",
-                          ];
-                          const allowedChars = /[0-9:]/;
-
-                          if (allowedKeys.includes(e.key)) {
-                            return; // Permitir teclas de navegación
-                          }
-
-                          if (!allowedChars.test(e.key)) {
-                            e.preventDefault(); // Bloquear letras y otros caracteres
-                          }
-                        }}
+                        onKeyDown={(e) =>
+                          handleDateInputKeyDown(e, CHAR_PATTERNS.time)
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -564,9 +582,11 @@ export function ExperticiasForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="digitel">Digitel</SelectItem>
-                        <SelectItem value="movistar">Movistar</SelectItem>
-                        <SelectItem value="movilnet">Movilnet</SelectItem>
+                        {OPERATORS.map((op) => (
+                          <SelectItem key={op.id} value={op.id}>
+                            {op.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -587,65 +607,11 @@ export function ExperticiasForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="identificar_datos_numero">
-                          Identificar datos de un número
-                        </SelectItem>
-                        <SelectItem value="determinar_historicos_trazas_bts">
-                          Determinar Históricos de Trazas Telefónicas BTS
-                        </SelectItem>
-                        <SelectItem value="determinar_linea_conexion_ip">
-                          Determinar línea telefónica con conexión IP
-                        </SelectItem>
-                        <SelectItem value="identificar_radio_bases_bts">
-                          Identificar las Radio Bases (BTS)
-                        </SelectItem>
-                        <SelectItem value="identificar_numeros_duraciones_bts">
-                          Identificar números con duraciones específicas en la
-                          Radio Base (BTS)
-                        </SelectItem>
-                        <SelectItem value="determinar_contaminacion_linea">
-                          Determinar contaminación de línea
-                        </SelectItem>
-                        <SelectItem value="determinar_sim_cards_numero">
-                          Determinar SIM CARDS utilizados con un número
-                          telefónico
-                        </SelectItem>
-                        <SelectItem value="determinar_comportamiento_social">
-                          Determinar comportamiento social
-                        </SelectItem>
-                        <SelectItem value="determinar_contacto_frecuente">
-                          Determinar Contacto Frecuente
-                        </SelectItem>
-                        <SelectItem value="determinar_ubicacion_llamadas">
-                          Determinar ubicación mediante registros de llamadas
-                        </SelectItem>
-                        <SelectItem value="determinar_ubicacion_trazas">
-                          Determinar ubicación mediante registros de trazas
-                          telefónicas (Recorrido)
-                        </SelectItem>
-                        <SelectItem value="determinar_contaminacion_equipo_imei">
-                          Determinar contaminación de equipo (IMEI)
-                        </SelectItem>
-                        <SelectItem value="identificar_numeros_comun_bts">
-                          Identificar números en común en dos o más Radio Base
-                          (BTS)
-                        </SelectItem>
-                        <SelectItem value="identificar_numeros_desconectan_bts">
-                          Identificar números que se desconectan de la Radio
-                          Base (BTS) después del hecho
-                        </SelectItem>
-                        <SelectItem value="identificar_numeros_repetidos_bts">
-                          Identificar números repetidos en la Radio Base (BTS)
-                        </SelectItem>
-                        <SelectItem value="determinar_numero_internacional">
-                          Determinar número internacional
-                        </SelectItem>
-                        <SelectItem value="identificar_linea_sim_card">
-                          Identificar línea mediante SIM CARD
-                        </SelectItem>
-                        <SelectItem value="identificar_cambio_simcard_documentos">
-                          Identificar Cambio de SIM CARD y Documentos
-                        </SelectItem>
+                        {EXPERTICIA_TYPES.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -671,10 +637,11 @@ export function ExperticiasForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="completada">Completada</SelectItem>
-                        <SelectItem value="negativa">Negativa</SelectItem>
-                        <SelectItem value="procesando">Procesando</SelectItem>
-                        <SelectItem value="qr_ausente">QR Ausente</SelectItem>
+                        {STATUSES.map((st) => (
+                          <SelectItem key={st.id} value={st.id}>
+                            {st.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -726,10 +693,12 @@ export function ExperticiasForm({
             />
           </div>*/}
 
-          {/* Analisism Detalles Tecnicos de la Informacipon de la Experticia */}
+          {/* SECCIÓN: Análisis y Detalles Técnicos BTS
+              Contiene: campo abonado, subida de archivo Excel, análisis BTS, conclusiones */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Analisis, Detalles Tecnicos</h3>
+            <h3 className="text-lg font-medium">Análisis, Detalles Técnicos</h3>
 
+            {/* Campo Abonado: número de teléfono a analizar (solo números) */}
             <FormField
               control={form.control}
               name="abonado"
@@ -741,29 +710,9 @@ export function ExperticiasForm({
                       placeholder="Número o identificación del abonado"
                       {...field}
                       value={field.value || ""}
-                      onKeyDown={(e) => {
-                        const allowedKeys = [
-                          "Backspace",
-                          "Delete",
-                          "Tab",
-                          "Enter",
-                          "ArrowLeft",
-                          "ArrowRight",
-                          "ArrowUp",
-                          "ArrowDown",
-                          "Home",
-                          "End",
-                        ];
-                        const allowedChars = /[0-9]/;
-
-                        if (allowedKeys.includes(e.key)) {
-                          return; // Permitir teclas de navegación
-                        }
-
-                        if (!allowedChars.test(e.key)) {
-                          e.preventDefault(); // Bloquear todo excepto números
-                        }
-                      }}
+                      onKeyDown={(e) =>
+                        handleDateInputKeyDown(e, CHAR_PATTERNS.numeric)
+                      }
                     />
                   </FormControl>
                   <FormMessage />
@@ -771,6 +720,13 @@ export function ExperticiasForm({
               )}
             />
 
+            {/* Campo: Subida de archivo Excel
+                - Solo se habilita si hay un número de abonado ingresado
+                - Tras subir el archivo:
+                  1. Se envía al servidor para almacenamiento
+                  2. Se dispara automáticamente análisis BTS
+                  3. Se muestran resultados en tabla seleccionable
+            */}
             <FormField
               control={form.control}
               name="archivoAdjunto"
@@ -789,7 +745,7 @@ export function ExperticiasForm({
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            // Limpiar estado anterior automáticamente
+                            // Paso 1: Inicia carga de archivo
                             setFileUploadState({
                               isUploading: true,
                               uploadedFile: null,
@@ -800,6 +756,7 @@ export function ExperticiasForm({
                               const formData = new FormData();
                               formData.append("archivo", file);
 
+                              // POST a servidor: sube archivo Excel
                               const response = await fetch(
                                 "/api/experticias/upload-archivo",
                                 {
@@ -815,7 +772,9 @@ export function ExperticiasForm({
 
                               if (response.ok) {
                                 const result = await response.json();
+                                // Guarda ruta del archivo en el campo
                                 field.onChange(result.archivo.rutaArchivo);
+                                // Guarda metadata del archivo (nombre, tamaño)
                                 form.setValue(
                                   "nombreArchivo",
                                   result.archivo.nombreArchivo
@@ -825,6 +784,7 @@ export function ExperticiasForm({
                                   result.archivo.tamañoArchivo
                                 );
 
+                                // Actualiza UI con archivo subido exitosamente
                                 setFileUploadState({
                                   isUploading: false,
                                   uploadedFile: {
@@ -836,7 +796,7 @@ export function ExperticiasForm({
                                   error: null,
                                 });
 
-                                // Análisis automático BTS después de subir archivo
+                                // Paso 2: Si hay abonado, inicia análisis BTS automático
                                 if (abonadoValue) {
                                   setBtsAnalysisState({
                                     isAnalyzing: true,
@@ -845,6 +805,7 @@ export function ExperticiasForm({
                                   });
 
                                   try {
+                                    // POST a servidor: procesa archivo + busca número de abonado
                                     const analysisResponse = await fetch(
                                       "/api/experticias/analizar-bts",
                                       {
@@ -859,7 +820,7 @@ export function ExperticiasForm({
                                           archivo_excel:
                                             result.archivo.rutaArchivo,
                                           numero_buscar: abonadoValue,
-                                          operador: form.getValues("operador"), // <-- AGREGA ESTA LÍNEA
+                                          operador: form.getValues("operador"),
                                         }),
                                       }
                                     );
@@ -867,6 +828,7 @@ export function ExperticiasForm({
                                     if (analysisResponse.ok) {
                                       const analysisResult =
                                         await analysisResponse.json();
+                                      // Paso 3: Muestra resultados del análisis BTS
                                       setBtsAnalysisState({
                                         isAnalyzing: false,
                                         results: analysisResult.data || [],
@@ -916,7 +878,7 @@ export function ExperticiasForm({
                         }`}
                       />
 
-                      {/* Estado de subida */}
+                      {/* Indicador: Carga en progreso */}
                       {fileUploadState.isUploading && (
                         <div className="flex items-center space-x-2 text-sm text-blue-600">
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -924,7 +886,7 @@ export function ExperticiasForm({
                         </div>
                       )}
 
-                      {/* Archivo subido exitosamente */}
+                      {/* Indicador: Carga exitosa con metadata del archivo */}
                       {fileUploadState.uploadedFile && (
                         <div className="flex items-center space-x-2 text-sm text-green-600">
                           <CheckCircle className="h-4 w-4" />
@@ -936,7 +898,7 @@ export function ExperticiasForm({
                         </div>
                       )}
 
-                      {/* Error en subida */}
+                      {/* Indicador: Error en carga o análisis */}
                       {fileUploadState.error && (
                         <div className="flex items-center space-x-2 text-sm text-red-600">
                           <XCircle className="h-4 w-4" />
@@ -953,14 +915,16 @@ export function ExperticiasForm({
               )}
             />
 
-            {/* Resultados del análisis BTS */}
+            {/* SECCIÓN: Resultados del análisis BTS
+                Muestra tabla de resultados con selección de filas
+                Solo se renderiza si hay análisis en progreso, resultados o error */}
             {(btsAnalysisState.isAnalyzing ||
               btsAnalysisState.results ||
               btsAnalysisState.error) && (
               <div className="space-y-3 border-t pt-4">
                 <h4 className="text-md font-medium">Análisis BTS</h4>
 
-                {/* Estado de análisis */}
+                {/* Estado: Procesando análisis */}
                 {btsAnalysisState.isAnalyzing && (
                   <div className="flex items-center space-x-2 text-sm text-blue-600">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -968,7 +932,7 @@ export function ExperticiasForm({
                   </div>
                 )}
 
-                {/* Error en análisis */}
+                {/* Estado: Error en análisis */}
                 {btsAnalysisState.error && (
                   <div className="flex items-center space-x-2 text-sm text-red-600">
                     <XCircle className="h-4 w-4" />
@@ -976,7 +940,10 @@ export function ExperticiasForm({
                   </div>
                 )}
 
-                {/* Resultados del análisis */}
+                {/* Estado: Resultados encontrados
+                    - Muestra contador de resultados
+                    - Tabla preview con scroll horizontal
+                    - Botón para expandir tabla en modal */}
                 {btsAnalysisState.results &&
                   btsAnalysisState.results.length > 0 && (
                     <div className="space-y-2">
@@ -985,6 +952,7 @@ export function ExperticiasForm({
                           Resultados encontrados:{" "}
                           {btsAnalysisState.results.length}
                         </div>
+                        {/* Botón: Abre modal con tabla completa y selección */}
                         <Button
                           type="button"
                           variant="ghost"
@@ -995,6 +963,7 @@ export function ExperticiasForm({
                           <Eye className="h-4 w-4" />
                         </Button>
                       </div>
+                      {/* Tabla preview (primeras 6 filas) */}
                       <div className="max-h-60 overflow-y-auto border rounded-lg">
                         <Table>
                           <TableHeader>
