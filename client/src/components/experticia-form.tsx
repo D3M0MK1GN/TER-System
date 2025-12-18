@@ -136,6 +136,25 @@ export function ExperticiasForm({
     error: null,
   });
 
+  /**
+   * Estado para los resultados del análisis de Contactos Frecuentes
+   * - isAnalyzing: true mientras se procesa el archivo
+   * - datosCrudos: array de filas del Excel (primeras 6 columnas)
+   * - top10Contactos: TOP 10 números con mayor frecuencia
+   * - error: mensaje de error si el análisis falla
+   */
+  const [contactosFrecuentesState, setContactosFrecuentesState] = useState<{
+    isAnalyzing: boolean;
+    datosCrudos: any[] | null;
+    top10Contactos: any[] | null;
+    error: string | null;
+  }>({
+    isAnalyzing: false,
+    datosCrudos: null,
+    top10Contactos: null,
+    error: null,
+  });
+
   // Controla si el modal expandido de resultados BTS está abierto
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
 
@@ -257,18 +276,46 @@ export function ExperticiasForm({
   const abonadoValue = form.watch("abonado");
 
   /**
+   * Observa cambios en el campo "tipoExperticia" en tiempo real
+   * Se usa para determinar qué tipo de análisis ejecutar
+   */
+  const tipoExperticiaValue = form.watch("tipoExperticia");
+
+  /**
    * Maneja el envío del formulario
    * - Valida que no haya carga de archivo en progreso
-   * - Extrae y procesa las filas BTS seleccionadas
+   * - Extrae y procesa las filas BTS seleccionadas o contactos frecuentes
    * - Envía datos completos al callback onSubmit del padre
    */
   const handleSubmit = (data: FormData) => {
     if (fileUploadState.isUploading) return; // Previene envío durante carga
-    // Extrae las filas seleccionadas desde el análisis BTS
-    const filasSeleccionadas = btsAnalysisState.results
-      ? extractSelectedRows(btsAnalysisState.results, selectedRows)
-      : [];
-    onSubmit({ ...data, filasSeleccionadas } as any);
+
+    let filasSeleccionadas: any[] = [];
+
+    // Si es análisis de contactos frecuentes, usa los datos crudos seleccionados
+    if (
+      tipoExperticiaValue === "determinar_contacto_frecuente" &&
+      contactosFrecuentesState.datosCrudos
+    ) {
+      filasSeleccionadas = extractSelectedRows(
+        contactosFrecuentesState.datosCrudos,
+        selectedRows
+      );
+    } else if (btsAnalysisState.results) {
+      // Extrae las filas seleccionadas desde el análisis BTS
+      filasSeleccionadas = extractSelectedRows(
+        btsAnalysisState.results,
+        selectedRows
+      );
+    }
+
+    // Agregar TOP 10 contactos si es análisis de contactos frecuentes
+    const top10Contactos =
+      tipoExperticiaValue === "determinar_contacto_frecuente"
+        ? contactosFrecuentesState.top10Contactos
+        : null;
+
+    onSubmit({ ...data, filasSeleccionadas, top10Contactos } as any);
   };
 
   /**
@@ -796,58 +843,134 @@ export function ExperticiasForm({
                                   error: null,
                                 });
 
-                                // Paso 2: Si hay abonado, inicia análisis BTS automático
+                                // Paso 2: Si hay abonado, inicia análisis automático
                                 if (abonadoValue) {
-                                  setBtsAnalysisState({
-                                    isAnalyzing: true,
-                                    results: null,
-                                    error: null,
-                                  });
+                                  const tipoExp =
+                                    form.getValues("tipoExperticia");
+                                  const esContactosFrecuentes =
+                                    tipoExp === "determinar_contacto_frecuente";
 
-                                  try {
-                                    // POST a servidor: procesa archivo + busca número de abonado
-                                    const analysisResponse = await fetch(
-                                      "/api/experticias/analizar-bts",
-                                      {
-                                        method: "POST",
-                                        headers: {
-                                          "Content-Type": "application/json",
-                                          Authorization: `Bearer ${localStorage.getItem(
-                                            "token"
-                                          )}`,
-                                        },
-                                        body: JSON.stringify({
-                                          archivo_excel:
-                                            result.archivo.rutaArchivo,
-                                          numero_buscar: abonadoValue,
-                                          operador: form.getValues("operador"),
-                                        }),
+                                  if (esContactosFrecuentes) {
+                                    // Análisis de Contactos Frecuentes
+                                    setContactosFrecuentesState({
+                                      isAnalyzing: true,
+                                      datosCrudos: null,
+                                      top10Contactos: null,
+                                      error: null,
+                                    });
+
+                                    try {
+                                      const analysisResponse = await fetch(
+                                        "/api/experticias/analizar-contactos-frecuentes",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                            Authorization: `Bearer ${localStorage.getItem(
+                                              "token"
+                                            )}`,
+                                          },
+                                          body: JSON.stringify({
+                                            archivo_excel:
+                                              result.archivo.rutaArchivo,
+                                            numero_buscar: abonadoValue,
+                                            operador:
+                                              form.getValues("operador"),
+                                          }),
+                                        }
+                                      );
+
+                                      if (analysisResponse.ok) {
+                                        const analysisResult =
+                                          await analysisResponse.json();
+                                        setContactosFrecuentesState({
+                                          isAnalyzing: false,
+                                          datosCrudos:
+                                            analysisResult.datos_crudos || [],
+                                          top10Contactos:
+                                            analysisResult.top_10_contactos ||
+                                            [],
+                                          error: null,
+                                        });
+                                        // Auto-seleccionar todas las filas de datos crudos
+                                        if (analysisResult.datos_crudos) {
+                                          const allIndices = new Set(
+                                            analysisResult.datos_crudos.map(
+                                              (_: any, idx: number) => idx
+                                            )
+                                          );
+                                          setSelectedRows(allIndices);
+                                        }
+                                      } else {
+                                        setContactosFrecuentesState({
+                                          isAnalyzing: false,
+                                          datosCrudos: null,
+                                          top10Contactos: null,
+                                          error:
+                                            "Error en el análisis de Contactos Frecuentes",
+                                        });
                                       }
-                                    );
-
-                                    if (analysisResponse.ok) {
-                                      const analysisResult =
-                                        await analysisResponse.json();
-                                      // Paso 3: Muestra resultados del análisis BTS
-                                      setBtsAnalysisState({
+                                    } catch (analysisError) {
+                                      setContactosFrecuentesState({
                                         isAnalyzing: false,
-                                        results: analysisResult.data || [],
-                                        error: null,
+                                        datosCrudos: null,
+                                        top10Contactos: null,
+                                        error:
+                                          "Error de conexión al analizar Contactos Frecuentes",
                                       });
-                                    } else {
+                                    }
+                                  } else {
+                                    // Análisis BTS estándar
+                                    setBtsAnalysisState({
+                                      isAnalyzing: true,
+                                      results: null,
+                                      error: null,
+                                    });
+
+                                    try {
+                                      const analysisResponse = await fetch(
+                                        "/api/experticias/analizar-bts",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                            Authorization: `Bearer ${localStorage.getItem(
+                                              "token"
+                                            )}`,
+                                          },
+                                          body: JSON.stringify({
+                                            archivo_excel:
+                                              result.archivo.rutaArchivo,
+                                            numero_buscar: abonadoValue,
+                                            operador:
+                                              form.getValues("operador"),
+                                          }),
+                                        }
+                                      );
+
+                                      if (analysisResponse.ok) {
+                                        const analysisResult =
+                                          await analysisResponse.json();
+                                        setBtsAnalysisState({
+                                          isAnalyzing: false,
+                                          results: analysisResult.data || [],
+                                          error: null,
+                                        });
+                                      } else {
+                                        setBtsAnalysisState({
+                                          isAnalyzing: false,
+                                          results: null,
+                                          error: "Error en el análisis BTS",
+                                        });
+                                      }
+                                    } catch (analysisError) {
                                       setBtsAnalysisState({
                                         isAnalyzing: false,
                                         results: null,
-                                        error: "Error en el análisis BTS",
+                                        error:
+                                          "Error de conexión al analizar BTS",
                                       });
                                     }
-                                  } catch (analysisError) {
-                                    setBtsAnalysisState({
-                                      isAnalyzing: false,
-                                      results: null,
-                                      error:
-                                        "Error de conexión al analizar BTS",
-                                    });
                                   }
                                 }
                               } else {
@@ -1027,6 +1150,207 @@ export function ExperticiasForm({
                   btsAnalysisState.results.length === 0 && (
                     <div className="text-sm text-gray-600">
                       No se encontraron resultados para el número {abonadoValue}
+                    </div>
+                  )}
+              </div>
+            )}
+
+            {/* SECCIÓN: Resultados del análisis de Contactos Frecuentes
+                Muestra DOS tablas:
+                1. Datos crudos del Excel (primeras 6 columnas) con selección de filas
+                2. TOP 10 contactos más frecuentes con estadísticas */}
+            {(contactosFrecuentesState.isAnalyzing ||
+              contactosFrecuentesState.datosCrudos ||
+              contactosFrecuentesState.top10Contactos ||
+              contactosFrecuentesState.error) && (
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="text-md font-medium">
+                  Análisis de Contactos Frecuentes
+                </h4>
+
+                {/* Estado: Procesando análisis */}
+                {contactosFrecuentesState.isAnalyzing && (
+                  <div className="flex items-center space-x-2 text-sm text-blue-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analizando contactos frecuentes...</span>
+                  </div>
+                )}
+
+                {/* Estado: Error en análisis */}
+                {contactosFrecuentesState.error && (
+                  <div className="flex items-center space-x-2 text-sm text-red-600">
+                    <XCircle className="h-4 w-4" />
+                    <span>{contactosFrecuentesState.error}</span>
+                  </div>
+                )}
+
+                {/* TABLA 1: Datos Crudos del Excel (6 columnas) */}
+                {contactosFrecuentesState.datosCrudos &&
+                  contactosFrecuentesState.datosCrudos.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-green-600 font-medium">
+                          Registros de comunicación:{" "}
+                          {contactosFrecuentesState.datosCrudos.length}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsTableModalOpen(true)}
+                          title="Ver tabla completa"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto border rounded-lg">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-10">
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    selectedRows.size ===
+                                    contactosFrecuentesState.datosCrudos.length
+                                  }
+                                  onChange={() => {
+                                    if (
+                                      selectedRows.size ===
+                                      contactosFrecuentesState.datosCrudos!
+                                        .length
+                                    ) {
+                                      setSelectedRows(new Set());
+                                    } else {
+                                      setSelectedRows(
+                                        new Set(
+                                          contactosFrecuentesState.datosCrudos!.map(
+                                            (_, i) => i
+                                          )
+                                        )
+                                      );
+                                    }
+                                  }}
+                                />
+                              </TableHead>
+                              <TableHead>ABONADO A</TableHead>
+                              <TableHead>ABONADO B</TableHead>
+                              <TableHead>FECHA</TableHead>
+                              <TableHead>HORA</TableHead>
+                              <TableHead>TIME</TableHead>
+                              <TableHead>DIRECCION</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {contactosFrecuentesState.datosCrudos.map(
+                              (row, index) => (
+                                <TableRow
+                                  key={index}
+                                  className={
+                                    selectedRows.has(index)
+                                      ? "bg-blue-100 dark:bg-blue-900/40"
+                                      : ""
+                                  }
+                                  onClick={() => toggleRowSelection(index)}
+                                >
+                                  <TableCell className="py-1 px-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedRows.has(index)}
+                                      onChange={() => toggleRowSelection(index)}
+                                    />
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["ABONADO A"] ||
+                                      row["ABONADO_A"] ||
+                                      "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["ABONADO B"] ||
+                                      row["ABONADO_B"] ||
+                                      "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["FECHA"] || "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["HORA"] || "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["TIME"] || "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["DIRECCION"] || "-"}
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+
+                {/* TABLA 2: TOP 10 Contactos Frecuentes */}
+                {contactosFrecuentesState.top10Contactos &&
+                  contactosFrecuentesState.top10Contactos.length > 0 && (
+                    <div className="space-y-2 mt-4">
+                      <h5 className="text-sm font-medium text-blue-700">
+                        TOP 10 Contactos Más Frecuentes
+                      </h5>
+                      <div className="max-h-64 overflow-y-auto border rounded-lg border-blue-200">
+                        <Table>
+                          <TableHeader className="bg-blue-50">
+                            <TableRow>
+                              <TableHead>#</TableHead>
+                              <TableHead>Número</TableHead>
+                              <TableHead>Frecuencia</TableHead>
+                              <TableHead>Primera Fecha</TableHead>
+                              <TableHead>Última Fecha</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {contactosFrecuentesState.top10Contactos.map(
+                              (contacto, index) => (
+                                <TableRow key={index}>
+                                  <TableCell className="py-1 px-2 text-xs font-bold">
+                                    {index + 1}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs font-mono">
+                                    {contacto.numero || contacto.NUMERO || "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs text-center">
+                                    <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                      {contacto.frecuencia ||
+                                        contacto.FRECUENCIA ||
+                                        0}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {contacto.primera_fecha ||
+                                      contacto.PRIMERA_FECHA ||
+                                      "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {contacto.ultima_fecha ||
+                                      contacto.ULTIMA_FECHA ||
+                                      "-"}
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Sin resultados */}
+                {contactosFrecuentesState.datosCrudos &&
+                  contactosFrecuentesState.datosCrudos.length === 0 && (
+                    <div className="text-sm text-gray-600">
+                      No se encontraron registros de comunicación para el número{" "}
+                      {abonadoValue}
                     </div>
                   )}
               </div>

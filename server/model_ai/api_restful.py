@@ -32,12 +32,13 @@ except ImportError as e:
     BASE_URL = "http://api.cedula.com.ve/api/v1"
     LOG_FILE = "consultas_cedulas.json"
 
-# Importar BTSIdentifier
+# Importar BTSIdentifier y CFidentificar
 try:
-    from identify_bts import BTSIdentifier
+    from identify_bts import BTSIdentifier, CFidentificar
 except ImportError as e:
-    print(f"Error importando BTSIdentifier: {e}")
+    print(f"Error importando BTSIdentifier/CFidentificar: {e}")
     BTSIdentifier = None
+    CFidentificar = None
 
 # Crear la aplicación FastAPI
 app = FastAPI(
@@ -78,6 +79,18 @@ class AnalizarBTSRequest(BaseModel):
 class AnalizarBTSResponse(BaseModel):
     success: bool
     data: Optional[List[Dict[str, Any]]] = None
+    error: Optional[str] = None
+    timestamp: str
+
+class AnalizarContactosFrecuentesRequest(BaseModel):
+    archivo_excel: str
+    numero_buscar: str
+    operador: str
+
+class AnalizarContactosFrecuentesResponse(BaseModel):
+    success: bool
+    datos_crudos: Optional[List[Dict[str, Any]]] = None
+    top_10_contactos: Optional[List[Dict[str, Any]]] = None
     error: Optional[str] = None
     timestamp: str
 
@@ -292,6 +305,105 @@ async def analizar_bts(request: AnalizarBTSRequest):
         return AnalizarBTSResponse(
             success=False,
             error=f"Error al analizar archivo BTS: {str(e)}",
+            timestamp=datetime.now().isoformat()
+        )
+
+@app.post("/analizar-contactos-frecuentes", response_model=AnalizarContactosFrecuentesResponse)
+async def analizar_contactos_frecuentes(request: AnalizarContactosFrecuentesRequest):
+    """
+    Analiza archivo Excel para determinar contactos frecuentes.
+    Retorna dos conjuntos de datos:
+    1. datos_crudos: Primeras 6 columnas del Excel (ABONADO A, ABONADO B, FECHA, HORA, TIME, DIRECCION)
+    2. top_10_contactos: TOP 10 números con mayor frecuencia de comunicación
+    """
+    print(f"[LOG] Iniciando análisis Contactos Frecuentes: archivo={request.archivo_excel}, numero={request.numero_buscar}, operador={request.operador}")
+    try:
+        if CFidentificar is None:
+            print(f"[ERROR] Servicio CFidentificar no disponible")
+            raise HTTPException(
+                status_code=500, 
+                detail="Servicio de análisis de contactos frecuentes no disponible"
+            )
+        
+        if not os.path.exists(request.archivo_excel):
+            print(f"[ERROR] Archivo Excel no encontrado: {request.archivo_excel}")
+            raise HTTPException(
+                status_code=400, 
+                detail="Archivo Excel no encontrado"
+            )
+        
+        import pandas as pd
+        
+        hojas = pd.ExcelFile(request.archivo_excel).sheet_names
+        operador = request.operador.lower()
+        
+        if 'digitel' in operador:
+            sheet_name = 'IBM' if 'IBM' in hojas else 'Hoja1'
+            datos = pd.read_excel(request.archivo_excel, sheet_name=sheet_name)
+            datos_despues_fila = datos.iloc[28:] if len(datos) > 28 else datos
+            columnas_indices = [0, 3, 7, 7, 8, 10]
+        elif 'movistar' in operador:
+            if 'VOZ' not in hojas:
+                return AnalizarContactosFrecuentesResponse(
+                    success=False,
+                    error="La hoja 'VOZ' no existe en el archivo",
+                    timestamp=datetime.now().isoformat()
+                )
+            datos = pd.read_excel(request.archivo_excel, sheet_name='VOZ')
+            datos_despues_fila = datos.iloc[14:] if len(datos) > 14 else datos
+            columnas_indices = [0, 1, 2, 3, 4, 9]
+        elif 'movilnet' in operador:
+            if 'Results' not in hojas:
+                return AnalizarContactosFrecuentesResponse(
+                    success=False,
+                    error="La hoja 'Results' no existe en el archivo",
+                    timestamp=datetime.now().isoformat()
+                )
+            datos = pd.read_excel(request.archivo_excel, sheet_name='Results')
+            datos_despues_fila = datos.iloc[1:] if len(datos) > 1 else datos
+            columnas_indices = [1, 2, 4, 5, 6, 9]
+        else:
+            return AnalizarContactosFrecuentesResponse(
+                success=False,
+                error=f"Operador no soportado: {request.operador}",
+                timestamp=datetime.now().isoformat()
+            )
+        
+        if len(datos_despues_fila.columns) >= max(columnas_indices) + 1:
+            datos_filtrados = datos_despues_fila.iloc[:, columnas_indices]
+            datos_filtrados.columns = ['ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION']
+        else:
+            datos_filtrados = datos_despues_fila.iloc[:, :6]
+            datos_filtrados.columns = ['ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION'][:len(datos_filtrados.columns)]
+        
+        datos_crudos_list = datos_filtrados.head(100).to_dict('records')
+        
+        identificador = CFidentificar()
+        top_10_resultado = identificador.buscar_numeros_frecuentan(
+            request.archivo_excel,
+            request.numero_buscar,
+            request.operador
+        )
+        
+        top_10_contactos = top_10_resultado if top_10_resultado else []
+        
+        print(f"[LOG] Análisis Contactos Frecuentes completado: {len(datos_crudos_list)} filas crudas, {len(top_10_contactos)} contactos frecuentes")
+        return AnalizarContactosFrecuentesResponse(
+            success=True,
+            datos_crudos=datos_crudos_list,
+            top_10_contactos=top_10_contactos,
+            timestamp=datetime.now().isoformat()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] Excepción en análisis Contactos Frecuentes: {type(e).__name__}: {str(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return AnalizarContactosFrecuentesResponse(
+            success=False,
+            error=f"Error al analizar contactos frecuentes: {str(e)}",
             timestamp=datetime.now().isoformat()
         )
 
