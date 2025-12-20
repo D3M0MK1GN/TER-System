@@ -324,6 +324,190 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       });
     }
   });
+
+  // Endpoint para analizar Contactos Frecuentes
+  app.post("/api/experticias/analizar-contactos-frecuentes", authenticateToken, async (req: any, res) => {
+    try {
+      const { archivo_excel, numero_buscar, operador } = req.body;
+      
+      console.log("📋 [CONTACTOS FRECUENTES] Datos recibidos:");
+      console.log(`   - Archivo: ${archivo_excel}`);
+      console.log(`   - Número a buscar: ${numero_buscar}`);
+      console.log(`   - Operador: ${operador}`);
+      
+      if (!archivo_excel || !numero_buscar || !operador) {
+        console.error("❌ [CONTACTOS FRECUENTES] Parámetros incompletos");
+        return res.status(400).json({ 
+          success: false, 
+          message: "Archivo Excel, número de búsqueda y operador son requeridos" 
+        });
+      }
+
+      // Validar seguridad: solo permitir archivos en uploads/experticias
+      const experticiasDir = path.join(process.cwd(), 'uploads', 'experticias');
+      const normalizedPath = path.normalize(archivo_excel);
+      const resolvedPath = path.resolve(normalizedPath);
+      const resolvedExperticiasDir = path.resolve(experticiasDir);
+      
+      console.log(`📁 [CONTACTOS FRECUENTES] Ruta normalizada: ${normalizedPath}`);
+      console.log(`📁 [CONTACTOS FRECUENTES] Ruta resuelta: ${resolvedPath}`);
+      
+      if (!resolvedPath.startsWith(resolvedExperticiasDir)) {
+        console.error("❌ [CONTACTOS FRECUENTES] Acceso no autorizado - ruta fuera de directorio permitido");
+        return res.status(400).json({ 
+          success: false, 
+          message: "Acceso no autorizado: archivo fuera del directorio permitido" 
+        });
+      }
+
+      // Verificar que el archivo existe
+      if (!existsSync(resolvedPath)) {
+        console.error(`❌ [CONTACTOS FRECUENTES] Archivo no encontrado: ${resolvedPath}`);
+        return res.status(404).json({ 
+          success: false, 
+          message: "Archivo Excel no encontrado" 
+        });
+      }
+
+      console.log(`✅ [CONTACTOS FRECUENTES] Archivo verificado: ${resolvedPath}`);
+      console.log(`⏳ [CONTACTOS FRECUENTES] Iniciando análisis...`);
+
+      // Procesar el archivo Excel
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(resolvedPath);
+      
+      // Intentar obtener hoja IBM, si no existe, usar primera hoja
+      let worksheet = workbook.getWorksheet('IBM');
+      if (!worksheet) {
+        console.log("⚠️ [CONTACTOS FRECUENTES] Hoja IBM no encontrada, usando primera hoja");
+        worksheet = workbook.getWorksheet(1);
+      }
+      
+      if (!worksheet) {
+        console.error("❌ [CONTACTOS FRECUENTES] Hoja de trabajo no encontrada");
+        return res.status(400).json({
+          success: false,
+          message: "No se encontró hoja de trabajo en el Excel"
+        });
+      }
+
+      console.log(`✅ [CONTACTOS FRECUENTES] Usando hoja: ${worksheet.name}`);
+      console.log(`📊 [CONTACTOS FRECUENTES] Procesando ${worksheet.rowCount} filas...`);
+
+      const numero_buscar_norm = numero_buscar.toString().trim();
+      console.log(`🔍 [CONTACTOS FRECUENTES] Buscando número: "${numero_buscar_norm}"`);
+      console.log(`📱 [CONTACTOS FRECUENTES] Operador: ${operador}`);
+
+      const datos_crudos: any[] = [];
+      const contactos_map = new Map<string, { numero: string; frecuencia: number }>();
+      
+      // Función auxiliar: Extraer fecha y hora de un DateTime
+      const extractDateTimeFromExcelDate = (excelDate: any): { fecha: string; hora: string } => {
+        try {
+          if (!excelDate) return { fecha: "", hora: "" };
+          const date = new Date(excelDate);
+          if (isNaN(date.getTime())) return { fecha: "", hora: "" };
+          
+          const fecha = date.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+          const hora = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          return { fecha, hora };
+        } catch (e) {
+          return { fecha: "", hora: "" };
+        }
+      };
+      
+      // Iterar por cada fila del Excel (saltando encabezado)
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return; // Saltar encabezado
+        
+        const values = row.values as any[];
+        let rowData: any = {};
+        let otherNumber = "";
+        
+        if (operador === "digitel") {
+          // DIGITEL: Columnas 1, 4, 7, 8 (dividida), 10, 11, 12 (unidas)
+          console.log(`📋 [DIGITEL] Procesando fila ${rowNumber}`);
+          
+          const abonadoA = values[1]?.toString().trim() || "";
+          const abonadoB = values[4]?.toString().trim() || "";
+          
+          if (abonadoA === numero_buscar_norm) {
+            otherNumber = abonadoB;
+          } else if (abonadoB === numero_buscar_norm) {
+            otherNumber = abonadoA;
+          }
+          
+          if (otherNumber && otherNumber !== numero_buscar_norm) {
+            const { fecha, hora } = extractDateTimeFromExcelDate(values[8]);
+            const coordenadas = `${values[10] || ""} ${values[11] || ""} ${values[12] || ""}`.trim();
+            
+            rowData = {
+              "ABONADO A": values[1] || "",
+              "ABONADO B": values[4] || "",
+              "TIPO TRANSACCION": values[7] || "",
+              "FECHA": fecha,
+              "HORA": hora,
+              "COORDENADAS": coordenadas,
+              "operador": "digitel"
+            };
+          }
+        } else {
+          // IBM (por defecto): Columnas 1, 4, 7, 8, 9, 11
+          const abonadoA = values[1]?.toString().trim() || "";
+          const abonadoB = values[4]?.toString().trim() || "";
+          
+          if (abonadoA === numero_buscar_norm) {
+            otherNumber = abonadoB;
+          } else if (abonadoB === numero_buscar_norm) {
+            otherNumber = abonadoA;
+          }
+          
+          if (otherNumber && otherNumber !== numero_buscar_norm) {
+            rowData = {
+              "ABONADO A": values[1] || "",
+              "ABONADO B": values[4] || "",
+              "TIPO TRANSACCION": values[7] || "",
+              "FECHA": values[8] || "",
+              "HORA": values[9] || "",
+              "TIME": values[9] || "",
+              "DIRECCION": values[11] || "",
+              "operador": "ibm"
+            };
+          }
+        }
+        
+        if (otherNumber && otherNumber !== numero_buscar_norm) {
+          datos_crudos.push(rowData);
+          
+          // Contar frecuencia del contacto
+          const contact = contactos_map.get(otherNumber) || { numero: otherNumber, frecuencia: 0 };
+          contact.frecuencia += 1;
+          contactos_map.set(otherNumber, contact);
+        }
+      });
+      
+      // TOP 10 contactos más frecuentes (sin filtrar)
+      const top_10_contactos = Array.from(contactos_map.values())
+        .sort((a, b) => b.frecuencia - a.frecuencia)
+        .slice(0, 10);
+      
+      console.log(`✅ [CONTACTOS FRECUENTES] Datos encontrados: ${datos_crudos.length}`);
+      console.log(`✅ [CONTACTOS FRECUENTES] TOP 10 contactos: ${top_10_contactos.length}`);
+      console.log(`📊 [CONTACTOS FRECUENTES] TOP 10:`, JSON.stringify(top_10_contactos, null, 2));
+      
+      res.json({
+        datos_crudos,
+        top_10_contactos
+      });
+
+    } catch (error) {
+      console.error("💥 [CONTACTOS FRECUENTES] Error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error interno del servidor al analizar contactos frecuentes" 
+      });
+    }
+  });
   
   // Ruta para generar plantilla Word personalizada
   app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authenticateToken, async (req: any, res) => {

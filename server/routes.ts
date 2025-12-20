@@ -2264,10 +2264,3 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
   const httpServer = createServer(app);
   return httpServer;
 }
-
-
-
-
-
-
-

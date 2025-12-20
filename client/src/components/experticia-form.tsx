@@ -860,6 +860,22 @@ export function ExperticiasForm({
                                     });
 
                                     try {
+                                      console.log(
+                                        "🚀 [CONTACTOS FRECUENTES] Enviando solicitud de análisis..."
+                                      );
+                                      console.log(
+                                        "   - Ruta archivo:",
+                                        result.archivo.rutaArchivo
+                                      );
+                                      console.log(
+                                        "   - Número a buscar:",
+                                        abonadoValue
+                                      );
+                                      console.log(
+                                        "   - Operador:",
+                                        form.getValues("operador")
+                                      );
+
                                       const analysisResponse = await fetch(
                                         "/api/experticias/analizar-contactos-frecuentes",
                                         {
@@ -880,9 +896,43 @@ export function ExperticiasForm({
                                         }
                                       );
 
+                                      console.log(
+                                        "📡 [CONTACTOS FRECUENTES] Respuesta recibida:",
+                                        analysisResponse.status
+                                      );
+
                                       if (analysisResponse.ok) {
                                         const analysisResult =
                                           await analysisResponse.json();
+                                        console.log(
+                                          "✅ [CONTACTOS FRECUENTES] Datos crudos recibidos:",
+                                          analysisResult.datos_crudos?.length ||
+                                            0,
+                                          "registros"
+                                        );
+                                        console.log(
+                                          "✅ [CONTACTOS FRECUENTES] TOP 10 recibidos:",
+                                          analysisResult.top_10_contactos
+                                            ?.length || 0,
+                                          "contactos"
+                                        );
+                                        console.log(
+                                          "📋 Contenido datos_crudos:",
+                                          JSON.stringify(
+                                            analysisResult.datos_crudos,
+                                            null,
+                                            2
+                                          )
+                                        );
+                                        console.log(
+                                          "📋 Contenido top_10_contactos:",
+                                          JSON.stringify(
+                                            analysisResult.top_10_contactos,
+                                            null,
+                                            2
+                                          )
+                                        );
+
                                         setContactosFrecuentesState({
                                           isAnalyzing: false,
                                           datosCrudos:
@@ -894,11 +944,12 @@ export function ExperticiasForm({
                                         });
                                         // Auto-seleccionar todas las filas de datos crudos
                                         if (analysisResult.datos_crudos) {
-                                          const allIndices = new Set(
-                                            analysisResult.datos_crudos.map(
-                                              (_: any, idx: number) => idx
-                                            )
-                                          );
+                                          const allIndices: Set<number> =
+                                            new Set(
+                                              analysisResult.datos_crudos.map(
+                                                (_: any, idx: number) => idx
+                                              )
+                                            );
                                           setSelectedRows(allIndices);
                                         }
                                       } else {
@@ -1235,10 +1286,18 @@ export function ExperticiasForm({
                               </TableHead>
                               <TableHead>ABONADO A</TableHead>
                               <TableHead>ABONADO B</TableHead>
+                              <TableHead>TIPO TRANSACCION</TableHead>
                               <TableHead>FECHA</TableHead>
                               <TableHead>HORA</TableHead>
-                              <TableHead>TIME</TableHead>
-                              <TableHead>DIRECCION</TableHead>
+                              {contactosFrecuentesState.datosCrudos?.[0]
+                                ?.operador === "digitel" ? (
+                                <TableHead>COORDENADAS</TableHead>
+                              ) : (
+                                <>
+                                  <TableHead>TIME</TableHead>
+                                  <TableHead>DIRECCION</TableHead>
+                                </>
+                              )}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1271,17 +1330,30 @@ export function ExperticiasForm({
                                       "-"}
                                   </TableCell>
                                   <TableCell className="py-1 px-2 text-xs">
+                                    {row["TIPO TRANSACCION"] ||
+                                      row["TIPO_TRANSACCION"] ||
+                                      "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
                                     {row["FECHA"] || "-"}
                                   </TableCell>
                                   <TableCell className="py-1 px-2 text-xs">
                                     {row["HORA"] || "-"}
                                   </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["TIME"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["DIRECCION"] || "-"}
-                                  </TableCell>
+                                  {row.operador === "digitel" ? (
+                                    <TableCell className="py-1 px-2 text-xs">
+                                      {row["COORDENADAS"] || "-"}
+                                    </TableCell>
+                                  ) : (
+                                    <>
+                                      <TableCell className="py-1 px-2 text-xs">
+                                        {row["TIME"] || "-"}
+                                      </TableCell>
+                                      <TableCell className="py-1 px-2 text-xs">
+                                        {row["DIRECCION"] || "-"}
+                                      </TableCell>
+                                    </>
+                                  )}
                                 </TableRow>
                               )
                             )}
