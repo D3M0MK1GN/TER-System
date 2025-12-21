@@ -291,16 +291,24 @@ export function ExperticiasForm({
     if (fileUploadState.isUploading) return; // Previene envío durante carga
 
     let filasSeleccionadas: any[] = [];
+    let datosAnalisis: any = null;
+    let datosSeleccionadosTop10: any = null;
 
     // Si es análisis de contactos frecuentes, usa los datos crudos seleccionados
     if (
       tipoExperticiaValue === "determinar_contacto_frecuente" &&
       contactosFrecuentesState.datosCrudos
     ) {
+      // Guardar todos los datos crudos (datosAnalisis)
+      // La estructura ahora incluye: ABONADO A, ABONADO B, TIPO TRANSACCION, FECHA, HORA, TIME, BTS-CELDA, DIRECCION_A, DIRECCION_B, CORDENADAS_A, CORDENADAS_B, ORIENTACION A, ORIENTACION B, IMEI ABONADO A, IMEI ABONADO B
+      datosAnalisis = contactosFrecuentesState.datosCrudos;
+
+      // Extraer solo los seleccionados del TOP 10
       filasSeleccionadas = extractSelectedRows(
         contactosFrecuentesState.datosCrudos,
         selectedRows
       );
+      datosSeleccionadosTop10 = filasSeleccionadas;
     } else if (btsAnalysisState.results) {
       // Extrae las filas seleccionadas desde el análisis BTS
       filasSeleccionadas = extractSelectedRows(
@@ -309,13 +317,19 @@ export function ExperticiasForm({
       );
     }
 
-    // Agregar TOP 10 contactos si es análisis de contactos frecuentes
-    const top10Contactos =
-      tipoExperticiaValue === "determinar_contacto_frecuente"
-        ? contactosFrecuentesState.top10Contactos
-        : null;
+    const submitData = {
+      ...data,
+      filasSeleccionadas,
+      datosAnalisis,
+      datosSeleccionadosTop10,
+    } as any;
 
-    onSubmit({ ...data, filasSeleccionadas, top10Contactos } as any);
+    // Agregar TOP 10 contactos si es análisis de contactos frecuentes (para compatibilidad)
+    if (tipoExperticiaValue === "determinar_contacto_frecuente") {
+      submitData.top10Contactos = contactosFrecuentesState.top10Contactos;
+    }
+
+    onSubmit(submitData);
   };
 
   /**
@@ -1285,19 +1299,24 @@ export function ExperticiasForm({
                                 />
                               </TableHead>
                               <TableHead>ABONADO A</TableHead>
-                              <TableHead>ABONADO B</TableHead>
-                              <TableHead>TIPO TRANSACCION</TableHead>
-                              <TableHead>FECHA</TableHead>
-                              <TableHead>HORA</TableHead>
-                              {contactosFrecuentesState.datosCrudos?.[0]
-                                ?.operador === "digitel" ? (
-                                <TableHead>COORDENADAS</TableHead>
-                              ) : (
+                              <TableHead>Abonado B</TableHead>
+                              <TableHead>Tipo Transacción</TableHead>
+                              <TableHead>Fecha</TableHead>
+                              <TableHead>Hora</TableHead>
+                              <TableHead>Time</TableHead>
+                              <TableHead>BTS-Celda</TableHead>
+                              <TableHead>Dirección A</TableHead>
+                              <TableHead>Dirección B</TableHead>
+                              <TableHead>Coordenadas A</TableHead>
+                              <TableHead>Coordenadas B</TableHead>
+                              {form.getValues("operador") === "digitel" && (
                                 <>
-                                  <TableHead>TIME</TableHead>
-                                  <TableHead>DIRECCION</TableHead>
+                                  <TableHead>Orientación A</TableHead>
+                                  <TableHead>Orientación B</TableHead>
                                 </>
                               )}
+                              <TableHead>IMEI A</TableHead>
+                              <TableHead>IMEI B</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1320,19 +1339,13 @@ export function ExperticiasForm({
                                     />
                                   </TableCell>
                                   <TableCell className="py-1 px-2 text-xs">
-                                    {row["ABONADO A"] ||
-                                      row["ABONADO_A"] ||
-                                      "-"}
+                                    {row["ABONADO A"] || "-"}
                                   </TableCell>
                                   <TableCell className="py-1 px-2 text-xs">
-                                    {row["ABONADO B"] ||
-                                      row["ABONADO_B"] ||
-                                      "-"}
+                                    {row["ABONADO B"] || "-"}
                                   </TableCell>
                                   <TableCell className="py-1 px-2 text-xs">
-                                    {row["TIPO TRANSACCION"] ||
-                                      row["TIPO_TRANSACCION"] ||
-                                      "-"}
+                                    {row["TIPO TRANSACCION"] || "-"}
                                   </TableCell>
                                   <TableCell className="py-1 px-2 text-xs">
                                     {row["FECHA"] || "-"}
@@ -1340,20 +1353,40 @@ export function ExperticiasForm({
                                   <TableCell className="py-1 px-2 text-xs">
                                     {row["HORA"] || "-"}
                                   </TableCell>
-                                  {row.operador === "digitel" ? (
-                                    <TableCell className="py-1 px-2 text-xs">
-                                      {row["COORDENADAS"] || "-"}
-                                    </TableCell>
-                                  ) : (
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["TIME"] || "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["BTS-CELDA"] || "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["DIRECCION_A"] || "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["DIRECCION_B"] || "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["CORDENADAS_A"] || "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["CORDENADAS_B"] || "-"}
+                                  </TableCell>
+                                  {form.getValues("operador") === "digitel" && (
                                     <>
                                       <TableCell className="py-1 px-2 text-xs">
-                                        {row["TIME"] || "-"}
+                                        {row["ORIENTACION A"] || "-"}
                                       </TableCell>
                                       <TableCell className="py-1 px-2 text-xs">
-                                        {row["DIRECCION"] || "-"}
+                                        {row["ORIENTACION B"] || "-"}
                                       </TableCell>
                                     </>
                                   )}
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["IMEI ABONADO A"] || "-"}
+                                  </TableCell>
+                                  <TableCell className="py-1 px-2 text-xs">
+                                    {row["IMEI ABONADO B"] || "-"}
+                                  </TableCell>
                                 </TableRow>
                               )
                             )}

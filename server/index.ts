@@ -11,7 +11,7 @@ const app = express();
 // Trust proxy para obtener IP correcta en entornos con proxy
 app.set('trust proxy', true);
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Middleware para obtener IP del cliente
 app.use((req, res, next) => {
@@ -54,7 +54,7 @@ app.use((req, res, next) => {
   req.clientIp = getClientIp(req);
   next();
 });
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();

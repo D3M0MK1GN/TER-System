@@ -32,13 +32,12 @@ except ImportError as e:
     BASE_URL = "http://api.cedula.com.ve/api/v1"
     LOG_FILE = "consultas_cedulas.json"
 
-# Importar BTSIdentifier y CFidentificar
+# Importar Exper_Frecuentes
 try:
-    from identify_bts import BTSIdentifier, CFidentificar
+    from identify_bts import Exper_Frecuentes
 except ImportError as e:
-    print(f"Error importando BTSIdentifier/CFidentificar: {e}")
-    BTSIdentifier = None
-    CFidentificar = None
+    print(f"Error importando Exper_Frecuentes: {e}")
+    Exper_Frecuentes = None
 
 # Crear la aplicación FastAPI
 app = FastAPI(
@@ -245,7 +244,7 @@ async def analizar_bts(request: AnalizarBTSRequest):
     """
     print(f"[LOG] Iniciando análisis BTS: archivo={request.archivo_excel}, numero={request.numero_buscar}, operador={request.operador}")
     try:
-        if BTSIdentifier is None:
+        if Exper_Frecuentes is None:
             print(f"[ERROR] Servicio de análisis BTS no disponible")
             raise HTTPException(
                 status_code=500, 
@@ -262,19 +261,18 @@ async def analizar_bts(request: AnalizarBTSRequest):
             )
         print(f"[LOG] Archivo encontrado correctamente")
         
-        # Crear instancia de BTSIdentifier
-        print(f"[LOG] Creando instancia de BTSIdentifier")
-        identificador = BTSIdentifier()
+        # Crear instancia de Exper_Frecuentes
+        print(f"[LOG] Creando instancia de Exper_Frecuentes")
+        analizador = Exper_Frecuentes()
         
         # Realizar análisis
         print(f"[LOG] Llamando buscar_por_abonado_b con parámetros: archivo={request.archivo_excel}, numero={request.numero_buscar}, operador={request.operador}")
-        resultados = identificador.buscar_por_abonado_b(
+        resultados = analizador.buscar_por_abonado_b(
             request.archivo_excel, 
             request.numero_buscar,
             request.operador
         )
         print(f"Operadora a consultar: {request.operador}")
-        #print(f"[LOG] Resultado de análisis: tipo={type(resultados)}, empty={resultados.empty if hasattr(resultados, 'empty') else 'N/A'}")
         
         if resultados is None or resultados.empty:
             print(f"[LOG] No se encontraron resultados en el análisis BTS")
@@ -315,184 +313,46 @@ async def analizar_contactos_frecuentes(request: AnalizarContactosFrecuentesRequ
     Retorna dos conjuntos de datos:
     1. datos_crudos: Primeras 6 columnas del Excel (ABONADO A, ABONADO B, FECHA, HORA, TIME, DIRECCION)
     2. top_10_contactos: TOP 10 números con mayor frecuencia de comunicación
+    
+    Toda la lógica de procesamiento centralizada en Exper_Frecuentes.buscar_numeros_frecuentan()
     """
     print(f"[LOG] Iniciando análisis Contactos Frecuentes: archivo={request.archivo_excel}, numero={request.numero_buscar}, operador={request.operador}")
     try:
-        # VALIDACIÓN 1: Servicio disponible
-        if CFidentificar is None:
-            print(f"[ERROR] Servicio CFidentificar no disponible")
-            raise HTTPException(
-                status_code=500, 
-                detail="Servicio de análisis de contactos frecuentes no disponible"
-            )
+        # Validación básica
+        if Exper_Frecuentes is None:
+            raise HTTPException(status_code=500, detail="Servicio de análisis no disponible")
         
-        # VALIDACIÓN 2: Parámetros requeridos
-        if not request.archivo_excel or not request.numero_buscar or not request.operador:
-            print(f"[ERROR] Parámetros incompletos")
-            raise HTTPException(
-                status_code=400, 
-                detail="Archivo, número y operador son requeridos"
-            )
-        
-        # VALIDACIÓN 3: Archivo existe
         if not os.path.exists(request.archivo_excel):
-            print(f"[ERROR] Archivo Excel no encontrado: {request.archivo_excel}")
-            raise HTTPException(
-                status_code=404, 
-                detail="Archivo Excel no encontrado"
+            raise HTTPException(status_code=404, detail="Archivo Excel no encontrado")
+        
+        # Llamar al analizador (Toda la lógica de Excel está ahora aquí)
+        analizador = Exper_Frecuentes()
+        resultado = analizador.buscar_numeros_frecuentan(
+            request.archivo_excel,
+            request.numero_buscar,
+            request.operador
+        )
+        
+        if not resultado:
+            return AnalizarContactosFrecuentesResponse(
+                success=True,
+                datos_crudos=[],
+                top_10_contactos=[],
+                timestamp=datetime.now().isoformat()
             )
         
-        # VALIDACIÓN 4: Archivo es Excel
-        if not request.archivo_excel.lower().endswith(('.xlsx', '.xls')):
-            print(f"[ERROR] Archivo no es Excel: {request.archivo_excel}")
-            raise HTTPException(
-                status_code=400, 
-                detail="Archivo debe ser Excel (.xlsx o .xls)"
-            )
-        
-        # VALIDACIÓN 5: Operador válido
-        operadores_validos = ['digitel', 'movistar', 'movilnet']
-        if request.operador.lower() not in operadores_validos:
-            print(f"[ERROR] Operador inválido: {request.operador}")
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Operador debe ser uno de: {', '.join(operadores_validos)}"
-            )
-        
-        # VALIDACIÓN 6: Número no vacío
-        numero_buscar_str = str(request.numero_buscar).strip()
-        if not numero_buscar_str:
-            print(f"[ERROR] Número de búsqueda vacío")
-            raise HTTPException(
-                status_code=400, 
-                detail="Número de búsqueda no puede estar vacío"
-            )
-        
-        import pandas as pd
-        
-        # VALIDACIÓN 7: Intentar leer hojas del Excel
-        try:
-            hojas = pd.ExcelFile(request.archivo_excel).sheet_names
-            print(f"[LOG] Hojas encontradas: {hojas}")
-            if not hojas:
-                raise HTTPException(
-                    status_code=400, 
-                    detail="El archivo Excel no contiene hojas válidas"
-                )
-        except Exception as e:
-            print(f"[ERROR] Error al leer hojas del Excel: {str(e)}")
-            raise HTTPException(
-                status_code=400, 
-                detail="Error al leer archivo Excel. Verifique que es un archivo válido"
-            )
-        
-        operador = request.operador.lower()
-        
-        # VALIDACIÓN 8: Validar hojas según operador
-        try:
-            if 'digitel' in operador:
-                sheet_name = 'IBM' if 'IBM' in hojas else 'Hoja1'
-                print(f"[LOG] Procesando DIGITEL desde hoja: {sheet_name}")
-                if sheet_name not in hojas:
-                    raise HTTPException(
-                        status_code=400, 
-                        detail=f"Hoja '{sheet_name}' no encontrada en archivo DIGITEL"
-                    )
-                datos = pd.read_excel(request.archivo_excel, sheet_name=sheet_name)
-                datos_despues_fila = datos.iloc[28:] if len(datos) > 28 else datos
-                columnas_indices = [0, 3, 7, 7, 8, 10]
-            elif 'movistar' in operador:
-                if 'VOZ' not in hojas:
-                    raise HTTPException(
-                        status_code=400, 
-                        detail="Hoja 'VOZ' no encontrada. Archivo MOVISTAR debe tener hoja VOZ"
-                    )
-                print(f"[LOG] Procesando MOVISTAR desde hoja VOZ")
-                datos = pd.read_excel(request.archivo_excel, sheet_name='VOZ')
-                datos_despues_fila = datos.iloc[14:] if len(datos) > 14 else datos
-                columnas_indices = [0, 1, 2, 3, 4, 9]
-            elif 'movilnet' in operador:
-                if 'Results' not in hojas:
-                    raise HTTPException(
-                        status_code=400, 
-                        detail="Hoja 'Results' no encontrada. Archivo MOVILNET debe tener hoja Results"
-                    )
-                print(f"[LOG] Procesando MOVILNET desde hoja Results")
-                datos = pd.read_excel(request.archivo_excel, sheet_name='Results')
-                datos_despues_fila = datos.iloc[1:] if len(datos) > 1 else datos
-                columnas_indices = [1, 2, 4, 5, 6, 9]
-            else:
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Operador no soportado: {request.operador}"
-                )
-            
-            # VALIDACIÓN 9: Datos no vacío
-            if datos_despues_fila.empty:
-                raise HTTPException(
-                    status_code=400, 
-                    detail="La hoja no contiene datos para procesar"
-                )
-        except HTTPException:
-            raise
-        except Exception as e:
-            print(f"[ERROR] Error al validar hojas: {str(e)}")
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Error al procesar archivo: {str(e)}"
-            )
-        
-        # VALIDACIÓN 10: Validar columnas
-        try:
-            if len(datos_despues_fila.columns) >= max(columnas_indices) + 1:
-                datos_filtrados = datos_despues_fila.iloc[:, columnas_indices]
-                datos_filtrados.columns = ['ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION']
-            else:
-                print(f"[WARN] Insuficientes columnas. Esperadas: {max(columnas_indices) + 1}, Encontradas: {len(datos_despues_fila.columns)}")
-                datos_filtrados = datos_despues_fila.iloc[:, :min(6, len(datos_despues_fila.columns))]
-                datos_filtrados.columns = ['ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION'][:len(datos_filtrados.columns)]
-            
-            datos_crudos_list = datos_filtrados.head(100).to_dict('records')
-            print(f"[LOG] Datos crudos extraídos: {len(datos_crudos_list)} registros")
-        except Exception as e:
-            print(f"[ERROR] Error al filtrar columnas: {str(e)}")
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Error al procesar columnas: {str(e)}"
-            )
-        
-        # VALIDACIÓN 11: Procesar contactos frecuentes
-        try:
-            identificador = CFidentificar()
-            top_10_resultado = identificador.buscar_numeros_frecuentan(
-                request.archivo_excel,
-                request.numero_buscar,
-                request.operador
-            )
-            
-            top_10_contactos = top_10_resultado if top_10_resultado else []
-            print(f"[LOG] Top 10 contactos procesados: {len(top_10_contactos)}")
-        except Exception as e:
-            print(f"[ERROR] Error al procesar contactos frecuentes: {str(e)}")
-            raise HTTPException(
-                status_code=500, 
-                detail=f"Error al analizar contactos frecuentes: {str(e)}"
-            )
-        
-        print(f"[LOG] Análisis Contactos Frecuentes completado: {len(datos_crudos_list)} filas crudas, {len(top_10_contactos)} contactos frecuentes")
+        print(f"[LOG] Análisis completado: {len(resultado.get('datos_crudos', []))} filas crudas, {len(resultado.get('top_10', []))} contactos frecuentes")
         return AnalizarContactosFrecuentesResponse(
             success=True,
-            datos_crudos=datos_crudos_list,
-            top_10_contactos=top_10_contactos,
+            datos_crudos=resultado.get('datos_crudos', []),
+            top_10_contactos=resultado.get('top_10', []),
             timestamp=datetime.now().isoformat()
         )
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[ERROR] Excepción en análisis Contactos Frecuentes: {type(e).__name__}: {str(e)}")
-        import traceback
-        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        print(f"[ERROR] Excepción en análisis Contactos Frecuentes: {str(e)}")
         return AnalizarContactosFrecuentesResponse(
             success=False,
             error=f"Error al analizar contactos frecuentes: {str(e)}",
