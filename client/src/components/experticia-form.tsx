@@ -158,6 +158,10 @@ export function ExperticiasForm({
   // Controla si el modal expandido de resultados BTS está abierto
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
 
+  // Controla si el modal expandido de contactos frecuentes está abierto
+  const [isContactosTableModalOpen, setIsContactosTableModalOpen] =
+    useState(false);
+
   // Set de índices de filas seleccionadas en la tabla de resultados BTS
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
@@ -1249,7 +1253,7 @@ export function ExperticiasForm({
                   </div>
                 )}
 
-                {/* TABLA 1: Datos Crudos del Excel (6 columnas) */}
+                {/* TABLA 1: Datos Crudos del Excel - RENDERIZADO DINÁMICO */}
                 {contactosFrecuentesState.datosCrudos &&
                   contactosFrecuentesState.datosCrudos.length > 0 && (
                     <div className="space-y-2">
@@ -1262,7 +1266,7 @@ export function ExperticiasForm({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => setIsTableModalOpen(true)}
+                          onClick={() => setIsContactosTableModalOpen(true)}
                           title="Ver tabla completa"
                         >
                           <Eye className="h-4 w-4" />
@@ -1272,121 +1276,27 @@ export function ExperticiasForm({
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="w-10">
-                                <input
-                                  type="checkbox"
-                                  checked={
-                                    selectedRows.size ===
-                                    contactosFrecuentesState.datosCrudos.length
-                                  }
-                                  onChange={() => {
-                                    if (
-                                      selectedRows.size ===
-                                      contactosFrecuentesState.datosCrudos!
-                                        .length
-                                    ) {
-                                      setSelectedRows(new Set());
-                                    } else {
-                                      setSelectedRows(
-                                        new Set(
-                                          contactosFrecuentesState.datosCrudos!.map(
-                                            (_, i) => i
-                                          )
-                                        )
-                                      );
-                                    }
-                                  }}
-                                />
-                              </TableHead>
-                              <TableHead>ABONADO A</TableHead>
-                              <TableHead>Abonado B</TableHead>
-                              <TableHead>Tipo Transacción</TableHead>
-                              <TableHead>Fecha</TableHead>
-                              <TableHead>Hora</TableHead>
-                              <TableHead>Time</TableHead>
-                              <TableHead>BTS-Celda</TableHead>
-                              <TableHead>Dirección A</TableHead>
-                              <TableHead>Dirección B</TableHead>
-                              <TableHead>Coordenadas A</TableHead>
-                              <TableHead>Coordenadas B</TableHead>
-                              {form.getValues("operador") === "digitel" && (
-                                <>
-                                  <TableHead>Orientación A</TableHead>
-                                  <TableHead>Orientación B</TableHead>
-                                </>
-                              )}
-                              <TableHead>IMEI A</TableHead>
-                              <TableHead>IMEI B</TableHead>
+                              {contactosFrecuentesState.datosCrudos.length >
+                                0 &&
+                                Object.keys(
+                                  contactosFrecuentesState.datosCrudos[0]
+                                ).map((col) => (
+                                  <TableHead key={col}>{col}</TableHead>
+                                ))}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {contactosFrecuentesState.datosCrudos.map(
                               (row, index) => (
-                                <TableRow
-                                  key={index}
-                                  className={
-                                    selectedRows.has(index)
-                                      ? "bg-blue-100 dark:bg-blue-900/40"
-                                      : ""
-                                  }
-                                  onClick={() => toggleRowSelection(index)}
-                                >
-                                  <TableCell className="py-1 px-2">
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedRows.has(index)}
-                                      onChange={() => toggleRowSelection(index)}
-                                    />
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["ABONADO A"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["ABONADO B"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["TIPO TRANSACCION"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["FECHA"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["HORA"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["TIME"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["BTS-CELDA"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["DIRECCION_A"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["DIRECCION_B"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["CORDENADAS_A"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["CORDENADAS_B"] || "-"}
-                                  </TableCell>
-                                  {form.getValues("operador") === "digitel" && (
-                                    <>
-                                      <TableCell className="py-1 px-2 text-xs">
-                                        {row["ORIENTACION A"] || "-"}
-                                      </TableCell>
-                                      <TableCell className="py-1 px-2 text-xs">
-                                        {row["ORIENTACION B"] || "-"}
-                                      </TableCell>
-                                    </>
-                                  )}
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["IMEI ABONADO A"] || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {row["IMEI ABONADO B"] || "-"}
-                                  </TableCell>
+                                <TableRow key={index}>
+                                  {Object.keys(row).map((col) => (
+                                    <TableCell
+                                      key={col}
+                                      className="py-1 px-2 text-xs"
+                                    >
+                                      {row[col] || "-"}
+                                    </TableCell>
+                                  ))}
                                 </TableRow>
                               )
                             )}
@@ -1551,6 +1461,45 @@ export function ExperticiasForm({
                         <TableCell className="py-1 px-2 text-xs">
                           {result["CORDENADAS"] || "-"}
                         </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isContactosTableModalOpen}
+        onOpenChange={setIsContactosTableModalOpen}
+      >
+        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>
+              Registros de Comunicación - Vista Completa
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto max-h-[75vh]">
+            {contactosFrecuentesState.datosCrudos &&
+              contactosFrecuentesState.datosCrudos.length > 0 && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {contactosFrecuentesState.datosCrudos.length > 0 &&
+                        Object.keys(
+                          contactosFrecuentesState.datosCrudos[0]
+                        ).map((col) => <TableHead key={col}>{col}</TableHead>)}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contactosFrecuentesState.datosCrudos.map((row, index) => (
+                      <TableRow key={index}>
+                        {Object.keys(row).map((col) => (
+                          <TableCell key={col} className="py-1 px-2 text-xs">
+                            {row[col] || "-"}
+                          </TableCell>
+                        ))}
                       </TableRow>
                     ))}
                   </TableBody>
