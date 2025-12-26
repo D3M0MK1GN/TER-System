@@ -323,17 +323,16 @@ class Exper_Frecuentes:
                         'primera_fecha': fechas[0] if fechas else 'N/A',
                         'ultima_fecha': fechas[-1] if fechas else 'N/A'
                     })
-
+                print(datos_finales_lista[:5])  # Imprime las primeras 5 filas para verificación
                 return {
                     'top_10': resultados_top10,
-                    'datos_crudos': datos_finales_lista[:100] # Aquí van las 15 columnas perfectas
+                    'datos_crudos': datos_finales_lista # Aquí van las 15 columnas perfectas
                 }
 
             except Exception as e:
                 print(f"[ERROR] {str(e)}")
                 return None
 
-    
 # Ejemplo de uso:
 if __name__ == "__main__":
     operador = input("Ingrese la operador (digitel o movistar): ")
