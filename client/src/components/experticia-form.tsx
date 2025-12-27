@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { useRef, useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,7 @@ import {
   Loader2,
   Eye,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
@@ -103,6 +105,7 @@ export function ExperticiasForm({
   const isDuplicating = !!experticia && !experticia.id; // true si estamos duplicando
   const scrollContainerRef = useRef<HTMLFormElement>(null); // Ref para scroll suave del formulario
   const permissions = usePermissions(); // Permisos del usuario (ej: canEditCreationDates)
+  const { toast } = useToast();
 
   /**
    * Estado para la subida de archivos Excel
@@ -161,6 +164,155 @@ export function ExperticiasForm({
   // Controla si el modal expandido de contactos frecuentes está abierto
   const [isContactosTableModalOpen, setIsContactosTableModalOpen] =
     useState(false);
+
+  /**
+   * Estado para la gestión multi-target (múltiples números y archivos)
+   */
+  const [listaAnalisis, setListaAnalisis] = useState<
+    Array<{
+      id: string;
+      numero: string;
+      archivoNombre: string;
+      archivoData: string;
+      operador: string;
+      resultados: {
+        bts?: any[];
+        contactos?: {
+          datosCrudos: any[];
+          top10: any[];
+        };
+      } | null;
+    }>
+  >([]);
+
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  /**
+   * Agrega un nuevo análisis a la lista temporal
+   */
+  const agregarAnalisis = async (
+    numero: string,
+    file: File,
+    operador: string
+  ) => {
+    if (!numero || !file) return;
+
+    if (listaAnalisis.length >= 10) {
+      toast({
+        title: "Límite alcanzado",
+        description: "Solo se permiten hasta 10 registros por experticia.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = (e.target?.result as string).split(",")[1];
+      const nuevoItem = {
+        id: Math.random().toString(36).substr(2, 9),
+        numero,
+        archivoNombre: file.name,
+        archivoData: base64,
+        operador,
+        resultados: null,
+      };
+
+      setListaAnalisis((prev) => [...prev, nuevoItem]);
+      // Si es el primero, lo seleccionamos
+      if (listaAnalisis.length === 0) setSelectedIndex(0);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  /**
+   * Procesa todos los análisis en la lista
+   */
+  const procesarTodosLosAnalisis = async () => {
+    if (listaAnalisis.length === 0) return;
+
+    setBtsAnalysisState((prev) => ({ ...prev, isAnalyzing: true }));
+    setContactosFrecuentesState((prev) => ({ ...prev, isAnalyzing: true }));
+
+    const nuevaLista = [...listaAnalisis];
+
+    for (let i = 0; i < nuevaLista.length; i++) {
+      const item = nuevaLista[i];
+      if (item.resultados) continue; // Ya procesado
+
+      try {
+        if (tipoExperticiaValue === "determinar_contacto_frecuente") {
+          const res = await fetch("/api/analizar-contactos-frecuentes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              archivo_excel: item.archivoNombre,
+              archivo_base64: item.archivoData,
+              numero_buscar: item.numero,
+              operador: item.operador,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            nuevaLista[i].resultados = {
+              contactos: {
+                datosCrudos: data.datos_crudos,
+                top10: data.top_10_contactos,
+              },
+            };
+          }
+        } else {
+          // Lógica para BTS normal
+          const res = await fetch("/api/analizar-bts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              archivo_excel: item.archivoNombre,
+              archivo_base64: item.archivoData,
+              numero_buscar: item.numero,
+              operador: item.operador,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            nuevaLista[i].resultados = { bts: data.data };
+          }
+        }
+      } catch (err) {
+        console.error("Error analizando item:", item.numero, err);
+      }
+    }
+
+    setListaAnalisis(nuevaLista);
+    setBtsAnalysisState((prev) => ({ ...prev, isAnalyzing: false }));
+    setContactosFrecuentesState((prev) => ({ ...prev, isAnalyzing: false }));
+  };
+
+  /**
+   * Hook: Efecto para sincronizar los estados de visualización con el item seleccionado
+   */
+  useEffect(() => {
+    if (selectedIndex !== null && listaAnalisis[selectedIndex]) {
+      const item = listaAnalisis[selectedIndex];
+      if (item.resultados) {
+        if (item.resultados.bts) {
+          setBtsAnalysisState({
+            isAnalyzing: false,
+            results: item.resultados.bts,
+            error: null,
+          });
+        }
+        if (item.resultados.contactos) {
+          setContactosFrecuentesState({
+            isAnalyzing: false,
+            datosCrudos: item.resultados.contactos.datosCrudos,
+            top10Contactos: item.resultados.contactos.top10,
+            error: null,
+          });
+        }
+      }
+    }
+  }, [selectedIndex, listaAnalisis]);
 
   // Set de índices de filas seleccionadas en la tabla de resultados BTS
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
@@ -326,6 +478,11 @@ export function ExperticiasForm({
       filasSeleccionadas,
       datosAnalisis,
       datosSeleccionadosTop10,
+      listaAnalisis: listaAnalisis.map((item) => ({
+        numero: item.numero,
+        archivoNombre: item.archivoNombre,
+        resultados: item.resultados,
+      })),
     } as any;
 
     // Agregar TOP 10 contactos si es análisis de contactos frecuentes (para compatibilidad)
@@ -775,9 +932,29 @@ export function ExperticiasForm({
                       placeholder="Número o identificación del abonado"
                       {...field}
                       value={field.value || ""}
-                      onKeyDown={(e) =>
-                        handleDateInputKeyDown(e, CHAR_PATTERNS.numeric)
-                      }
+                      onKeyDown={(e) => {
+                        // Permitir combinaciones de Ctrl (o Meta en Mac) para copiar, pegar, deshacer, etc.
+                        if (e.ctrlKey || e.metaKey) {
+                          const allowedCtrlKeys = [
+                            "v",
+                            "c",
+                            "x",
+                            "a",
+                            "z",
+                            "y",
+                            "V",
+                            "C",
+                            "X",
+                            "A",
+                            "Z",
+                            "Y",
+                          ];
+                          if (allowedCtrlKeys.includes(e.key)) {
+                            return; // Permitir la acción
+                          }
+                        }
+                        handleDateInputKeyDown(e, CHAR_PATTERNS.numeric);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -792,6 +969,145 @@ export function ExperticiasForm({
                   2. Se dispara automáticamente análisis BTS
                   3. Se muestran resultados en tabla seleccionable
             */}
+            <div className="space-y-3 border rounded-lg p-3 bg-gray-50 dark:bg-gray-900/20">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Tabla de Experticia
+                </h4>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="file"
+                    className="hidden"
+                    id="multi-file-upload"
+                    accept=".xls,.xlsx"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file && abonadoValue) {
+                        agregarAnalisis(
+                          abonadoValue,
+                          file,
+                          form.getValues("operador") || ""
+                        );
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() =>
+                      document.getElementById("multi-file-upload")?.click()
+                    }
+                    disabled={!abonadoValue || listaAnalisis.length >= 10}
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    {listaAnalisis.length >= 10
+                      ? "Límite Alcanzado"
+                      : "Agregar"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={procesarTodosLosAnalisis}
+                    disabled={
+                      listaAnalisis.length === 0 || btsAnalysisState.isAnalyzing
+                    }
+                  >
+                    {btsAnalysisState.isAnalyzing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    ) : (
+                      <Atom className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Analizar Todo
+                  </Button>
+                </div>
+              </div>
+
+              {listaAnalisis.length > 0 && (
+                <div className="border rounded-md overflow-hidden bg-white dark:bg-black shadow-sm">
+                  <Table>
+                    <TableHeader className="bg-muted/30">
+                      <TableRow className="hover:bg-transparent border-b h-8">
+                        <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight px-3">
+                          Número
+                        </TableHead>
+                        <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight px-3">
+                          Archivo
+                        </TableHead>
+                        <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight w-[100px] px-3">
+                          Estado
+                        </TableHead>
+                        <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight w-[50px] text-center px-3">
+                          Acción
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {listaAnalisis.map((item, index) => (
+                        <TableRow
+                          key={item.id}
+                          className={`cursor-pointer transition-colors h-8 border-b last:border-0 ${
+                            selectedIndex === index
+                              ? "bg-blue-50/80 dark:bg-blue-900/20"
+                              : "hover:bg-muted/30"
+                          }`}
+                          onClick={() => setSelectedIndex(index)}
+                        >
+                          <TableCell className="py-1 px-3 font-mono text-[11px] font-medium">
+                            {item.numero}
+                          </TableCell>
+                          <TableCell
+                            className="py-1 px-3 max-w-[180px] truncate text-[11px] text-muted-foreground"
+                            title={item.archivoNombre}
+                          >
+                            {item.archivoNombre}
+                          </TableCell>
+                          <TableCell className="py-1 px-3">
+                            {item.resultados ? (
+                              <Badge
+                                variant="outline"
+                                className="h-5 px-1.5 py-0 text-[9px] font-bold bg-green-50 text-green-700 border-green-200/50 rounded-full"
+                              >
+                                <CheckCircle className="h-2.5 w-2.5 mr-1" />{" "}
+                                LISTO
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="h-5 px-1.5 py-0 text-[9px] font-bold bg-amber-50 text-amber-700 border-amber-200/50 rounded-full"
+                              >
+                                PENDIENTE
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-1 px-3 text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setListaAnalisis((prev) =>
+                                  prev.filter((_, i) => i !== index)
+                                );
+                                if (selectedIndex === index)
+                                  setSelectedIndex(null);
+                              }}
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+
             <FormField
               control={form.control}
               name="archivoAdjunto"
@@ -806,7 +1122,11 @@ export function ExperticiasForm({
                       <Input
                         type="file"
                         accept=".xls,.xlsx"
-                        disabled={!abonadoValue || fileUploadState.isUploading}
+                        disabled={
+                          !abonadoValue ||
+                          fileUploadState.isUploading ||
+                          listaAnalisis.length > 0
+                        }
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
@@ -863,184 +1183,15 @@ export function ExperticiasForm({
 
                                 // Paso 2: Si hay abonado, inicia análisis automático
                                 if (abonadoValue) {
-                                  const tipoExp =
-                                    form.getValues("tipoExperticia");
-                                  const esContactosFrecuentes =
-                                    tipoExp === "determinar_contacto_frecuente";
+                                  // UNIFICACIÓN: Agregar a la tabla de experticia automáticamente
+                                  agregarAnalisis(
+                                    abonadoValue,
+                                    file,
+                                    form.getValues("operador") || ""
+                                  );
 
-                                  if (esContactosFrecuentes) {
-                                    // Análisis de Contactos Frecuentes
-                                    setContactosFrecuentesState({
-                                      isAnalyzing: true,
-                                      datosCrudos: null,
-                                      top10Contactos: null,
-                                      error: null,
-                                    });
-
-                                    try {
-                                      console.log(
-                                        "🚀 [CONTACTOS FRECUENTES] Enviando solicitud de análisis..."
-                                      );
-                                      console.log(
-                                        "   - Ruta archivo:",
-                                        result.archivo.rutaArchivo
-                                      );
-                                      console.log(
-                                        "   - Número a buscar:",
-                                        abonadoValue
-                                      );
-                                      console.log(
-                                        "   - Operador:",
-                                        form.getValues("operador")
-                                      );
-
-                                      const analysisResponse = await fetch(
-                                        "/api/experticias/analizar-contactos-frecuentes",
-                                        {
-                                          method: "POST",
-                                          headers: {
-                                            "Content-Type": "application/json",
-                                            Authorization: `Bearer ${localStorage.getItem(
-                                              "token"
-                                            )}`,
-                                          },
-                                          body: JSON.stringify({
-                                            archivo_excel:
-                                              result.archivo.rutaArchivo,
-                                            numero_buscar: abonadoValue,
-                                            operador:
-                                              form.getValues("operador"),
-                                          }),
-                                        }
-                                      );
-
-                                      console.log(
-                                        "📡 [CONTACTOS FRECUENTES] Respuesta recibida:",
-                                        analysisResponse.status
-                                      );
-
-                                      if (analysisResponse.ok) {
-                                        const analysisResult =
-                                          await analysisResponse.json();
-                                        console.log(
-                                          "✅ [CONTACTOS FRECUENTES] Datos crudos recibidos:",
-                                          analysisResult.datos_crudos?.length ||
-                                            0,
-                                          "registros"
-                                        );
-                                        console.log(
-                                          "✅ [CONTACTOS FRECUENTES] TOP 10 recibidos:",
-                                          analysisResult.top_10_contactos
-                                            ?.length || 0,
-                                          "contactos"
-                                        );
-                                        console.log(
-                                          "📋 Contenido datos_crudos:",
-                                          JSON.stringify(
-                                            analysisResult.datos_crudos,
-                                            null,
-                                            2
-                                          )
-                                        );
-                                        console.log(
-                                          "📋 Contenido top_10_contactos:",
-                                          JSON.stringify(
-                                            analysisResult.top_10_contactos,
-                                            null,
-                                            2
-                                          )
-                                        );
-
-                                        setContactosFrecuentesState({
-                                          isAnalyzing: false,
-                                          datosCrudos:
-                                            analysisResult.datos_crudos || [],
-                                          top10Contactos:
-                                            analysisResult.top_10_contactos ||
-                                            [],
-                                          error: null,
-                                        });
-                                        // Auto-seleccionar todas las filas de datos crudos
-                                        if (analysisResult.datos_crudos) {
-                                          const allIndices: Set<number> =
-                                            new Set(
-                                              analysisResult.datos_crudos.map(
-                                                (_: any, idx: number) => idx
-                                              )
-                                            );
-                                          setSelectedRows(allIndices);
-                                        }
-                                      } else {
-                                        setContactosFrecuentesState({
-                                          isAnalyzing: false,
-                                          datosCrudos: null,
-                                          top10Contactos: null,
-                                          error:
-                                            "Error en el análisis de Contactos Frecuentes",
-                                        });
-                                      }
-                                    } catch (analysisError) {
-                                      setContactosFrecuentesState({
-                                        isAnalyzing: false,
-                                        datosCrudos: null,
-                                        top10Contactos: null,
-                                        error:
-                                          "Error de conexión al analizar Contactos Frecuentes",
-                                      });
-                                    }
-                                  } else {
-                                    // Análisis BTS estándar
-                                    setBtsAnalysisState({
-                                      isAnalyzing: true,
-                                      results: null,
-                                      error: null,
-                                    });
-
-                                    try {
-                                      const analysisResponse = await fetch(
-                                        "/api/experticias/analizar-bts",
-                                        {
-                                          method: "POST",
-                                          headers: {
-                                            "Content-Type": "application/json",
-                                            Authorization: `Bearer ${localStorage.getItem(
-                                              "token"
-                                            )}`,
-                                          },
-                                          body: JSON.stringify({
-                                            archivo_excel:
-                                              result.archivo.rutaArchivo,
-                                            numero_buscar: abonadoValue,
-                                            operador:
-                                              form.getValues("operador"),
-                                          }),
-                                        }
-                                      );
-
-                                      if (analysisResponse.ok) {
-                                        const analysisResult =
-                                          await analysisResponse.json();
-                                        setBtsAnalysisState({
-                                          isAnalyzing: false,
-                                          results: analysisResult.data || [],
-                                          error: null,
-                                        });
-                                      } else {
-                                        setBtsAnalysisState({
-                                          isAnalyzing: false,
-                                          results: null,
-                                          error: "Error en el análisis BTS",
-                                        });
-                                      }
-                                    } catch (analysisError) {
-                                      setBtsAnalysisState({
-                                        isAnalyzing: false,
-                                        results: null,
-                                        error:
-                                          "Error de conexión al analizar BTS",
-                                      });
-                                    }
-                                  }
+                                  // Ya no necesitamos disparar el análisis aquí porque se gestionará desde la tabla
+                                  // o el usuario podrá darle a "Analizar Todo"
                                 }
                               } else {
                                 const errorText = await response.text();
@@ -1103,6 +1254,12 @@ export function ExperticiasForm({
                     Formatos permitidos: XLS, XLSX
                   </p>
                   <FormMessage />
+                  {listaAnalisis.length > 0 && (
+                    <p className="text-xs text-amber-600 mt-1 font-medium">
+                      Carga individual deshabilitada porque hay elementos en la
+                      Lista Multi-Target.
+                    </p>
+                  )}
                 </FormItem>
               )}
             />
