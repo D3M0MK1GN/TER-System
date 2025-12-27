@@ -1,7 +1,7 @@
 import pandas as pd
 from tabulate import tabulate
 from collections import defaultdict
-
+import numpy as np
 
 class Exper_Frecuentes:
 
@@ -42,7 +42,7 @@ class Exper_Frecuentes:
             resultados = resultados[
                 (resultados['DIRECCION'].astype(str).str.strip() != '')
                 & (resultados['DIRECCION'].astype(str).str.strip() != '-') &
-                (resultados['DIRECCION'].astype(str).str.lower() != 'nan')]
+                (resultados['DIRECCION'].astype(str).str.lower() != '-')]
 
             if resultados.empty:
                 print(
@@ -95,7 +95,7 @@ class Exper_Frecuentes:
             resultados = resultados[
                 (resultados['DIRECCION'].astype(str).str.strip() != '')
                 & (resultados['DIRECCION'].astype(str).str.strip() != '-') &
-                (resultados['DIRECCION'].astype(str).str.lower() != 'nan')]
+                (resultados['DIRECCION'].astype(str).str.lower() != '-')]
 
             if resultados.empty:
                 print(
@@ -147,7 +147,7 @@ class Exper_Frecuentes:
             resultados = resultados[
                 (resultados['DIRECCION'].astype(str).str.strip() != '')
                 & (resultados['DIRECCION'].astype(str).str.strip() != '-') &
-                (resultados['DIRECCION'].astype(str).str.lower() != 'nan')]
+                (resultados['DIRECCION'].astype(str).str.lower() != '-')]
 
             if resultados.empty:
                 print(
@@ -164,18 +164,23 @@ class Exper_Frecuentes:
             return resultados
 
     def buscar_numeros_frecuentan(self, archivo_excel: str, numero_objetivo: str, operador: str):
-            try:
-                hojas = pd.ExcelFile(archivo_excel).sheet_names
-                numero_objetivo_str = str(numero_objetivo).strip()
-                operador_key = operador.upper()
+        try:
+            # 1. Carga inicial
+            xls = pd.ExcelFile(archivo_excel)
+            hojas = xls.sheet_names
+            operador_key = operador.upper()
+            
+            # Limpieza inicial del número objetivo
+            numero_objetivo_str = str(numero_objetivo).split('.')[0].strip()
 
-                CONFIG = {
+            # Configuración (se mantiene similar, pero añadimos mapeo de columnas)
+            CONFIG = {
                     'DIGITEL': {
                         'hoja': 'IBM' if 'IBM' in hojas else hojas[0],
                         'salto': 28,
-                        'ABONADO A': 'ABONADO A', 'ABONADO B': 'ABONADO B',
+                        'A': 'ABONADO A', 'B': 'ABONADO B',
                         'mapeo': {
-                            'ABONADO A': 'ABONADO A', 'Abonado B': 'ABONADO B',
+                            'ABONADO A': 'ABONADO A', 'ABONADO B': 'ABONADO B',
                             'Tipo Transacción': 'TIPO DE TRANSACCION', 'Fecha': 'FECHA',
                             'Hora': 'HORA', 'Time': 'SEG', 'BTS-Celda': 'CELDA INICIO ABONADO A',
                             'Orientación A': 'ORIENTACION CELDA INICIO A', 'Orientación B': 'ORIENTACION CELDA INICIO B',
@@ -185,10 +190,10 @@ class Exper_Frecuentes:
                     'MOVISTAR': {
                         'hoja': 'VOZ' if 'VOZ' in hojas else hojas[0],
                         'salto': 14,
-                        'ABONADO A': 'ABONADO_A', 'ABONADO B': 'ABONADO_B',
+                        'A': 'ABONADO_A', 'B': 'ABONADO_B',
                         'mapeo': {
                             'ABONADO A': 'ABONADO_A',
-                            'Abonado B': 'ABONADO_B',
+                            'ABONADO B': 'ABONADO_B',
                             'Fecha': 'FECHA',
                             'Hora': 'HORA',
                             'Time': 'DURACION',
@@ -201,10 +206,10 @@ class Exper_Frecuentes:
                     'MOVILNET': {
                         'hoja': 'RESULTS' if 'RESULTS' in hojas else hojas[0],
                         'salto': 1,
-                        'ABONADO A': 'ASUBS', 'ABONADO B': 'BSUBS',
+                        'A': 'ASUBS', 'B': 'BSUBS',
                         # AGREGAMOS ESTO para que el bucle final encuentre las columnas
                         'mapeo': {
-                            'ABONADO A': 'ABONADO A', 'Abonado B': 'Abonado B',
+                            'ABONADO A': 'ASUBS', 'ABONADO B': 'BSUBS',
                             'Tipo Transacción': 'Tipo Transacción', 'Fecha': 'Fecha',
                             'Hora': 'Hora', 'Time': 'Time', 'BTS-Celda': 'BTS-Celda',
                             'Dirección A': 'Dirección A', 'Coordenadas A': 'Coordenadas A',
@@ -212,127 +217,107 @@ class Exper_Frecuentes:
                         }
                     }
             }
+            conf = CONFIG.get(operador_key, CONFIG['DIGITEL'])
 
-                conf = CONFIG.get(operador_key, CONFIG['DIGITEL'])
+            # Carga de datos
+            datos = pd.read_excel(xls, sheet_name=conf['hoja'], skiprows=conf['salto'])
+            datos.columns = datos.columns.str.strip().str.upper()
 
-                # 1. CARGA (Ahora en el orden correcto)
-                datos = pd.read_excel(archivo_excel, sheet_name=conf['hoja'], skiprows=conf['salto'])
-                datos.columns = datos.columns.str.strip().str.upper()
+            # --- SOLUCIÓN AL PROBLEMA DEL .0 Y LIMPIEZA ---
+            def limpiar_telefonos(serie):
+                # Convierte a string, quita el .0 al final y espacios
+                return serie.astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
 
-                # 3. SEPARACIÓN DINÁMICA DE FECHA Y HORA
-                if 'FECHA Y HORA' in datos.columns:
-                    temp = datos['FECHA Y HORA'].astype(str).str.split(' ', n=1)
-                    datos['FECHA'], datos['HORA'] = temp.str[0], temp.str[1]
+            col_a = conf['A'].upper()
+            col_b = conf['B'].upper()
+            
+            datos[col_a] = limpiar_telefonos(datos[col_a])
+            datos[col_b] = limpiar_telefonos(datos[col_b])
 
-                # 2. TRANSFORMACIONES (Solo después de cargar los datos)
-                if operador_key == 'DIGITEL':
-                    datos['DIRECCIÓN A'] = datos['UBICACION GEOGRAFICA ABONADO A'].fillna('') + " . " + datos['ESTADO INICIO A'].fillna('')
-                    datos['DIRECCIÓN B'] = datos['UBICACION GEOGRAFICA ABONADO B'].fillna('') + " . " + datos['ESTADO INICIO B'].fillna('')
-                    datos['COORDENADAS A'] = datos['LATITUD CELDAD INICIO A'].astype(str) + ", " + datos['LONGITUD CELDA INICIO A'].astype(str)
-                    datos['COORDENADAS B'] = datos['LATITUD CELDA INICIO B'].astype(str) + ", " + datos['LONGITUD CELDA INICIO B'].astype(str)
-                # 2. Lógica de transformación (debajo de la de Digitel)
-                elif operador_key == 'MOVISTAR':
-                    # Tipo Transacción fusionado
-                    datos['Tipo Transacción'] = datos['TIPO_CDR'].fillna('') + " . " + datos['TRANSACCION'].fillna('')                   
-                    # BTS-Celda: Extraer antes del guion (ej: "12345-Ccs" -> "12345")
-                    datos['BTS-Celda'] = datos['DIRECCION_INICIAL_A'].astype(str).str.split('-').str[0]       
-                    # Coordenadas A y B
-                    datos['Coordenadas A'] = datos['LATITUD_INICIAL_A'].astype(str) + ", " + datos['LONGITUD_INICIAL_A'].astype(str)
-                    datos['Coordenadas B'] = datos['LATITUD_INICIAL_B'].astype(str) + ", " + datos['LONGITUD_INICIAL_B'].astype(str)
-                elif operador_key == 'MOVILNET':
-                    def procesar_fila_movilnet(row):
-                        # Como hiciste .upper() arriba, buscamos en MAYÚSCULAS
-                        duracion_original = str(row.get('DURACIÓN', '')).upper()
-                        num_a = str(row.get('ASUBS', '')).strip()
-                        
-                        sentido = "SALIENTE" if num_a == numero_objetivo_str else "ENTRANTE"
-                        
-                        if "SMS" in duracion_original:
-                            time_limpio = duracion_original.replace("SMS", "").strip()
-                            tipo = f"SMS {sentido}"
-                        else:
-                            time_limpio = duracion_original
-                            tipo = f"LLAMADA {sentido}"
-                            
-                        return pd.Series([tipo, time_limpio])
+            # --- SOLUCIÓN AL CONGELAMIENTO (VECTORIZACIÓN) ---
+            # Filtramos solo las filas que nos interesan de golpe (sin iterrows)
+            mask = (datos[col_a] == numero_objetivo_str) | (datos[col_b] == numero_objetivo_str)
+            datos_interes = datos[mask].copy()
 
-                    # Aplicamos a 'datos' (no df)
-                    datos[['Tipo Transacción', 'Time']] = datos.apply(procesar_fila_movilnet, axis=1)
+            if datos_interes.empty:
+                return {'top_10': [], 'datos_crudos': []}
 
-                    # MAPEAMOS CON LOS NOMBRES EXACTOS QUE BUSCA LA TABLA (Dirección A, Coordenadas A)
-                    datos['ABONADO A'] = datos.get('ASUBS', '')
-                    datos['Abonado B'] = datos.get('BSUBS', '')
-                    datos['Fecha'] = datos.get('FECHA', '')
-                    datos['Hora'] = datos.get('HORA', '')
-                    datos['BTS-Celda'] = datos.get('IROUTE', '')
-                    datos['Dirección A'] = datos.get('DIROUTE', '') # Agregamos el ' A'
-                    datos['Coordenadas A'] = datos.get('LAT_LON_IROUTE', '') # Agregamos el ' A'
-                    datos['IMEI A'] = datos.get('IMEI A', '')
-                    datos['IMEI B'] = datos.get('IMEI B', '')
-                
-                # 3. CONSTRUCCIÓN DE LA TABLA FINAL DE 15 COLUMNAS
-                cabeceras_tabla = [
-                    'ABONADO A', 'Abonado B', 'Tipo Transacción', 'Fecha', 'Hora', 'Time', 
-                    'BTS-Celda', 'Dirección A', 'Dirección B', 'Coordenadas A', 'Coordenadas B', 
-                    'Orientación A', 'Orientación B', 'IMEI A', 'IMEI B'
-                ]
+            # Identificar quién es el "Contacto" (el que no es el objetivo) de forma vectorial
+            datos_interes['CONTACTO'] = np.where(
+                datos_interes[col_a] == numero_objetivo_str, 
+                datos_interes[col_b], 
+                datos_interes[col_a]
+            )
 
-                datos_finales_lista = []
-                numeros_contacto = defaultdict(int)
-                contactos_detalle = defaultdict(list)
-                
-                col_a_key, col_b_key = conf['ABONADO A'], conf['ABONADO B']
+           # 1. Separación de Fecha y Hora (Si vienen juntas)
+            if 'FECHA Y HORA' in datos_interes.columns:
+                temp = datos_interes['FECHA Y HORA'].astype(str).str.split(' ', n=1, expand=True)
+                datos_interes['FECHA'] = temp[0]
+                datos_interes['HORA'] = temp[1]
 
-                for _, row in datos.iterrows():
-                    # Crear fila para la tabla del JSON
-                    fila_tabla = {}
-                    for cab in cabeceras_tabla:
-                        # Si es Digitel y es una columna de las que unimos arriba
-                        if operador_key == 'DIGITEL' and cab.upper() in datos.columns:
-                            fila_tabla[cab] = row[cab.upper()]
-                        # Si está en el mapeo
-                        elif 'mapeo' in conf and cab in conf['mapeo']:
-                            fila_tabla[cab] = row.get(conf['mapeo'][cab], "")
-                        else:
-                            fila_tabla[cab] = "" # Columna vacía si no existe para ese operador
-                    
-                    datos_finales_lista.append(fila_tabla)
+            if operador_key == 'DIGITEL':
+                datos_interes['Dirección A'] = datos_interes['UBICACION GEOGRAFICA ABONADO A'].fillna('') + " . " + datos_interes['ESTADO INICIO A'].fillna('')
+                datos_interes['Dirección B'] = datos_interes['UBICACION GEOGRAFICA ABONADO B'].fillna('') + " . " + datos_interes['ESTADO INICIO B'].fillna('')
+                datos_interes['Coordenadas A'] = datos_interes['LATITUD CELDAD INICIO A'].astype(str) + ", " + datos_interes['LONGITUD CELDA INICIO A'].astype(str)
+                datos_interes['Coordenadas B'] = datos_interes['LATITUD CELDA INICIO B'].astype(str) + ", " + datos_interes['LONGITUD CELDA INICIO B'].astype(str)
 
-                    # 4. LÓGICA DE FRECUENCIA
-                    val_a = str(row.get(col_a_key, '')).strip()
-                    val_b = str(row.get(col_b_key, '')).strip()
-                    fecha = row.get('FECHA', 'N/A')
+            elif operador_key == 'MOVISTAR':
+                datos_interes['Tipo Transacción'] = datos_interes['TIPO_CDR'].fillna('') + " . " + datos_interes['TRANSACCION'].fillna('')
+                datos_interes['BTS-Celda'] = datos_interes['DIRECCION_INICIAL_A'].astype(str).str.split('-').str[0]
+                datos_interes['Coordenadas A'] = datos_interes['LATITUD_INICIAL_A'].astype(str) + ", " + datos_interes['LONGITUD_INICIAL_A'].astype(str)
+                datos_interes['Coordenadas B'] = datos_interes['LATITUD_INICIAL_B'].astype(str) + ", " + datos_interes['LONGITUD_INICIAL_B'].astype(str)
 
-                    if val_a == numero_objetivo_str and val_b:
-                        contacto = val_b
-                    elif val_b == numero_objetivo_str and val_a:
-                        contacto = val_a
-                    else:
-                        continue
+            elif operador_key == 'MOVILNET':
+                # (Aquí mantienes la lógica de SMS que ya tenías)
+                es_sms = datos_interes['DURACIÓN'].astype(str).str.upper().str.contains('SMS')
+                es_saliente = datos_interes[col_a] == numero_objetivo_str
+                datos_interes['TIPO TRANSACCIÓN'] = np.where(
+                    es_sms, 
+                    np.where(es_saliente, "SMS SALIENTE", "SMS ENTRANTE"),
+                    np.where(es_saliente, "LLAMADA SALIENTE", "LLAMADA ENTRANTE")
+                )
+                datos_interes['TIME'] = datos_interes['DURACIÓN'].astype(str).str.replace('SMS', '', case=False).str.strip()
+            # --- CÁLCULO DE FRECUENCIAS (SÚPER RÁPIDO) ---
+            frecuencias = datos_interes.groupby('CONTACTO').agg(
+                frecuencia=('CONTACTO', 'size'),
+                primera_fecha=('FECHA', 'min'),
+                ultima_fecha=('FECHA', 'max')
+            ).reset_index().sort_values(by='frecuencia', ascending=False)
 
-                    numeros_contacto[contacto] += 1
-                    contactos_detalle[contacto].append(fecha)
+            top_10_list = frecuencias.head(10).rename(columns={'CONTACTO': 'numero'}).to_dict('records')
 
-                # 5. RETORNO DE RESULTADOS
-                top_10 = sorted(numeros_contacto.items(), key=lambda x: x[1], reverse=True)[:10]
-                resultados_top10 = []
-                for numero, frecuencia in top_10:
-                    fechas = sorted([str(f) for f in contactos_detalle[numero]])
-                    resultados_top10.append({
-                        'numero': numero, 'frecuencia': frecuencia,
-                        'primera_fecha': fechas[0] if fechas else 'N/A',
-                        'ultima_fecha': fechas[-1] if fechas else 'N/A'
-                    })
-                print(datos_finales_lista[:5])  # Imprime las primeras 5 filas para verificación
-                return {
-                    'top_10': resultados_top10,
-                    'datos_crudos': datos_finales_lista # Aquí van las 15 columnas perfectas
-                }
+            # --- PREPARACIÓN DE TABLA FINAL ---
+        
+            # 1. Creamos un mapeo inverso para convertir nombres reales a nombres legibles
+            # Esto convierte {'ABONADO A': 'ASUBS'} -> {'ASUBS': 'ABONADO A'}
+            mapeo_inverso = {str(v).upper(): k for k, v in conf['mapeo'].items()}
+            
+            # 2. Renombramos las columnas del DataFrame de golpe
+            datos_finales = datos_interes.rename(columns=mapeo_inverso)
 
-            except Exception as e:
-                print(f"[ERROR] {str(e)}")
-                return None
+            # 3. Definimos las columnas que queremos en el JSON (exactamente como están en las llaves del mapeo)
+            cabeceras_tabla = [
+                'ABONADO A', 'ABONADO B', 'Tipo Transacción', 'Fecha', 'Hora', 'Time',
+                'BTS-Celda', 'Dirección A', 'Dirección B', 'Coordenadas A', 'Coordenadas B',
+                'Orientación A', 'Orientación B', 'IMEI A', 'IMEI B'
+            ]
 
+            
+            # 4. Reindexamos para asegurar el orden y limpiamos nulos
+            # Si una columna no existe en ese operador, aparecerá vacía en lugar de dar error
+            datos_finales_lista = datos_finales.reindex(columns=cabeceras_tabla).fillna("").to_dict('records')
+            
+            print(f"[DEBUG BTS] Primera fila procesada: {datos_finales_lista[0] if datos_finales_lista else 'VACIO'}")
+            
+            return {
+                'top_10': top_10_list,
+                'datos_crudos': datos_finales_lista
+            }
+
+        except Exception as e:
+            print(f"[ERROR] {str(e)}")
+            return None
+       
 # Ejemplo de uso:
 if __name__ == "__main__":
     operador = input("Ingrese la operador (digitel o movistar): ")
@@ -340,3 +325,5 @@ if __name__ == "__main__":
     numero = input("Ingrese el número a buscar en la columna ABONADO B: ")
     identificador = Exper_Frecuentes()
     identificador.buscar_por_abonado_b(archivo, numero, operador)
+
+
