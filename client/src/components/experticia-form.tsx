@@ -226,6 +226,108 @@ export function ExperticiasForm({
   };
 
   /**
+   * Procesa un archivo adjunto directamente sin agregarlo a la tabla de experticia
+   */
+  const procesarArchivoAdjuntoDirecto = async (
+    numero: string,
+    rutaArchivo: string,
+    operador: string
+  ) => {
+    if (!numero || !rutaArchivo) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      if (tipoExperticiaValue === "determinar_contacto_frecuente") {
+        // Limpiar análisis BTS
+        setBtsAnalysisState({
+          isAnalyzing: false,
+          results: null,
+          error: null,
+        });
+
+        const res = await fetch(
+          "/api/experticias/analizar-contactos-frecuentes",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              archivo_excel: rutaArchivo,
+              numero_buscar: numero,
+              operador: operador,
+            }),
+          }
+        );
+        const data = await res.json();
+        if (data.success) {
+          setContactosFrecuentesState({
+            isAnalyzing: false,
+            datosCrudos: data.datos_crudos,
+            top10Contactos: data.top_10_contactos,
+            error: null,
+          });
+        } else {
+          setContactosFrecuentesState({
+            isAnalyzing: false,
+            datosCrudos: null,
+            top10Contactos: null,
+            error: data.message || "Error en análisis de contactos",
+          });
+        }
+      } else {
+        // Limpiar análisis de Contactos Frecuentes
+        setContactosFrecuentesState({
+          isAnalyzing: false,
+          datosCrudos: null,
+          top10Contactos: null,
+          error: null,
+        });
+
+        const res = await fetch("/api/experticias/analizar-bts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            archivo_excel: rutaArchivo,
+            numero_buscar: numero,
+            operador: operador,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setBtsAnalysisState({
+            isAnalyzing: false,
+            results: data.data,
+            error: null,
+          });
+        } else {
+          setBtsAnalysisState({
+            isAnalyzing: false,
+            results: null,
+            error: data.message || "Error en análisis BTS",
+          });
+        }
+      }
+    } catch (err) {
+      setBtsAnalysisState({
+        isAnalyzing: false,
+        results: null,
+        error: "Error procesando archivo",
+      });
+      setContactosFrecuentesState({
+        isAnalyzing: false,
+        datosCrudos: null,
+        top10Contactos: null,
+        error: "Error procesando archivo",
+      });
+    }
+  };
+
+  /**
    * Procesa todos los análisis en la lista
    */
   const procesarTodosLosAnalisis = async () => {
@@ -241,10 +343,14 @@ export function ExperticiasForm({
       if (item.resultados) continue; // Ya procesado
 
       try {
+        const token = localStorage.getItem("token");
         if (tipoExperticiaValue === "determinar_contacto_frecuente") {
           const res = await fetch("/api/analizar-contactos-frecuentes", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               archivo_excel: item.archivoNombre,
               archivo_base64: item.archivoData,
@@ -265,7 +371,10 @@ export function ExperticiasForm({
           // Lógica para BTS normal
           const res = await fetch("/api/analizar-bts", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               archivo_excel: item.archivoNombre,
               archivo_base64: item.archivoData,
@@ -425,16 +534,9 @@ export function ExperticiasForm({
   });
 
   /**
-   * Observa cambios en el campo "abonado" en tiempo real
-   * Se usa para habilitar/deshabilitar la subida de archivos
-   * (solo permite subir si hay un número de abonado ingresado)
+   * Observa cambios en los campos del formulario para habilitación de controles
    */
   const abonadoValue = form.watch("abonado");
-
-  /**
-   * Observa cambios en el campo "tipoExperticia" en tiempo real
-   * Se usa para determinar qué tipo de análisis ejecutar
-   */
   const tipoExperticiaValue = form.watch("tipoExperticia");
 
   /**
@@ -962,151 +1064,153 @@ export function ExperticiasForm({
               )}
             />
 
-            {/* Campo: Subida de archivo Excel
-                - Solo se habilita si hay un número de abonado ingresado
-                - Tras subir el archivo:
-                  1. Se envía al servidor para almacenamiento
-                  2. Se dispara automáticamente análisis BTS
-                  3. Se muestran resultados en tabla seleccionable
+            {/* Campo: Tabla de Multi-Target
+                SOLO se muestra para Contactos Frecuentes
+                - Permite agregar múltiples archivos
+                - Analizar todos en paralelo
+                - Tabla de progreso
             */}
-            <div className="space-y-3 border rounded-lg p-3 bg-gray-50 dark:bg-gray-900/20">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Tabla de Experticia
-                </h4>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    type="file"
-                    className="hidden"
-                    id="multi-file-upload"
-                    accept=".xls,.xlsx"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file && abonadoValue) {
-                        agregarAnalisis(
-                          abonadoValue,
-                          file,
-                          form.getValues("operador") || ""
-                        );
+            {tipoExperticiaValue === "determinar_contacto_frecuente" && (
+              <div className="space-y-3 border rounded-lg p-3 bg-gray-50 dark:bg-gray-900/20">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Tabla de Experticia - Multi-Target
+                  </h4>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      type="file"
+                      className="hidden"
+                      id="multi-file-upload"
+                      accept=".xls,.xlsx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && abonadoValue) {
+                          agregarAnalisis(
+                            abonadoValue,
+                            file,
+                            form.getValues("operador") || ""
+                          );
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() =>
+                        document.getElementById("multi-file-upload")?.click()
                       }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={() =>
-                      document.getElementById("multi-file-upload")?.click()
-                    }
-                    disabled={!abonadoValue || listaAnalisis.length >= 10}
-                  >
-                    <Upload className="h-3.5 w-3.5 mr-1.5" />
-                    {listaAnalisis.length >= 10
-                      ? "Límite Alcanzado"
-                      : "Agregar"}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={procesarTodosLosAnalisis}
-                    disabled={
-                      listaAnalisis.length === 0 || btsAnalysisState.isAnalyzing
-                    }
-                  >
-                    {btsAnalysisState.isAnalyzing ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                    ) : (
-                      <Atom className="h-3.5 w-3.5 mr-1.5" />
-                    )}
-                    Analizar Todo
-                  </Button>
+                      disabled={!abonadoValue || listaAnalisis.length >= 10}
+                    >
+                      <Upload className="h-3.5 w-3.5 mr-1.5" />
+                      {listaAnalisis.length >= 10
+                        ? "Límite Alcanzado"
+                        : "Agregar"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={procesarTodosLosAnalisis}
+                      disabled={
+                        listaAnalisis.length === 0 ||
+                        btsAnalysisState.isAnalyzing
+                      }
+                    >
+                      {btsAnalysisState.isAnalyzing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      ) : (
+                        <Atom className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Analizar Todo
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              {listaAnalisis.length > 0 && (
-                <div className="border rounded-md overflow-hidden bg-white dark:bg-black shadow-sm">
-                  <Table>
-                    <TableHeader className="bg-muted/30">
-                      <TableRow className="hover:bg-transparent border-b h-8">
-                        <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight px-3">
-                          Número
-                        </TableHead>
-                        <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight px-3">
-                          Archivo
-                        </TableHead>
-                        <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight w-[100px] px-3">
-                          Estado
-                        </TableHead>
-                        <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight w-[50px] text-center px-3">
-                          Acción
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {listaAnalisis.map((item, index) => (
-                        <TableRow
-                          key={item.id}
-                          className={`cursor-pointer transition-colors h-8 border-b last:border-0 ${
-                            selectedIndex === index
-                              ? "bg-blue-50/80 dark:bg-blue-900/20"
-                              : "hover:bg-muted/30"
-                          }`}
-                          onClick={() => setSelectedIndex(index)}
-                        >
-                          <TableCell className="py-1 px-3 font-mono text-[11px] font-medium">
-                            {item.numero}
-                          </TableCell>
-                          <TableCell
-                            className="py-1 px-3 max-w-[180px] truncate text-[11px] text-muted-foreground"
-                            title={item.archivoNombre}
-                          >
-                            {item.archivoNombre}
-                          </TableCell>
-                          <TableCell className="py-1 px-3">
-                            {item.resultados ? (
-                              <Badge
-                                variant="outline"
-                                className="h-5 px-1.5 py-0 text-[9px] font-bold bg-green-50 text-green-700 border-green-200/50 rounded-full"
-                              >
-                                <CheckCircle className="h-2.5 w-2.5 mr-1" />{" "}
-                                LISTO
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="h-5 px-1.5 py-0 text-[9px] font-bold bg-amber-50 text-amber-700 border-amber-200/50 rounded-full"
-                              >
-                                PENDIENTE
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-1 px-3 text-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setListaAnalisis((prev) =>
-                                  prev.filter((_, i) => i !== index)
-                                );
-                                if (selectedIndex === index)
-                                  setSelectedIndex(null);
-                              }}
-                            >
-                              <XCircle className="h-3.5 w-3.5" />
-                            </Button>
-                          </TableCell>
+                {listaAnalisis.length > 0 && (
+                  <div className="border rounded-md overflow-hidden bg-white dark:bg-black shadow-sm">
+                    <Table>
+                      <TableHeader className="bg-muted/30">
+                        <TableRow className="hover:bg-transparent border-b h-8">
+                          <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight px-3">
+                            Número
+                          </TableHead>
+                          <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight px-3">
+                            Archivo
+                          </TableHead>
+                          <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight w-[100px] px-3">
+                            Estado
+                          </TableHead>
+                          <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight w-[50px] text-center px-3">
+                            Acción
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </div>
+                      </TableHeader>
+                      <TableBody>
+                        {listaAnalisis.map((item, index) => (
+                          <TableRow
+                            key={item.id}
+                            className={`cursor-pointer transition-colors h-8 border-b last:border-0 ${
+                              selectedIndex === index
+                                ? "bg-blue-50/80 dark:bg-blue-900/20"
+                                : "hover:bg-muted/30"
+                            }`}
+                            onClick={() => setSelectedIndex(index)}
+                          >
+                            <TableCell className="py-1 px-3 font-mono text-[11px] font-medium">
+                              {item.numero}
+                            </TableCell>
+                            <TableCell
+                              className="py-1 px-3 max-w-[180px] truncate text-[11px] text-muted-foreground"
+                              title={item.archivoNombre}
+                            >
+                              {item.archivoNombre}
+                            </TableCell>
+                            <TableCell className="py-1 px-3">
+                              {item.resultados ? (
+                                <Badge
+                                  variant="outline"
+                                  className="h-5 px-1.5 py-0 text-[9px] font-bold bg-green-50 text-green-700 border-green-200/50 rounded-full"
+                                >
+                                  <CheckCircle className="h-2.5 w-2.5 mr-1" />{" "}
+                                  LISTO
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="h-5 px-1.5 py-0 text-[9px] font-bold bg-amber-50 text-amber-700 border-amber-200/50 rounded-full"
+                                >
+                                  PENDIENTE
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-3 text-center">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setListaAnalisis((prev) =>
+                                    prev.filter((_, i) => i !== index)
+                                  );
+                                  if (selectedIndex === index)
+                                    setSelectedIndex(null);
+                                }}
+                              >
+                                <XCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            )}
 
             <FormField
               control={form.control}
@@ -1181,17 +1285,13 @@ export function ExperticiasForm({
                                   error: null,
                                 });
 
-                                // Paso 2: Si hay abonado, inicia análisis automático
+                                // Paso 2: Si hay abonado, inicia análisis automático directamente
                                 if (abonadoValue) {
-                                  // UNIFICACIÓN: Agregar a la tabla de experticia automáticamente
-                                  agregarAnalisis(
+                                  procesarArchivoAdjuntoDirecto(
                                     abonadoValue,
-                                    file,
+                                    result.archivo.rutaArchivo,
                                     form.getValues("operador") || ""
                                   );
-
-                                  // Ya no necesitamos disparar el análisis aquí porque se gestionará desde la tabla
-                                  // o el usuario podrá darle a "Analizar Todo"
                                 }
                               } else {
                                 const errorText = await response.text();
