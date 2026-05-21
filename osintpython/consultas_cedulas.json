@@ -1667,5 +1667,321 @@
         "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
         "error": "500 Server Error: Internal Server Error for url: http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=28609925",
         "success": false
+    },
+    {
+        "timestamp": "2026-02-10T12:28:24.920839",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "1881172",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=64c2f1ca6f9abe04b74e386638816573&nacionalidad=V&cedula=1881172",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "INVALID_TOKEN"
+        }
+    },
+    {
+        "timestamp": "2026-02-10T12:36:35.056998",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "25421521",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1184&token=772cbdd0067ea0d6af8601d0ccbd3ba3&nacionalidad=V&cedula=25421521",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "INVALID_TOKEN"
+        }
+    },
+    {
+        "timestamp": "2026-02-10T12:37:37.732168",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "25421521",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=25421521",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 25421521,
+                "fecha_nac": "1994-06-12",
+                "rif": "V254215216",
+                "primer_apellido": "BAEZ",
+                "segundo_apellido": "BEJARANO",
+                "primer_nombre": "SANTIAGO",
+                "segundo_nombre": "ANDRES",
+                "request_date": "2026-02-10T16:37:37.679Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-03-07T13:05:30.031425",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "30129873",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=30129873",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 30129873,
+                "fecha_nac": "2003-05-20",
+                "rif": "V301298737",
+                "primer_apellido": "GUTIERREZ",
+                "segundo_apellido": "URDANETA",
+                "primer_nombre": "NEHIKER",
+                "segundo_nombre": "SAID",
+                "request_date": "2026-03-07T17:05:29.989Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-03-22T22:54:06.175732",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "14540204",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=14540204",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 14540204,
+                "fecha_nac": "1978-04-24",
+                "rif": "V145402049",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "JIMENEZ",
+                    "parroquia": "JUAN B RODRIGUEZ",
+                    "centro_electoral": "UNIDAD EDUCATIVA NACIONAL MAESTRO ORLANDO RAMON JIMENEZ"
+                },
+                "primer_apellido": "FLORES",
+                "segundo_apellido": "MARTINEZ",
+                "primer_nombre": "FIDELIA",
+                "segundo_nombre": "ANTONIA",
+                "request_date": "2026-03-23T02:54:06.128Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-04-27T09:07:34.964388",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "34171378",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=34171378",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2026-04-27T09:09:18.552801",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "22202239",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=22202239",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 22202239,
+                "fecha_nac": "1992-08-15",
+                "rif": "V222022394",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "JIMENEZ",
+                    "parroquia": "JUAN B RODRIGUEZ",
+                    "centro_electoral": "UNIDAD EDUCATIVA NACIONAL TOMAS LISCANO"
+                },
+                "primer_apellido": "RODRIGUEZ",
+                "segundo_apellido": "RIVAS",
+                "primer_nombre": "YOLIBEL",
+                "segundo_nombre": "YOSELIN",
+                "request_date": "2026-04-27T13:09:18.921Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-04-29T17:31:16.026067",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "18720077",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=18720077",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 18720077,
+                "fecha_nac": "1989-10-11",
+                "rif": "V187200772",
+                "primer_apellido": "CHACON",
+                "segundo_apellido": "RODRIGUEZ",
+                "primer_nombre": "SHARON",
+                "segundo_nombre": "ANDREINA",
+                "request_date": "2026-04-29T21:31:15.980Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-04-29T23:13:43.194397",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "24159804",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=24159804",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 24159804,
+                "fecha_nac": "1992-07-13",
+                "rif": "V241598043",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "PALAVECINO",
+                    "parroquia": "JOSE G. BASTIDAS",
+                    "centro_electoral": "ESCUELA BOLIVARIANA DOCTOR JUAN DE DIOS PONTE"
+                },
+                "primer_apellido": "BIGOTT",
+                "segundo_apellido": "BIGOTT",
+                "primer_nombre": "LEONARDO",
+                "segundo_nombre": "GOETHE",
+                "request_date": "2026-04-30T03:13:43.144Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-04-30T01:22:43.398423",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "33034166",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=33034166",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2026-05-02T13:18:51.298432",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "24159804",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=24159804",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 24159804,
+                "fecha_nac": "1992-07-13",
+                "rif": "V241598043",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "PALAVECINO",
+                    "parroquia": "JOSE G. BASTIDAS",
+                    "centro_electoral": "ESCUELA BOLIVARIANA DOCTOR JUAN DE DIOS PONTE"
+                },
+                "primer_apellido": "BIGOTT",
+                "segundo_apellido": "BIGOTT",
+                "primer_nombre": "LEONARDO",
+                "segundo_nombre": "GOETHE",
+                "request_date": "2026-05-02T17:18:51.227Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-05-02T13:21:02.229582",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "18720077",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=18720077",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 18720077,
+                "fecha_nac": "1989-10-11",
+                "rif": "V187200772",
+                "primer_apellido": "CHACON",
+                "segundo_apellido": "RODRIGUEZ",
+                "primer_nombre": "SHARON",
+                "segundo_nombre": "ANDREINA",
+                "request_date": "2026-05-02T17:21:02.163Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-05-03T15:27:45.566830",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "24159804",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=24159804",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 24159804,
+                "fecha_nac": "1992-07-13",
+                "rif": "V241598043",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "PALAVECINO",
+                    "parroquia": "JOSE G. BASTIDAS",
+                    "centro_electoral": "ESCUELA BOLIVARIANA DOCTOR JUAN DE DIOS PONTE"
+                },
+                "primer_apellido": "BIGOTT",
+                "segundo_apellido": "BIGOTT",
+                "primer_nombre": "LEONARDO",
+                "segundo_nombre": "GOETHE",
+                "request_date": "2026-05-03T19:27:45.511Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-05-21T10:46:52.170447",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "27737640",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=27737640",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2026-05-21T10:47:05.437524",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=28609925",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28609925,
+                "fecha_nac": "2001-06-26",
+                "rif": "V286099250",
+                "primer_apellido": "JIMENEZ",
+                "segundo_apellido": "MENDOZA",
+                "primer_nombre": "RAUL",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2026-05-21T14:47:06.385Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-05-21T10:47:27.172547",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "23566678",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=23566678",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 23566678,
+                "fecha_nac": "1995-08-09",
+                "rif": "V235666789",
+                "primer_apellido": "CASTILLO",
+                "segundo_apellido": "SUAREZ",
+                "primer_nombre": "ABELARDO",
+                "segundo_nombre": "GABRIEL",
+                "request_date": "2026-05-21T14:47:28.130Z"
+            }
+        }
     }
 ]

@@ -27,8 +27,8 @@ try:
 except ImportError as e:
     print(f"Error importando infoI.py: {e}")
     # Valores por defecto si no se puede importar
-    APP_ID = "1184"
-    TOKEN = "64c2f1ca6f9abe04b74e386638816573"
+    APP_ID = "1966"
+    TOKEN = "f82f78de1c215aae3d0c30a4e020b561"
     BASE_URL = "http://api.cedula.com.ve/api/v1"
     LOG_FILE = "consultas_cedulas.json"
 
@@ -435,13 +435,13 @@ async def obtener_estadisticas():
 
 if __name__ == "__main__":
     print("[LOG] 🚀 Iniciando TER-System OSINT API...")
-    print("[LOG] 📍 Servidor corriendo en: http://localhost:8000")
-    print("[LOG] 📖 Documentación disponible en: http://localhost:8000/docs")
+    print("[LOG] 📍 Servidor corriendo en: http://localhost:8001")
+    print("[LOG] 📖 Documentación disponible en: http://localhost:8001/docs")
     
     uvicorn.run(
         "api_restful:app",
         host="0.0.0.0",
-        port=8000,
+        port=8001,
         reload=True,
         log_level="info"
     )

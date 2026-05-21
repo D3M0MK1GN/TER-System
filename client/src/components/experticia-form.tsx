@@ -143,18 +143,18 @@ export function ExperticiasForm({
    * Estado para los resultados del análisis de Contactos Frecuentes
    * - isAnalyzing: true mientras se procesa el archivo
    * - datosCrudos: array de filas del Excel (primeras 6 columnas)
-   * - top10Contactos: TOP 10 números con mayor frecuencia
+   * - todosLosContactos: todos los números con mayor frecuencia de comunicación
    * - error: mensaje de error si el análisis falla
    */
   const [contactosFrecuentesState, setContactosFrecuentesState] = useState<{
     isAnalyzing: boolean;
     datosCrudos: any[] | null;
-    top10Contactos: any[] | null;
+    todosLosContactos: any[] | null;
     error: string | null;
   }>({
     isAnalyzing: false,
     datosCrudos: null,
-    top10Contactos: null,
+    todosLosContactos: null,
     error: null,
   });
 
@@ -265,14 +265,14 @@ export function ExperticiasForm({
           setContactosFrecuentesState({
             isAnalyzing: false,
             datosCrudos: data.datos_crudos,
-            top10Contactos: data.top_10_contactos,
+            todosLosContactos: data.todos_los_contactos,
             error: null,
           });
         } else {
           setContactosFrecuentesState({
             isAnalyzing: false,
             datosCrudos: null,
-            top10Contactos: null,
+            todosLosContactos: null,
             error: data.message || "Error en análisis de contactos",
           });
         }
@@ -281,7 +281,7 @@ export function ExperticiasForm({
         setContactosFrecuentesState({
           isAnalyzing: false,
           datosCrudos: null,
-          top10Contactos: null,
+          todosLosContactos: null,
           error: null,
         });
 
@@ -321,7 +321,7 @@ export function ExperticiasForm({
       setContactosFrecuentesState({
         isAnalyzing: false,
         datosCrudos: null,
-        top10Contactos: null,
+        todosLosContactos: null,
         error: "Error procesando archivo",
       });
     }
@@ -363,7 +363,7 @@ export function ExperticiasForm({
             nuevaLista[i].resultados = {
               contactos: {
                 datosCrudos: data.datos_crudos,
-                top10: data.top_10_contactos,
+                todosLosContactos: data.todos_los_contactos,
               },
             };
           }
@@ -415,7 +415,7 @@ export function ExperticiasForm({
           setContactosFrecuentesState({
             isAnalyzing: false,
             datosCrudos: item.resultados.contactos.datosCrudos,
-            top10Contactos: item.resultados.contactos.top10,
+            todosLosContactos: item.resultados.contactos.todosLosContactos,
             error: null,
           });
         }
@@ -587,9 +587,9 @@ export function ExperticiasForm({
       })),
     } as any;
 
-    // Agregar TOP 10 contactos si es análisis de contactos frecuentes (para compatibilidad)
+    // Agregar contactos si es análisis de contactos frecuentes (para compatibilidad)
     if (tipoExperticiaValue === "determinar_contacto_frecuente") {
-      submitData.top10Contactos = contactosFrecuentesState.top10Contactos;
+      submitData.todosLosContactos = contactosFrecuentesState.todosLosContactos;
     }
 
     onSubmit(submitData);
@@ -1481,13 +1481,9 @@ export function ExperticiasForm({
               </div>
             )}
 
-            {/* SECCIÓN: Resultados del análisis de Contactos Frecuentes
-                Muestra DOS tablas:
-                1. Datos crudos del Excel (primeras 6 columnas) con selección de filas
-                2. TOP 10 contactos más frecuentes con estadísticas */}
             {(contactosFrecuentesState.isAnalyzing ||
               contactosFrecuentesState.datosCrudos ||
-              contactosFrecuentesState.top10Contactos ||
+              contactosFrecuentesState.todosLosContactos ||
               contactosFrecuentesState.error) && (
               <div className="space-y-4 border-t pt-4">
                 <h4 className="text-md font-medium">
@@ -1563,53 +1559,156 @@ export function ExperticiasForm({
                     </div>
                   )}
 
-                {/* TABLA 2: TOP 10 Contactos Frecuentes */}
-                {contactosFrecuentesState.top10Contactos &&
-                  contactosFrecuentesState.top10Contactos.length > 0 && (
+                {/* TABLA 2: Todos los Contactos Frecuentes */}
+                {contactosFrecuentesState.todosLosContactos &&
+                  contactosFrecuentesState.todosLosContactos.length > 0 && (
                     <div className="space-y-2 mt-4">
                       <h5 className="text-sm font-medium text-blue-700">
-                        TOP 10 Contactos Más Frecuentes
+                        Contactos Frecuentes
                       </h5>
                       <div className="max-h-64 overflow-y-auto border rounded-lg border-blue-200">
                         <Table>
                           <TableHeader className="bg-blue-50">
                             <TableRow>
-                              <TableHead>#</TableHead>
-                              <TableHead>Número</TableHead>
-                              <TableHead>Frecuencia</TableHead>
+                              <TableHead className="w-12">#</TableHead>
+                              <TableHead>Interlocutor</TableHead>
+                              <TableHead className="text-center font-bold">
+                                Total general
+                              </TableHead>
+                              {/* Columnas dinámicas de transacciones */}
+                              {(() => {
+                                const tipos = new Set<string>();
+                                const ordenPrioridad = [
+                                  "LLAMADA ENTRANTE",
+                                  "LLAMADA SALIENTE",
+                                  "MENSAJE ENTRANTE",
+                                  "MENSAJE SALIENTE",
+                                ];
+
+                                contactosFrecuentesState.todosLosContactos?.forEach(
+                                  (c: any) => {
+                                    Object.keys(c).forEach((key) => {
+                                      if (
+                                        ![
+                                          "numero",
+                                          "frecuencia",
+                                          "primera_fecha",
+                                          "ultima_fecha",
+                                        ].includes(key)
+                                      ) {
+                                        tipos.add(key);
+                                      }
+                                    });
+                                  }
+                                );
+
+                                const tiposArray = Array.from(tipos);
+                                return tiposArray
+                                  .sort((a, b) => {
+                                    const idxA = ordenPrioridad.indexOf(a);
+                                    const idxB = ordenPrioridad.indexOf(b);
+                                    if (idxA !== -1 && idxB !== -1)
+                                      return idxA - idxB;
+                                    if (idxA !== -1) return -1;
+                                    if (idxB !== -1) return 1;
+                                    return a.localeCompare(b);
+                                  })
+                                  .map((tipo) => (
+                                    <TableHead
+                                      key={tipo}
+                                      className="text-center text-[10px] leading-tight font-bold text-blue-900"
+                                    >
+                                      {tipo}
+                                    </TableHead>
+                                  ));
+                              })()}
                               <TableHead>Primera Fecha</TableHead>
                               <TableHead>Última Fecha</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {contactosFrecuentesState.top10Contactos.map(
-                              (contacto, index) => (
-                                <TableRow key={index}>
-                                  <TableCell className="py-1 px-2 text-xs font-bold">
-                                    {index + 1}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs font-mono">
-                                    {contacto.numero || contacto.NUMERO || "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs text-center">
-                                    <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                            {contactosFrecuentesState.todosLosContactos.map(
+                              (contacto: any, index: number) => {
+                                const tiposDetectados = new Set<string>();
+                                const ordenPrioridad = [
+                                  "LLAMADA ENTRANTE",
+                                  "LLAMADA SALIENTE",
+                                  "MENSAJE ENTRANTE",
+                                  "MENSAJE SALIENTE",
+                                ];
+
+                                contactosFrecuentesState.todosLosContactos?.forEach(
+                                  (c: any) => {
+                                    Object.keys(c).forEach((key) => {
+                                      if (
+                                        ![
+                                          "numero",
+                                          "frecuencia",
+                                          "primera_fecha",
+                                          "ultima_fecha",
+                                        ].includes(key)
+                                      ) {
+                                        tiposDetectados.add(key);
+                                      }
+                                    });
+                                  }
+                                );
+
+                                const tiposSorted = Array.from(
+                                  tiposDetectados
+                                ).sort((a, b) => {
+                                  const idxA = ordenPrioridad.indexOf(a);
+                                  const idxB = ordenPrioridad.indexOf(b);
+                                  if (idxA !== -1 && idxB !== -1)
+                                    return idxA - idxB;
+                                  if (idxA !== -1) return -1;
+                                  if (idxB !== -1) return 1;
+                                  return a.localeCompare(b);
+                                });
+
+                                return (
+                                  <TableRow key={index}>
+                                    <TableCell className="py-1 px-2 text-xs font-bold">
+                                      {index + 1}
+                                    </TableCell>
+                                    <TableCell className="py-1 px-2 text-xs font-mono font-bold">
+                                      {contacto.numero ||
+                                        contacto.NUMERO ||
+                                        "-"}
+                                    </TableCell>
+                                    <TableCell className="py-1 px-2 text-xs text-center font-bold bg-blue-50/30">
                                       {contacto.frecuencia ||
                                         contacto.FRECUENCIA ||
                                         0}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {contacto.primera_fecha ||
-                                      contacto.PRIMERA_FECHA ||
-                                      "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 px-2 text-xs">
-                                    {contacto.ultima_fecha ||
-                                      contacto.ULTIMA_FECHA ||
-                                      "-"}
-                                  </TableCell>
-                                </TableRow>
-                              )
+                                    </TableCell>
+                                    {/* Celdas dinámicas de transacciones */}
+                                    {tiposSorted.map((tipo) => (
+                                      <TableCell
+                                        key={tipo}
+                                        className="py-1 px-2 text-xs text-center border-l border-gray-100"
+                                      >
+                                        {contacto[tipo] > 0 ? (
+                                          <span className="font-medium text-gray-700">
+                                            {contacto[tipo]}
+                                          </span>
+                                        ) : (
+                                          ""
+                                        )}
+                                      </TableCell>
+                                    ))}
+                                    <TableCell className="py-1 px-2 text-xs text-gray-500">
+                                      {contacto.primera_fecha ||
+                                        contacto.PRIMERA_FECHA ||
+                                        "-"}
+                                    </TableCell>
+                                    <TableCell className="py-1 px-2 text-xs text-gray-500">
+                                      {contacto.ultima_fecha ||
+                                        contacto.ULTIMA_FECHA ||
+                                        "-"}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              }
                             )}
                           </TableBody>
                         </Table>
