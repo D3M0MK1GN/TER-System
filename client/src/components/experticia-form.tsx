@@ -42,6 +42,8 @@ import {
   XCircle,
   Loader2,
   Eye,
+  Clipboard,
+  Check,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
@@ -165,6 +167,22 @@ export function ExperticiasForm({
   const [isContactosTableModalOpen, setIsContactosTableModalOpen] =
     useState(false);
 
+  // Controla si el modal del TOP 10 contactos frecuentes está abierto
+  const [isTop10ModalOpen, setIsTop10ModalOpen] = useState(false);
+
+  // Controla qué tabla fue copiada recientemente (feedback visual)
+  const [copiedTable, setCopiedTable] = useState<string | null>(null);
+
+  const copiarAlPortapapeles = (tableId: string, filas: any[], columnas: string[]) => {
+    const header = columnas.join('\t');
+    const rows = filas.map((fila) => columnas.map((col) => fila[col] ?? '').join('\t'));
+    const tsv = [header, ...rows].join('\n');
+    navigator.clipboard.writeText(tsv).then(() => {
+      setCopiedTable(tableId);
+      setTimeout(() => setCopiedTable(null), 2000);
+    });
+  };
+
   /**
    * Estado para la gestión multi-target (múltiples números y archivos)
    */
@@ -273,7 +291,7 @@ export function ExperticiasForm({
           setContactosFrecuentesState({
             isAnalyzing: false,
             datosCrudos: data.datos_crudos,
-            todosLosContactos: data.todos_los_contactos,
+            todosLosContactos: data.top_10_contactos,
             error: null,
           });
         } else {
@@ -362,8 +380,11 @@ export function ExperticiasForm({
     console.log("[MULTI-TARGET] procesarTodosLosAnalisis iniciado. Total items:", listaAnalisis.length);
     if (listaAnalisis.length === 0) return;
 
-    setBtsAnalysisState((prev) => ({ ...prev, isAnalyzing: true }));
-    setContactosFrecuentesState((prev) => ({ ...prev, isAnalyzing: true }));
+    if (tipoExperticiaValue === "determinar_contacto_frecuente") {
+      setContactosFrecuentesState((prev) => ({ ...prev, isAnalyzing: true }));
+    } else {
+      setBtsAnalysisState((prev) => ({ ...prev, isAnalyzing: true }));
+    }
 
     const nuevaLista = [...listaAnalisis];
 
@@ -427,7 +448,7 @@ export function ExperticiasForm({
             nuevaLista[i].resultados = {
               contactos: {
                 datosCrudos: data.datos_crudos,
-                todosLosContactos: data.todos_los_contactos,
+                todosLosContactos: data.top_10_contactos,
               },
             };
             console.log(`[MULTI-TARGET] Item ${i} completado. Filas crudas: ${data.datos_crudos?.length}, Top contactos: ${data.todos_los_contactos?.length}`);
@@ -478,8 +499,11 @@ export function ExperticiasForm({
     }
 
     setListaAnalisis(nuevaLista);
-    setBtsAnalysisState((prev) => ({ ...prev, isAnalyzing: false }));
-    setContactosFrecuentesState((prev) => ({ ...prev, isAnalyzing: false }));
+    if (tipoExperticiaValue === "determinar_contacto_frecuente") {
+      setContactosFrecuentesState((prev) => ({ ...prev, isAnalyzing: false }));
+    } else {
+      setBtsAnalysisState((prev) => ({ ...prev, isAnalyzing: false }));
+    }
     console.log("[MULTI-TARGET] procesarTodosLosAnalisis finalizado.");
   };
 
@@ -1317,6 +1341,7 @@ export function ExperticiasForm({
               </div>
             )}
 
+            {tipoExperticiaValue !== "determinar_contacto_frecuente" && (
             <FormField
               control={form.control}
               name="archivoAdjunto"
@@ -1468,6 +1493,7 @@ export function ExperticiasForm({
                 </FormItem>
               )}
             />
+            )}
 
             {/* SECCIÓN: Resultados del análisis BTS
                 Muestra tabla de resultados con selección de filas
@@ -1506,16 +1532,38 @@ export function ExperticiasForm({
                           Resultados encontrados:{" "}
                           {btsAnalysisState.results.length}
                         </div>
-                        {/* Botón: Abre modal con tabla completa y selección */}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsTableModalOpen(true)}
-                          title="Ver tabla completa"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {/* Botón: Copiar tabla BTS al portapapeles */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              copiarAlPortapapeles(
+                                'bts',
+                                btsAnalysisState.results!,
+                                ['ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION', 'CORDENADAS']
+                              )
+                            }
+                            title="Copiar tabla"
+                          >
+                            {copiedTable === 'bts' ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Clipboard className="h-4 w-4" />
+                            )}
+                          </Button>
+                          {/* Botón: Abre modal con tabla completa y selección */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsTableModalOpen(true)}
+                            title="Ver tabla completa"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       {/* Tabla preview (primeras 6 filas) */}
                       <div className="max-h-60 overflow-y-auto border rounded-lg">
@@ -1620,15 +1668,36 @@ export function ExperticiasForm({
                           Registros de comunicación:{" "}
                           {contactosFrecuentesState.datosCrudos.length}
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsContactosTableModalOpen(true)}
-                          title="Ver tabla completa"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              copiarAlPortapapeles(
+                                'crudos',
+                                contactosFrecuentesState.datosCrudos!,
+                                Object.keys(contactosFrecuentesState.datosCrudos![0])
+                              )
+                            }
+                            title="Copiar tabla"
+                          >
+                            {copiedTable === 'crudos' ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Clipboard className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsContactosTableModalOpen(true)}
+                            title="Ver tabla completa"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="max-h-48 overflow-y-auto border rounded-lg">
                         <Table>
@@ -1668,26 +1737,65 @@ export function ExperticiasForm({
                 {contactosFrecuentesState.todosLosContactos &&
                   contactosFrecuentesState.todosLosContactos.length > 0 && (
                     <div className="space-y-2 mt-4">
-                      <h5 className="text-sm font-medium text-blue-700">
-                        Contactos Frecuentes
-                      </h5>
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-sm font-medium text-blue-700">
+                          Contactos Frecuentes
+                        </h5>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const datos = contactosFrecuentesState.todosLosContactos!;
+                              const ordenPrioridad = ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE'];
+                              const tiposSet = new Set<string>();
+                              datos.forEach((c: any) => Object.keys(c).forEach((k) => {
+                                if (!['numero', 'frecuencia', 'primera_fecha', 'ultima_fecha'].includes(k)) tiposSet.add(k);
+                              }));
+                              const tiposSorted = Array.from(tiposSet).sort((a, b) => {
+                                const ia = ordenPrioridad.indexOf(a), ib = ordenPrioridad.indexOf(b);
+                                if (ia !== -1 && ib !== -1) return ia - ib;
+                                if (ia !== -1) return -1; if (ib !== -1) return 1;
+                                return a.localeCompare(b);
+                              });
+                              const cols = ['numero', ...tiposSorted, 'frecuencia', 'primera_fecha', 'ultima_fecha'];
+                              copiarAlPortapapeles('contactos', datos, cols);
+                            }}
+                            className="flex items-center gap-1 text-xs"
+                            title="Copiar tabla"
+                          >
+                            {copiedTable === 'contactos' ? (
+                              <Check className="h-3.5 w-3.5 text-green-500" />
+                            ) : (
+                              <Clipboard className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsTop10ModalOpen(true)}
+                            className="flex items-center gap-1 text-xs"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
                       <div className="max-h-64 overflow-y-auto border rounded-lg border-blue-200">
                         <Table>
                           <TableHeader className="bg-blue-50">
                             <TableRow>
                               <TableHead className="w-12">#</TableHead>
-                              <TableHead>Interlocutor</TableHead>
-                              <TableHead className="text-center font-bold">
-                                Total general
-                              </TableHead>
+                              <TableHead>INTERLOCUTOR</TableHead>
                               {/* Columnas dinámicas de transacciones */}
                               {(() => {
                                 const tipos = new Set<string>();
                                 const ordenPrioridad = [
                                   "LLAMADA ENTRANTE",
                                   "LLAMADA SALIENTE",
-                                  "MENSAJE ENTRANTE",
-                                  "MENSAJE SALIENTE",
+                                  "SMS ENTRANTE",
+                                  "SMS SALIENTE",
                                 ];
 
                                 contactosFrecuentesState.todosLosContactos?.forEach(
@@ -1727,8 +1835,9 @@ export function ExperticiasForm({
                                     </TableHead>
                                   ));
                               })()}
-                              <TableHead>Primera Fecha</TableHead>
-                              <TableHead>Última Fecha</TableHead>
+                              <TableHead className="text-center font-bold">TOTAL GENERAL</TableHead>
+                              <TableHead>PRIMERA FECHA</TableHead>
+                              <TableHead>ULTIMA FECHA</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1738,8 +1847,8 @@ export function ExperticiasForm({
                                 const ordenPrioridad = [
                                   "LLAMADA ENTRANTE",
                                   "LLAMADA SALIENTE",
-                                  "MENSAJE ENTRANTE",
-                                  "MENSAJE SALIENTE",
+                                  "SMS ENTRANTE",
+                                  "SMS SALIENTE",
                                 ];
 
                                 contactosFrecuentesState.todosLosContactos?.forEach(
@@ -1781,11 +1890,6 @@ export function ExperticiasForm({
                                         contacto.NUMERO ||
                                         "-"}
                                     </TableCell>
-                                    <TableCell className="py-1 px-2 text-xs text-center font-bold bg-blue-50/30">
-                                      {contacto.frecuencia ||
-                                        contacto.FRECUENCIA ||
-                                        0}
-                                    </TableCell>
                                     {/* Celdas dinámicas de transacciones */}
                                     {tiposSorted.map((tipo) => (
                                       <TableCell
@@ -1801,6 +1905,11 @@ export function ExperticiasForm({
                                         )}
                                       </TableCell>
                                     ))}
+                                    <TableCell className="py-1 px-2 text-xs text-center font-bold bg-blue-50/30">
+                                      {contacto.frecuencia ||
+                                        contacto.FRECUENCIA ||
+                                        0}
+                                    </TableCell>
                                     <TableCell className="py-1 px-2 text-xs text-gray-500">
                                       {contacto.primera_fecha ||
                                         contacto.PRIMERA_FECHA ||
@@ -1966,6 +2075,73 @@ export function ExperticiasForm({
                   </TableBody>
                 </Table>
               )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Modal TOP 10 Contactos Frecuentes */}
+      <Dialog open={isTop10ModalOpen} onOpenChange={setIsTop10ModalOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>TOP 10 Contactos Frecuentes</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto max-h-[75vh]">
+            {contactosFrecuentesState.todosLosContactos &&
+              contactosFrecuentesState.todosLosContactos.length > 0 && (() => {
+                const datos = contactosFrecuentesState.todosLosContactos!;
+                const ordenPrioridad = ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE'];
+                const tiposSet = new Set<string>();
+                datos.forEach((c: any) => Object.keys(c).forEach((k) => {
+                  if (!['numero', 'frecuencia', 'primera_fecha', 'ultima_fecha'].includes(k)) tiposSet.add(k);
+                }));
+                const tiposSorted = Array.from(tiposSet).sort((a, b) => {
+                  const ia = ordenPrioridad.indexOf(a), ib = ordenPrioridad.indexOf(b);
+                  if (ia !== -1 && ib !== -1) return ia - ib;
+                  if (ia !== -1) return -1; if (ib !== -1) return 1;
+                  return a.localeCompare(b);
+                });
+                return (
+                  <Table>
+                    <TableHeader className="bg-blue-50">
+                      <TableRow>
+                        <TableHead className="w-12">#</TableHead>
+                        <TableHead>INTERLOCUTOR</TableHead>
+                        {tiposSorted.map((tipo) => (
+                          <TableHead key={tipo} className="text-center text-[10px] leading-tight font-bold text-blue-900">
+                            {tipo}
+                          </TableHead>
+                        ))}
+                        <TableHead className="text-center font-bold">TOTAL GENERAL</TableHead>
+                        <TableHead>PRIMERA FECHA</TableHead>
+                        <TableHead>ULTIMA FECHA</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {datos.map((contacto: any, index: number) => (
+                        <TableRow key={index}>
+                          <TableCell className="py-1 px-2 text-xs font-bold">{index + 1}</TableCell>
+                          <TableCell className="py-1 px-2 text-xs font-mono font-bold">
+                            {contacto.numero || contacto.NUMERO || '-'}
+                          </TableCell>
+                          {tiposSorted.map((tipo) => (
+                            <TableCell key={tipo} className="py-1 px-2 text-xs text-center border-l border-gray-100">
+                              {contacto[tipo] > 0 ? <span className="font-medium text-gray-700">{contacto[tipo]}</span> : ''}
+                            </TableCell>
+                          ))}
+                          <TableCell className="py-1 px-2 text-xs text-center font-bold bg-blue-50/30">
+                            {contacto.frecuencia || contacto.FRECUENCIA || 0}
+                          </TableCell>
+                          <TableCell className="py-1 px-2 text-xs text-gray-500">
+                            {contacto.primera_fecha || contacto.PRIMERA_FECHA || '-'}
+                          </TableCell>
+                          <TableCell className="py-1 px-2 text-xs text-gray-500">
+                            {contacto.ultima_fecha || contacto.ULTIMA_FECHA || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                );
+              })()}
           </div>
         </DialogContent>
       </Dialog>

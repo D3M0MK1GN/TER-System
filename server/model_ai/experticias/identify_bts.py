@@ -284,6 +284,35 @@ class Exper_Frecuentes:
                 ultima_fecha=('FECHA', 'max')
             ).reset_index().sort_values(by='frecuencia', ascending=False)
 
+            # --- DESGLOSE POR TIPO DE TRANSACCIÓN ---
+            def estandarizar_tipo(valor):
+                v = str(valor).upper().replace('.', ' ').strip()
+                es_sms = 'SMS' in v or 'MENSAJE' in v or 'MMS' in v
+                es_saliente = 'SALIENTE' in v or 'OUT' in v or 'MOC' in v or 'ORIGINAT' in v
+                if es_sms:
+                    return 'SMS SALIENTE' if es_saliente else 'SMS ENTRANTE'
+                else:
+                    return 'LLAMADA SALIENTE' if es_saliente else 'LLAMADA ENTRANTE'
+
+            col_tipo = None
+            if operador_key == 'MOVILNET' and 'TIPO TRANSACCIÓN' in datos_interes.columns:
+                col_tipo = 'TIPO TRANSACCIÓN'
+            elif operador_key == 'MOVISTAR' and 'Tipo Transacción' in datos_interes.columns:
+                col_tipo = 'Tipo Transacción'
+            elif 'TIPO DE TRANSACCION' in datos_interes.columns:
+                col_tipo = 'TIPO DE TRANSACCION'
+
+            if col_tipo:
+                datos_interes['_TIPO_STD'] = datos_interes[col_tipo].apply(estandarizar_tipo)
+                pivot = datos_interes.groupby(['CONTACTO', '_TIPO_STD']).size().unstack(fill_value=0).reset_index()
+                pivot.columns.name = None
+                for cat in ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE']:
+                    if cat not in pivot.columns:
+                        pivot[cat] = 0
+                frecuencias = frecuencias.merge(pivot, on='CONTACTO', how='left')
+                for cat in ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE']:
+                    frecuencias[cat] = frecuencias[cat].fillna(0).astype(int)
+
             top_10_list = frecuencias.head(10).rename(columns={'CONTACTO': 'numero'}).to_dict('records')
 
             # --- PREPARACIÓN DE TABLA FINAL ---
