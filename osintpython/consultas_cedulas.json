@@ -1983,5 +1983,77 @@
                 "request_date": "2026-05-21T14:47:28.130Z"
             }
         }
+    },
+    {
+        "timestamp": "2026-05-21T11:51:53.812033",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=28609925",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28609925,
+                "fecha_nac": "2001-06-26",
+                "rif": "V286099250",
+                "primer_apellido": "JIMENEZ",
+                "segundo_apellido": "MENDOZA",
+                "primer_nombre": "RAUL",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2026-05-21T15:51:53.754Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-05-21T11:52:49.292961",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "20235074",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=20235074",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 20235074,
+                "fecha_nac": "1990-11-14",
+                "rif": "V202350743",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "CATEDRAL",
+                    "centro_electoral": "LICEO BOLIVARIANO MARIO BRICEÑO IRAGORRY"
+                },
+                "primer_apellido": "BOLIVAR",
+                "segundo_apellido": "CAMACHO",
+                "primer_nombre": "RUBEN",
+                "segundo_nombre": "DARIO",
+                "request_date": "2026-05-21T15:52:49.217Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-05-21T14:45:57.452296",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=28609925",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28609925,
+                "fecha_nac": "2001-06-26",
+                "rif": "V286099250",
+                "primer_apellido": "JIMENEZ",
+                "segundo_apellido": "MENDOZA",
+                "primer_nombre": "RAUL",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2026-05-21T18:45:57.402Z"
+            }
+        },
+        "success": true
     }
 ]

@@ -195,9 +195,14 @@ export function ExperticiasForm({
     file: File,
     operador: string
   ) => {
-    if (!numero || !file) return;
+    console.log("[MULTI-TARGET] agregarAnalisis llamado:", { numero, fileName: file?.name, operador });
+    if (!numero || !file) {
+      console.warn("[MULTI-TARGET] agregarAnalisis: número o archivo faltante", { numero, file });
+      return;
+    }
 
     if (listaAnalisis.length >= 10) {
+      console.warn("[MULTI-TARGET] agregarAnalisis: límite de 10 alcanzado");
       toast({
         title: "Límite alcanzado",
         description: "Solo se permiten hasta 10 registros por experticia.",
@@ -217,10 +222,13 @@ export function ExperticiasForm({
         operador,
         resultados: null,
       };
-
+      console.log("[MULTI-TARGET] Item agregado a listaAnalisis:", { id: nuevoItem.id, numero: nuevoItem.numero, archivoNombre: nuevoItem.archivoNombre, operador: nuevoItem.operador, base64Length: base64?.length });
       setListaAnalisis((prev) => [...prev, nuevoItem]);
       // Si es el primero, lo seleccionamos
       if (listaAnalisis.length === 0) setSelectedIndex(0);
+    };
+    reader.onerror = (err) => {
+      console.error("[MULTI-TARGET] Error leyendo archivo con FileReader:", err);
     };
     reader.readAsDataURL(file);
   };
@@ -328,9 +336,30 @@ export function ExperticiasForm({
   };
 
   /**
-   * Procesa todos los análisis en la lista
+   * Convierte base64 a Blob para poder subirlo como archivo
+   */
+  const base64ToBlob = (base64: string, mimeType: string): Blob => {
+    const byteCharacters = atob(base64);
+    const byteArrays: Uint8Array[] = [];
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      byteArrays.push(new Uint8Array(byteNumbers));
+    }
+    return new Blob(byteArrays, { type: mimeType });
+  };
+
+  /**
+   * Procesa todos los análisis en la lista.
+   * Flujo por cada item:
+   *   Paso 1 — Subir el archivo al servidor (igual que la carga individual)
+   *   Paso 2 — Analizar con la ruta devuelta por el servidor
    */
   const procesarTodosLosAnalisis = async () => {
+    console.log("[MULTI-TARGET] procesarTodosLosAnalisis iniciado. Total items:", listaAnalisis.length);
     if (listaAnalisis.length === 0) return;
 
     setBtsAnalysisState((prev) => ({ ...prev, isAnalyzing: true }));
@@ -340,25 +369,60 @@ export function ExperticiasForm({
 
     for (let i = 0; i < nuevaLista.length; i++) {
       const item = nuevaLista[i];
-      if (item.resultados) continue; // Ya procesado
+      if (item.resultados) {
+        console.log(`[MULTI-TARGET] Item ${i} (${item.numero}) ya procesado, saltando.`);
+        continue;
+      }
 
       try {
         const token = localStorage.getItem("token");
+        console.log(`[MULTI-TARGET] Procesando item ${i}:`, { numero: item.numero, operador: item.operador, archivoNombre: item.archivoNombre, tipoExperticia: tipoExperticiaValue });
+
         if (tipoExperticiaValue === "determinar_contacto_frecuente") {
-          const res = await fetch("/api/analizar-contactos-frecuentes", {
+
+          // PASO 1: Subir el archivo al servidor para obtener la ruta en disco
+          console.log(`[MULTI-TARGET] Paso 1 — Subiendo archivo al servidor: ${item.archivoNombre}`);
+          const blob = base64ToBlob(item.archivoData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+          const formData = new FormData();
+          formData.append("archivo", blob, item.archivoNombre);
+
+          const uploadRes = await fetch("/api/experticias/upload-archivo", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+          });
+
+          console.log(`[MULTI-TARGET] Upload HTTP status:`, uploadRes.status, uploadRes.statusText);
+          const uploadData = await uploadRes.json();
+          console.log(`[MULTI-TARGET] Upload respuesta:`, uploadData);
+
+          if (!uploadData.success) {
+            console.error(`[MULTI-TARGET] Error subiendo archivo: ${uploadData.message}`);
+            continue;
+          }
+
+          const rutaArchivo = uploadData.archivo.rutaArchivo;
+          console.log(`[MULTI-TARGET] Archivo guardado en servidor: ${rutaArchivo}`);
+
+          // PASO 2: Analizar usando la ruta del servidor (mismo flujo que carga individual)
+          console.log(`[MULTI-TARGET] Paso 2 — Analizando contactos frecuentes para número: ${item.numero}`);
+          const res = await fetch("/api/experticias/analizar-contactos-frecuentes", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-              archivo_excel: item.archivoNombre,
-              archivo_base64: item.archivoData,
+              archivo_excel: rutaArchivo,
               numero_buscar: item.numero,
               operador: item.operador,
             }),
           });
+
+          console.log(`[MULTI-TARGET] Análisis HTTP status:`, res.status, res.statusText);
           const data = await res.json();
+          console.log(`[MULTI-TARGET] Análisis respuesta:`, data);
+
           if (data.success) {
             nuevaLista[i].resultados = {
               contactos: {
@@ -366,18 +430,39 @@ export function ExperticiasForm({
                 todosLosContactos: data.todos_los_contactos,
               },
             };
+            console.log(`[MULTI-TARGET] Item ${i} completado. Filas crudas: ${data.datos_crudos?.length}, Top contactos: ${data.todos_los_contactos?.length}`);
+          } else {
+            console.error(`[MULTI-TARGET] Análisis devolvió success=false:`, data.message);
           }
+
         } else {
-          // Lógica para BTS normal
-          const res = await fetch("/api/analizar-bts", {
+          // Lógica para BTS normal — mismo flujo: subir primero, luego analizar
+          console.log(`[MULTI-TARGET] Paso 1 BTS — Subiendo archivo: ${item.archivoNombre}`);
+          const blob = base64ToBlob(item.archivoData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+          const formData = new FormData();
+          formData.append("archivo", blob, item.archivoNombre);
+
+          const uploadRes = await fetch("/api/experticias/upload-archivo", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+
+          if (!uploadData.success) {
+            console.error(`[MULTI-TARGET] Error subiendo archivo BTS: ${uploadData.message}`);
+            continue;
+          }
+
+          console.log(`[MULTI-TARGET] Paso 2 BTS — Analizando para número: ${item.numero}`);
+          const res = await fetch("/api/experticias/analizar-bts", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-              archivo_excel: item.archivoNombre,
-              archivo_base64: item.archivoData,
+              archivo_excel: uploadData.archivo.rutaArchivo,
               numero_buscar: item.numero,
               operador: item.operador,
             }),
@@ -388,13 +473,14 @@ export function ExperticiasForm({
           }
         }
       } catch (err) {
-        console.error("Error analizando item:", item.numero, err);
+        console.error(`[MULTI-TARGET] Error procesando item ${i} (${item.numero}):`, err);
       }
     }
 
     setListaAnalisis(nuevaLista);
     setBtsAnalysisState((prev) => ({ ...prev, isAnalyzing: false }));
     setContactosFrecuentesState((prev) => ({ ...prev, isAnalyzing: false }));
+    console.log("[MULTI-TARGET] procesarTodosLosAnalisis finalizado.");
   };
 
   /**
@@ -546,29 +632,43 @@ export function ExperticiasForm({
    * - Envía datos completos al callback onSubmit del padre
    */
   const handleSubmit = (data: FormData) => {
-    if (fileUploadState.isUploading) return; // Previene envío durante carga
+    if (fileUploadState.isUploading) return;
 
     let filasSeleccionadas: any[] = [];
     let datosAnalisis: any = null;
     let datosSeleccionadosTop10: any = null;
 
-    // Si es análisis de contactos frecuentes, usa los datos crudos seleccionados
-    if (
-      tipoExperticiaValue === "determinar_contacto_frecuente" &&
-      contactosFrecuentesState.datosCrudos
-    ) {
-      // Guardar todos los datos crudos (datosAnalisis)
-      // La estructura ahora incluye: ABONADO A, ABONADO B, TIPO TRANSACCION, FECHA, HORA, TIME, BTS-CELDA, DIRECCION_A, DIRECCION_B, CORDENADAS_A, CORDENADAS_B, ORIENTACION A, ORIENTACION B, IMEI ABONADO A, IMEI ABONADO B
-      datosAnalisis = contactosFrecuentesState.datosCrudos;
+    const esContactoFrecuente = tipoExperticiaValue === "determinar_contacto_frecuente";
+    const esMultiTarget = listaAnalisis.length > 0;
 
-      // Extraer solo los seleccionados del TOP 10
+    if (esContactoFrecuente && esMultiTarget) {
+      // MODO MULTI-TARGET: construir array JSONB con un objeto por cada número analizado
+      const itemsConResultados = listaAnalisis.filter(
+        (item) => item.resultados?.contactos
+      );
+
+      datosAnalisis = itemsConResultados.map((item) => ({
+        numero:      item.numero,
+        datos_crudos: item.resultados!.contactos!.datosCrudos  ?? [],
+        top_10:      item.resultados!.contactos!.todosLosContactos ?? [],
+      }));
+
+      // El campo abonado guarda todos los números separados por coma
+      (data as any).abonado = itemsConResultados.length > 0
+        ? itemsConResultados.map((item) => item.numero).join(", ")
+        : (data as any).abonado;
+
+    } else if (esContactoFrecuente && contactosFrecuentesState.datosCrudos) {
+      // MODO INDIVIDUAL: mismo comportamiento que antes
+      datosAnalisis = contactosFrecuentesState.datosCrudos;
       filasSeleccionadas = extractSelectedRows(
         contactosFrecuentesState.datosCrudos,
         selectedRows
       );
       datosSeleccionadosTop10 = filasSeleccionadas;
+
     } else if (btsAnalysisState.results) {
-      // Extrae las filas seleccionadas desde el análisis BTS
+      // MODO BTS: mismo comportamiento que antes
       filasSeleccionadas = extractSelectedRows(
         btsAnalysisState.results,
         selectedRows
@@ -587,8 +687,7 @@ export function ExperticiasForm({
       })),
     } as any;
 
-    // Agregar contactos si es análisis de contactos frecuentes (para compatibilidad)
-    if (tipoExperticiaValue === "determinar_contacto_frecuente") {
+    if (esContactoFrecuente && !esMultiTarget) {
       submitData.todosLosContactos = contactosFrecuentesState.todosLosContactos;
     }
 
@@ -899,9 +998,10 @@ export function ExperticiasForm({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      disabled={listaAnalisis.length > 0}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className={listaAnalisis.length > 0 ? "opacity-60 cursor-not-allowed" : ""}>
                           <SelectValue placeholder="Seleccionar operador" />
                         </SelectTrigger>
                       </FormControl>
@@ -913,6 +1013,11 @@ export function ExperticiasForm({
                         ))}
                       </SelectContent>
                     </Select>
+                    {listaAnalisis.length > 0 && (
+                      <p className="text-xs text-amber-600 font-medium">
+                        Operador bloqueado — todos los números deben ser del mismo operador.
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

@@ -293,7 +293,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       }
 
       // Llamar al API Python
-      const pythonApiResponse = await fetch('http://localhost:8000/analizar-bts', {
+      const pythonApiResponse = await fetch('http://localhost:8001/analizar-bts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -328,9 +328,19 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
   // Endpoint PROXY para analizar Contactos Frecuentes (redirecciona a Python)
   app.post("/api/experticias/analizar-contactos-frecuentes", authenticateToken, async (req: any, res) => {
     try {
+      console.log("[SERVIDOR CF] Recibida petición en /api/experticias/analizar-contactos-frecuentes");
+      console.log("[SERVIDOR CF] Body recibido:", {
+        archivo_excel: req.body?.archivo_excel,
+        archivo_base64: req.body?.archivo_base64 ? `[base64 ${req.body.archivo_base64.length} chars]` : "NO ENVIADO",
+        numero_buscar: req.body?.numero_buscar,
+        operador: req.body?.operador,
+        keys: Object.keys(req.body || {})
+      });
+
       const { archivo_excel, numero_buscar, operador } = req.body;
       
       if (!archivo_excel || !numero_buscar || !operador) {
+        console.warn("[SERVIDOR CF] Faltan campos obligatorios:", { archivo_excel: !!archivo_excel, numero_buscar: !!numero_buscar, operador: !!operador });
         return res.status(400).json({ 
           success: false, 
           message: "Archivo Excel, número de búsqueda y operador son requeridos" 
@@ -358,8 +368,8 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         });
       }
 
-      // Llamar al API Python en puerto 8000
-      const pythonApiResponse = await fetch('http://localhost:8000/analizar-contactos-frecuentes', {
+      // Llamar al API Python en puerto 8001
+      const pythonApiResponse = await fetch('http://localhost:8001/analizar-contactos-frecuentes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

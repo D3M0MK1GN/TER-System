@@ -13,7 +13,7 @@ import fetch from "node-fetch";
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 // URL de la API Python para consultas OSINT
-const PYTHON_API_URL = "http://localhost:5001";
+const PYTHON_API_URL = "http://localhost:8001";
 
 // Constantes de configuración
 const CONFIG = {
@@ -258,7 +258,7 @@ async function consultarCedulaAPI(nacionalidad: string, cedula: string): Promise
 
     } catch (error) {
         console.error('Error consultando cédula:', error);
-        return `❌ **Error de conexión**\n\nNo se pudo conectar con el servicio de consulta de cédulas. Verifica que la API Python esté ejecutándose en el puerto 5001.`;
+        return `❌ **Error de conexión**\n\nNo se pudo conectar con el servicio de consulta de cédulas. Verifica que la API Python esté ejecutándose en el puerto 8001.`;
     }
 }
 
