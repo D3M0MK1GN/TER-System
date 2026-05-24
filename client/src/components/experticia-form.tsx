@@ -1,5 +1,5 @@
-import { useForm } from "react-hook-form";
-import { useRef, useState, useEffect } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { useRef, useState, useEffect, useMemo, useCallback, memo } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -84,6 +84,249 @@ interface ExperticiasFormProps {
   isLoading?: boolean;
   preloadData?: Partial<FormData> | null;
 }
+
+// ─── Subcomponente: Tabla BTS ────────────────────────────────────────────────
+interface TablaBTSProps {
+  isAnalyzing: boolean;
+  results: any[] | null;
+  error: string | null;
+  selectedRows: Set<number>;
+  copiedTable: string | null;
+  onCopiar: (tableId: string, filas: any[], columnas: string[]) => void;
+  onVerTabla: () => void;
+  abonadoValue: string;
+}
+
+const TablaBTS = memo(function TablaBTS({ isAnalyzing, results, error, selectedRows, copiedTable, onCopiar, onVerTabla, abonadoValue }: TablaBTSProps) {
+  if (!isAnalyzing && !results && !error) return null;
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <h4 className="text-md font-medium">Análisis BTS</h4>
+      {isAnalyzing && (
+        <div className="flex items-center space-x-2 text-sm text-blue-600">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Analizando archivo BTS...</span>
+        </div>
+      )}
+      {error && (
+        <div className="flex items-center space-x-2 text-sm text-red-600">
+          <XCircle className="h-4 w-4" />
+          <span>{error}</span>
+        </div>
+      )}
+      {results && results.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-green-600 font-medium">
+              Resultados encontrados: {results.length}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button type="button" variant="ghost" size="sm"
+                onClick={() => onCopiar('bts', results, ['ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION', 'CORDENADAS'])}
+                title="Copiar tabla">
+                {copiedTable === 'bts' ? <Check className="h-4 w-4 text-green-500" /> : <Clipboard className="h-4 w-4" />}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onVerTabla} title="Ver tabla completa">
+                <Eye className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="max-h-60 overflow-y-auto border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ABONADO A</TableHead>
+                  <TableHead>ABONADO B</TableHead>
+                  <TableHead>FECHA</TableHead>
+                  <TableHead>HORA</TableHead>
+                  <TableHead>TIME</TableHead>
+                  <TableHead>DIRECCION</TableHead>
+                  <TableHead>CORDENADAS</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {results.map((result, index) => (
+                  <TableRow key={index} className={selectedRows.has(index) ? "bg-blue-100 dark:bg-blue-900/40" : ""}>
+                    <TableCell className="py-1 px-2 text-xs">{result["ABONADO A"] || result["ABONADO_A"] || "-"}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs">{result["ABONADO B"] || result["ABONADO_B"] || "-"}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs">{result["FECHA"] || "-"}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs">{result["HORA"] || "-"}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs">{result["TIME"] || "-"}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs">{result["DIRECCION"] || "-"}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs">{result["CORDENADAS"] || "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+      {results && results.length === 0 && (
+        <div className="text-sm text-gray-600">
+          No se encontraron resultados para el número {abonadoValue}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ─── Subcomponente: Tabla Contactos Frecuentes ───────────────────────────────
+interface TablaContactosFrecuentesProps {
+  state: { isAnalyzing: boolean; datosCrudos: any[] | null; todosLosContactos: any[] | null; error: string | null };
+  limitContactos: number | 'todos';
+  onSetLimitContactos: (v: number | 'todos') => void;
+  copiedTable: string | null;
+  onCopiar: (tableId: string, filas: any[], columnas: string[]) => void;
+  onVerDatosCrudos: () => void;
+  onVerContactos: () => void;
+  tiposColumnas: string[];
+  totales: { visibles: any[]; totalFrecuencia: number; primeraFecha: string; ultimaFecha: string; sumasPorTipo: Record<string, number> } | null;
+  abonadoValue: string;
+}
+
+const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state, limitContactos, onSetLimitContactos, copiedTable, onCopiar, onVerDatosCrudos, onVerContactos, tiposColumnas, totales, abonadoValue }: TablaContactosFrecuentesProps) {
+  if (!state.isAnalyzing && !state.datosCrudos && !state.todosLosContactos && !state.error) return null;
+  return (
+    <div className="space-y-4 border-t pt-4">
+      <h4 className="text-md font-medium">Análisis de Contactos Frecuentes</h4>
+      {state.isAnalyzing && (
+        <div className="flex items-center space-x-2 text-sm text-blue-600">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Analizando contactos frecuentes...</span>
+        </div>
+      )}
+      {state.error && (
+        <div className="flex items-center space-x-2 text-sm text-red-600">
+          <XCircle className="h-4 w-4" />
+          <span>{state.error}</span>
+        </div>
+      )}
+      {state.datosCrudos && state.datosCrudos.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-green-600 font-medium">
+              Registros de comunicación: {state.datosCrudos.length}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button type="button" variant="ghost" size="sm"
+                onClick={() => onCopiar('crudos', state.datosCrudos!, Object.keys(state.datosCrudos![0]))}
+                title="Copiar tabla">
+                {copiedTable === 'crudos' ? <Check className="h-4 w-4 text-green-500" /> : <Clipboard className="h-4 w-4" />}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onVerDatosCrudos} title="Ver tabla completa">
+                <Eye className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="max-h-48 overflow-y-auto border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {state.datosCrudos.length > 0 && Object.keys(state.datosCrudos[0]).map((col) => (
+                    <TableHead key={col}>{col}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {state.datosCrudos.map((row, index) => (
+                  <TableRow key={index}>
+                    {Object.keys(row).map((col) => (
+                      <TableCell key={col} className="py-1 px-2 text-xs">{row[col] || "-"}</TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+      {state.todosLosContactos && state.todosLosContactos.length > 0 && (
+        <div className="space-y-2 mt-4">
+          <div className="flex items-center justify-between">
+            <h5 className="text-sm font-medium text-blue-700">Contactos Frecuentes</h5>
+            <div className="flex items-center gap-1">
+              <select value={limitContactos}
+                onChange={(e) => onSetLimitContactos(e.target.value === 'todos' ? 'todos' : Number(e.target.value))}
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                title="Cantidad de contactos a mostrar">
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value="todos">Todos</option>
+              </select>
+              <Button type="button" variant="outline" size="sm"
+                onClick={() => {
+                  if (!totales) return;
+                  const { visibles, sumasPorTipo, totalFrecuencia, primeraFecha, ultimaFecha } = totales;
+                  const totalFila: any = { NUMERO: 'TOTALES' };
+                  tiposColumnas.forEach((tipo) => { totalFila[tipo] = sumasPorTipo[tipo] || 0; });
+                  totalFila['frecuencia'] = totalFrecuencia;
+                  totalFila['primera_fecha'] = primeraFecha;
+                  totalFila['ultima_fecha'] = ultimaFecha;
+                  const datosConTotales = [...visibles.map((c: any) => ({ ...c, NUMERO: c.numero })), totalFila];
+                  onCopiar('contactos', datosConTotales, ['NUMERO', ...tiposColumnas, 'frecuencia', 'primera_fecha', 'ultima_fecha']);
+                }}
+                className="flex items-center gap-1 text-xs" title="Copiar tabla">
+                {copiedTable === 'contactos' ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Clipboard className="h-3.5 w-3.5" />}
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={onVerContactos} className="flex items-center gap-1 text-xs">
+                <Eye className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+          <div className="max-h-64 overflow-y-auto border rounded-lg border-blue-200">
+            <Table>
+              <TableHeader className="bg-blue-50">
+                <TableRow>
+                  <TableHead className="w-12">#</TableHead>
+                  <TableHead>INTERLOCUTOR</TableHead>
+                  {tiposColumnas.map((tipo) => (
+                    <TableHead key={tipo} className="text-center text-[10px] leading-tight font-bold text-blue-900">{tipo}</TableHead>
+                  ))}
+                  <TableHead className="text-center font-bold">TOTAL GENERAL</TableHead>
+                  <TableHead>PRIMERA FECHA</TableHead>
+                  <TableHead>ULTIMA FECHA</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(limitContactos === 'todos' ? state.todosLosContactos : state.todosLosContactos.slice(0, limitContactos)).map((contacto: any, index: number) => (
+                  <TableRow key={index}>
+                    <TableCell className="py-1 px-2 text-xs font-bold">{index + 1}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs font-mono font-bold">{contacto.numero || contacto.NUMERO || "-"}</TableCell>
+                    {tiposColumnas.map((tipo) => (
+                      <TableCell key={tipo} className="py-1 px-2 text-xs text-center border-l border-gray-100">
+                        {contacto[tipo] > 0 ? <span className="font-medium text-gray-700">{contacto[tipo]}</span> : ""}
+                      </TableCell>
+                    ))}
+                    <TableCell className="py-1 px-2 text-xs text-center font-bold bg-blue-50/30">{contacto.frecuencia || contacto.FRECUENCIA || 0}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs text-gray-500">{contacto.primera_fecha || contacto.PRIMERA_FECHA || "-"}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs text-gray-500">{contacto.ultima_fecha || contacto.ULTIMA_FECHA || "-"}</TableCell>
+                  </TableRow>
+                ))}
+                {totales && (
+                  <TableRow className="bg-blue-900 text-white font-bold border-t-2 border-blue-700">
+                    <TableCell className="py-1 px-2 text-xs text-white"></TableCell>
+                    <TableCell className="py-1 px-2 text-xs text-white tracking-wide">TOTALES</TableCell>
+                    {tiposColumnas.map((tipo) => (
+                      <TableCell key={tipo} className="py-1 px-2 text-xs text-center text-white">{totales.sumasPorTipo[tipo] || 0}</TableCell>
+                    ))}
+                    <TableCell className="py-1 px-2 text-xs text-center text-white">{totales.totalFrecuencia}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs text-white">{totales.primeraFecha}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs text-white">{totales.ultimaFecha}</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+      {state.datosCrudos && state.datosCrudos.length === 0 && (
+        <div className="text-sm text-gray-600">
+          No se encontraron registros de comunicación para el número {abonadoValue}
+        </div>
+      )}
+    </div>
+  );
+});
 
 /**
  * Componente: Formulario para crear, editar o duplicar experticias
@@ -184,7 +427,7 @@ export function ExperticiasForm({
   // Controla qué tabla fue copiada recientemente (feedback visual)
   const [copiedTable, setCopiedTable] = useState<string | null>(null);
 
-  const copiarAlPortapapeles = (tableId: string, filas: any[], columnas: string[]) => {
+  const copiarAlPortapapeles = useCallback((tableId: string, filas: any[], columnas: string[]) => {
     const header = columnas.join('\t');
     const rows = filas.map((fila) => columnas.map((col) => fila[col] ?? '').join('\t'));
     const tsv = [header, ...rows].join('\n');
@@ -192,7 +435,7 @@ export function ExperticiasForm({
       setCopiedTable(tableId);
       setTimeout(() => setCopiedTable(null), 2000);
     });
-  };
+  }, [setCopiedTable]);
 
   /**
    * Estado para la gestión multi-target (múltiples números y archivos)
@@ -367,7 +610,7 @@ export function ExperticiasForm({
   /**
    * Convierte base64 a Blob para poder subirlo como archivo
    */
-  const base64ToBlob = (base64: string, mimeType: string): Blob => {
+  const base64ToBlob = useCallback((base64: string, mimeType: string): Blob => {
     const byteCharacters = atob(base64);
     const byteArrays: Uint8Array[] = [];
     for (let offset = 0; offset < byteCharacters.length; offset += 512) {
@@ -379,7 +622,7 @@ export function ExperticiasForm({
       byteArrays.push(new Uint8Array(byteNumbers));
     }
     return new Blob(byteArrays, { type: mimeType });
-  };
+  }, []);
 
   /**
    * Procesa todos los análisis en la lista.
@@ -657,8 +900,52 @@ export function ExperticiasForm({
   /**
    * Observa cambios en los campos del formulario para habilitación de controles
    */
-  const abonadoValue = form.watch("abonado");
-  const tipoExperticiaValue = form.watch("tipoExperticia");
+  const abonadoValue = useWatch({ control: form.control, name: "abonado" });
+  const tipoExperticiaValue = useWatch({ control: form.control, name: "tipoExperticia" });
+
+  /** Tipos de columnas de transacción calculados una sola vez cuando cambian los contactos */
+  const tiposColumnasMemorized = useMemo(() => {
+    const tipos = new Set<string>();
+    const ordenPrioridad = ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE'];
+    contactosFrecuentesState.todosLosContactos?.forEach((c: any) => {
+      Object.keys(c).forEach((key) => {
+        if (!['numero', 'frecuencia', 'primera_fecha', 'ultima_fecha'].includes(key)) {
+          tipos.add(key);
+        }
+      });
+    });
+    return Array.from(tipos).sort((a, b) => {
+      const ia = ordenPrioridad.indexOf(a), ib = ordenPrioridad.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }, [contactosFrecuentesState.todosLosContactos]);
+
+  /** Totales calculados una sola vez cuando cambian los contactos o el límite */
+  const totalesMemorized = useMemo(() => {
+    if (!contactosFrecuentesState.todosLosContactos) return null;
+    const visibles = limitContactos === 'todos'
+      ? contactosFrecuentesState.todosLosContactos
+      : contactosFrecuentesState.todosLosContactos.slice(0, limitContactos as number);
+    const parseFecha = (f: string) => {
+      if (!f || f === '-') return null;
+      const [d, m, y] = f.split('/');
+      return d && m && y ? new Date(`${y}-${m}-${d}`) : new Date(f);
+    };
+    const fmt = (d: Date | null) => d ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}` : '-';
+    const totalFrecuencia = visibles.reduce((s: number, c: any) => s + (c.frecuencia || 0), 0);
+    const fechas = visibles.map((c: any) => parseFecha(c.primera_fecha || c.PRIMERA_FECHA || '')).filter(Boolean) as Date[];
+    const fechasUltimas = visibles.map((c: any) => parseFecha(c.ultima_fecha || c.ULTIMA_FECHA || '')).filter(Boolean) as Date[];
+    const primeraFecha = fechas.length ? fechas.reduce((a, b) => a < b ? a : b) : null;
+    const ultimaFecha = fechasUltimas.length ? fechasUltimas.reduce((a, b) => a > b ? a : b) : null;
+    const sumasPorTipo: Record<string, number> = {};
+    tiposColumnasMemorized.forEach((tipo) => {
+      sumasPorTipo[tipo] = visibles.reduce((s: number, c: any) => s + (c[tipo] || 0), 0);
+    });
+    return { visibles, totalFrecuencia, primeraFecha: fmt(primeraFecha), ultimaFecha: fmt(ultimaFecha), sumasPorTipo };
+  }, [contactosFrecuentesState.todosLosContactos, limitContactos, tiposColumnasMemorized]);
 
   /**
    * Maneja el envío del formulario
@@ -1509,530 +1796,29 @@ export function ExperticiasForm({
             {/* SECCIÓN: Resultados del análisis BTS
                 Muestra tabla de resultados con selección de filas
                 Solo se renderiza si hay análisis en progreso, resultados o error */}
-            {(btsAnalysisState.isAnalyzing ||
-              btsAnalysisState.results ||
-              btsAnalysisState.error) && (
-              <div className="space-y-3 border-t pt-4">
-                <h4 className="text-md font-medium">Análisis BTS</h4>
+            <TablaBTS
+              isAnalyzing={btsAnalysisState.isAnalyzing}
+              results={btsAnalysisState.results}
+              error={btsAnalysisState.error}
+              selectedRows={selectedRows}
+              copiedTable={copiedTable}
+              onCopiar={copiarAlPortapapeles}
+              onVerTabla={() => setIsTableModalOpen(true)}
+              abonadoValue={abonadoValue}
+            />
 
-                {/* Estado: Procesando análisis */}
-                {btsAnalysisState.isAnalyzing && (
-                  <div className="flex items-center space-x-2 text-sm text-blue-600">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Analizando archivo BTS...</span>
-                  </div>
-                )}
-
-                {/* Estado: Error en análisis */}
-                {btsAnalysisState.error && (
-                  <div className="flex items-center space-x-2 text-sm text-red-600">
-                    <XCircle className="h-4 w-4" />
-                    <span>{btsAnalysisState.error}</span>
-                  </div>
-                )}
-
-                {/* Estado: Resultados encontrados
-                    - Muestra contador de resultados
-                    - Tabla preview con scroll horizontal
-                    - Botón para expandir tabla en modal */}
-                {btsAnalysisState.results &&
-                  btsAnalysisState.results.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-green-600 font-medium">
-                          Resultados encontrados:{" "}
-                          {btsAnalysisState.results.length}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {/* Botón: Copiar tabla BTS al portapapeles */}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              copiarAlPortapapeles(
-                                'bts',
-                                btsAnalysisState.results!,
-                                ['ABONADO A', 'ABONADO B', 'FECHA', 'HORA', 'TIME', 'DIRECCION', 'CORDENADAS']
-                              )
-                            }
-                            title="Copiar tabla"
-                          >
-                            {copiedTable === 'bts' ? (
-                              <Check className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Clipboard className="h-4 w-4" />
-                            )}
-                          </Button>
-                          {/* Botón: Abre modal con tabla completa y selección */}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsTableModalOpen(true)}
-                            title="Ver tabla completa"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {/* Tabla preview (primeras 6 filas) */}
-                      <div className="max-h-60 overflow-y-auto border rounded-lg">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>ABONADO A</TableHead>
-                              <TableHead>ABONADO B</TableHead>
-                              <TableHead>FECHA</TableHead>
-                              <TableHead>HORA</TableHead>
-                              <TableHead>TIME</TableHead>
-                              <TableHead>DIRECCION</TableHead>
-                              <TableHead>CORDENADAS</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {btsAnalysisState.results.map((result, index) => (
-                              <TableRow
-                                key={index}
-                                className={
-                                  selectedRows.has(index)
-                                    ? "bg-blue-100 dark:bg-blue-900/40"
-                                    : ""
-                                }
-                              >
-                                <TableCell className="py-1 px-2 text-xs">
-                                  {result["ABONADO A"] ||
-                                    result["ABONADO_A"] ||
-                                    "-"}
-                                </TableCell>
-                                <TableCell className="py-1 px-2 text-xs">
-                                  {result["ABONADO B"] ||
-                                    result["ABONADO_B"] ||
-                                    "-"}
-                                </TableCell>
-                                <TableCell className="py-1 px-2 text-xs">
-                                  {" "}
-                                  {/* py-1 alto px ancho text-xs ajustar texto */}
-                                  {result["FECHA"] || "-"}
-                                </TableCell>
-                                <TableCell className="py-1 px-2 text-xs">
-                                  {result["HORA"] || "-"}
-                                </TableCell>
-                                <TableCell className="py-1 px-2 text-xs">
-                                  {result["TIME"] || "-"}
-                                </TableCell>
-                                <TableCell className="py-1 px-2 text-xs">
-                                  {result["DIRECCION"] || "-"}
-                                </TableCell>
-                                <TableCell className="py-1 px-2 text-xs">
-                                  {result["CORDENADAS"] || "-"}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  )}
-
-                {/* Sin resultados */}
-                {btsAnalysisState.results &&
-                  btsAnalysisState.results.length === 0 && (
-                    <div className="text-sm text-gray-600">
-                      No se encontraron resultados para el número {abonadoValue}
-                    </div>
-                  )}
-              </div>
-            )}
-
-            {(contactosFrecuentesState.isAnalyzing ||
-              contactosFrecuentesState.datosCrudos ||
-              contactosFrecuentesState.todosLosContactos ||
-              contactosFrecuentesState.error) && (
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="text-md font-medium">
-                  Análisis de Contactos Frecuentes
-                </h4>
-
-                {/* Estado: Procesando análisis */}
-                {contactosFrecuentesState.isAnalyzing && (
-                  <div className="flex items-center space-x-2 text-sm text-blue-600">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Analizando contactos frecuentes...</span>
-                  </div>
-                )}
-
-                {/* Estado: Error en análisis */}
-                {contactosFrecuentesState.error && (
-                  <div className="flex items-center space-x-2 text-sm text-red-600">
-                    <XCircle className="h-4 w-4" />
-                    <span>{contactosFrecuentesState.error}</span>
-                  </div>
-                )}
-
-                {/* TABLA 1: Datos Crudos del Excel - RENDERIZADO DINÁMICO */}
-                {contactosFrecuentesState.datosCrudos &&
-                  contactosFrecuentesState.datosCrudos.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-green-600 font-medium">
-                          Registros de comunicación:{" "}
-                          {contactosFrecuentesState.datosCrudos.length}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              copiarAlPortapapeles(
-                                'crudos',
-                                contactosFrecuentesState.datosCrudos!,
-                                Object.keys(contactosFrecuentesState.datosCrudos![0])
-                              )
-                            }
-                            title="Copiar tabla"
-                          >
-                            {copiedTable === 'crudos' ? (
-                              <Check className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Clipboard className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsContactosTableModalOpen(true)}
-                            title="Ver tabla completa"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="max-h-48 overflow-y-auto border rounded-lg">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              {contactosFrecuentesState.datosCrudos.length >
-                                0 &&
-                                Object.keys(
-                                  contactosFrecuentesState.datosCrudos[0]
-                                ).map((col) => (
-                                  <TableHead key={col}>{col}</TableHead>
-                                ))}
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {contactosFrecuentesState.datosCrudos.map(
-                              (row, index) => (
-                                <TableRow key={index}>
-                                  {Object.keys(row).map((col) => (
-                                    <TableCell
-                                      key={col}
-                                      className="py-1 px-2 text-xs"
-                                    >
-                                      {row[col] || "-"}
-                                    </TableCell>
-                                  ))}
-                                </TableRow>
-                              )
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  )}
-
-                {/* TABLA 2: Todos los Contactos Frecuentes */}
-                {contactosFrecuentesState.todosLosContactos &&
-                  contactosFrecuentesState.todosLosContactos.length > 0 && (
-                    <div className="space-y-2 mt-4">
-                      <div className="flex items-center justify-between">
-                        <h5 className="text-sm font-medium text-blue-700">
-                          Contactos Frecuentes
-                        </h5>
-                        <div className="flex items-center gap-1">
-                          <select
-                            value={limitContactos}
-                            onChange={(e) =>
-                              setLimitContactos(
-                                e.target.value === 'todos' ? 'todos' : Number(e.target.value)
-                              )
-                            }
-                            className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-                            title="Cantidad de contactos a mostrar"
-                          >
-                            <option value={10}>10</option>
-                            <option value={25}>25</option>
-                            <option value="todos">Todos</option>
-                          </select>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const visibles = limitContactos === 'todos'
-                                ? contactosFrecuentesState.todosLosContactos!
-                                : contactosFrecuentesState.todosLosContactos!.slice(0, limitContactos as number);
-                              const ordenPrioridad = ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE'];
-                              const tiposSet = new Set<string>();
-                              visibles.forEach((c: any) => Object.keys(c).forEach((k) => {
-                                if (!['numero', 'frecuencia', 'primera_fecha', 'ultima_fecha'].includes(k)) tiposSet.add(k);
-                              }));
-                              const tiposSorted = Array.from(tiposSet).sort((a, b) => {
-                                const ia = ordenPrioridad.indexOf(a), ib = ordenPrioridad.indexOf(b);
-                                if (ia !== -1 && ib !== -1) return ia - ib;
-                                if (ia !== -1) return -1; if (ib !== -1) return 1;
-                                return a.localeCompare(b);
-                              });
-                              const parseFecha = (f: string) => {
-                                if (!f || f === '-') return null;
-                                const [d, m, y] = f.split('/');
-                                return d && m && y ? new Date(`${y}-${m}-${d}`) : new Date(f);
-                              };
-                              const fmt = (d: Date | null) => d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : '-';
-                              const totalFila: any = { NUMERO: 'TOTALES' };
-                              tiposSorted.forEach((tipo) => { totalFila[tipo] = visibles.reduce((s: number, c: any) => s + (c[tipo] || 0), 0); });
-                              totalFila['frecuencia'] = visibles.reduce((s: number, c: any) => s + (c.frecuencia || 0), 0);
-                              const pf = visibles.map((c: any) => parseFecha(c.primera_fecha || '')).filter(Boolean) as Date[];
-                              const uf = visibles.map((c: any) => parseFecha(c.ultima_fecha || '')).filter(Boolean) as Date[];
-                              totalFila['primera_fecha'] = fmt(pf.length ? pf.reduce((a, b) => a < b ? a : b) : null);
-                              totalFila['ultima_fecha'] = fmt(uf.length ? uf.reduce((a, b) => a > b ? a : b) : null);
-                              const datosConTotales = [
-                                ...visibles.map((c: any) => ({ ...c, NUMERO: c.numero })),
-                                totalFila
-                              ];
-                              const cols = ['NUMERO', ...tiposSorted, 'frecuencia', 'primera_fecha', 'ultima_fecha'];
-                              copiarAlPortapapeles('contactos', datosConTotales, cols);
-                            }}
-                            className="flex items-center gap-1 text-xs"
-                            title="Copiar tabla"
-                          >
-                            {copiedTable === 'contactos' ? (
-                              <Check className="h-3.5 w-3.5 text-green-500" />
-                            ) : (
-                              <Clipboard className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsTop10ModalOpen(true)}
-                            className="flex items-center gap-1 text-xs"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto border rounded-lg border-blue-200">
-                        <Table>
-                          <TableHeader className="bg-blue-50">
-                            <TableRow>
-                              <TableHead className="w-12">#</TableHead>
-                              <TableHead>INTERLOCUTOR</TableHead>
-                              {/* Columnas dinámicas de transacciones */}
-                              {(() => {
-                                const tipos = new Set<string>();
-                                const ordenPrioridad = [
-                                  "LLAMADA ENTRANTE",
-                                  "LLAMADA SALIENTE",
-                                  "SMS ENTRANTE",
-                                  "SMS SALIENTE",
-                                ];
-
-                                contactosFrecuentesState.todosLosContactos?.forEach(
-                                  (c: any) => {
-                                    Object.keys(c).forEach((key) => {
-                                      if (
-                                        ![
-                                          "numero",
-                                          "frecuencia",
-                                          "primera_fecha",
-                                          "ultima_fecha",
-                                        ].includes(key)
-                                      ) {
-                                        tipos.add(key);
-                                      }
-                                    });
-                                  }
-                                );
-
-                                const tiposArray = Array.from(tipos);
-                                return tiposArray
-                                  .sort((a, b) => {
-                                    const idxA = ordenPrioridad.indexOf(a);
-                                    const idxB = ordenPrioridad.indexOf(b);
-                                    if (idxA !== -1 && idxB !== -1)
-                                      return idxA - idxB;
-                                    if (idxA !== -1) return -1;
-                                    if (idxB !== -1) return 1;
-                                    return a.localeCompare(b);
-                                  })
-                                  .map((tipo) => (
-                                    <TableHead
-                                      key={tipo}
-                                      className="text-center text-[10px] leading-tight font-bold text-blue-900"
-                                    >
-                                      {tipo}
-                                    </TableHead>
-                                  ));
-                              })()}
-                              <TableHead className="text-center font-bold">TOTAL GENERAL</TableHead>
-                              <TableHead>PRIMERA FECHA</TableHead>
-                              <TableHead>ULTIMA FECHA</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(limitContactos === 'todos'
-                              ? contactosFrecuentesState.todosLosContactos
-                              : contactosFrecuentesState.todosLosContactos.slice(0, limitContactos)
-                            ).map(
-                              (contacto: any, index: number) => {
-                                const tiposDetectados = new Set<string>();
-                                const ordenPrioridad = [
-                                  "LLAMADA ENTRANTE",
-                                  "LLAMADA SALIENTE",
-                                  "SMS ENTRANTE",
-                                  "SMS SALIENTE",
-                                ];
-
-                                contactosFrecuentesState.todosLosContactos?.forEach(
-                                  (c: any) => {
-                                    Object.keys(c).forEach((key) => {
-                                      if (
-                                        ![
-                                          "numero",
-                                          "frecuencia",
-                                          "primera_fecha",
-                                          "ultima_fecha",
-                                        ].includes(key)
-                                      ) {
-                                        tiposDetectados.add(key);
-                                      }
-                                    });
-                                  }
-                                );
-
-                                const tiposSorted = Array.from(
-                                  tiposDetectados
-                                ).sort((a, b) => {
-                                  const idxA = ordenPrioridad.indexOf(a);
-                                  const idxB = ordenPrioridad.indexOf(b);
-                                  if (idxA !== -1 && idxB !== -1)
-                                    return idxA - idxB;
-                                  if (idxA !== -1) return -1;
-                                  if (idxB !== -1) return 1;
-                                  return a.localeCompare(b);
-                                });
-
-                                return (
-                                  <TableRow key={index}>
-                                    <TableCell className="py-1 px-2 text-xs font-bold">
-                                      {index + 1}
-                                    </TableCell>
-                                    <TableCell className="py-1 px-2 text-xs font-mono font-bold">
-                                      {contacto.numero ||
-                                        contacto.NUMERO ||
-                                        "-"}
-                                    </TableCell>
-                                    {/* Celdas dinámicas de transacciones */}
-                                    {tiposSorted.map((tipo) => (
-                                      <TableCell
-                                        key={tipo}
-                                        className="py-1 px-2 text-xs text-center border-l border-gray-100"
-                                      >
-                                        {contacto[tipo] > 0 ? (
-                                          <span className="font-medium text-gray-700">
-                                            {contacto[tipo]}
-                                          </span>
-                                        ) : (
-                                          ""
-                                        )}
-                                      </TableCell>
-                                    ))}
-                                    <TableCell className="py-1 px-2 text-xs text-center font-bold bg-blue-50/30">
-                                      {contacto.frecuencia ||
-                                        contacto.FRECUENCIA ||
-                                        0}
-                                    </TableCell>
-                                    <TableCell className="py-1 px-2 text-xs text-gray-500">
-                                      {contacto.primera_fecha ||
-                                        contacto.PRIMERA_FECHA ||
-                                        "-"}
-                                    </TableCell>
-                                    <TableCell className="py-1 px-2 text-xs text-gray-500">
-                                      {contacto.ultima_fecha ||
-                                        contacto.ULTIMA_FECHA ||
-                                        "-"}
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              }
-                            )}
-                            {/* Fila de TOTALES */}
-                            {(() => {
-                              const visibles = limitContactos === 'todos'
-                                ? contactosFrecuentesState.todosLosContactos!
-                                : contactosFrecuentesState.todosLosContactos!.slice(0, limitContactos as number);
-
-                              const ordenPrioridad = ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE'];
-                              const tiposSet = new Set<string>();
-                              visibles.forEach((c: any) => Object.keys(c).forEach((k) => {
-                                if (!['numero', 'frecuencia', 'primera_fecha', 'ultima_fecha'].includes(k)) tiposSet.add(k);
-                              }));
-                              const tiposSorted = Array.from(tiposSet).sort((a, b) => {
-                                const ia = ordenPrioridad.indexOf(a), ib = ordenPrioridad.indexOf(b);
-                                if (ia !== -1 && ib !== -1) return ia - ib;
-                                if (ia !== -1) return -1; if (ib !== -1) return 1;
-                                return a.localeCompare(b);
-                              });
-
-                              const parseFecha = (f: string) => {
-                                if (!f || f === '-') return null;
-                                const [d, m, y] = f.split('/');
-                                return d && m && y ? new Date(`${y}-${m}-${d}`) : new Date(f);
-                              };
-
-                              const totalFrecuencia = visibles.reduce((s: number, c: any) => s + (c.frecuencia || 0), 0);
-                              const fechas = visibles.map((c: any) => parseFecha(c.primera_fecha || c.PRIMERA_FECHA || '')).filter(Boolean) as Date[];
-                              const fechasUltimas = visibles.map((c: any) => parseFecha(c.ultima_fecha || c.ULTIMA_FECHA || '')).filter(Boolean) as Date[];
-                              const primeraFecha = fechas.length ? fechas.reduce((a, b) => a < b ? a : b) : null;
-                              const ultimaFecha = fechasUltimas.length ? fechasUltimas.reduce((a, b) => a > b ? a : b) : null;
-                              const fmt = (d: Date | null) => d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : '-';
-
-                              return (
-                                <TableRow className="bg-blue-900 text-white font-bold border-t-2 border-blue-700">
-                                  <TableCell className="py-1 px-2 text-xs text-white"></TableCell>
-                                  <TableCell className="py-1 px-2 text-xs text-white tracking-wide">TOTALES</TableCell>
-                                  {tiposSorted.map((tipo) => (
-                                    <TableCell key={tipo} className="py-1 px-2 text-xs text-center text-white">
-                                      {visibles.reduce((s: number, c: any) => s + (c[tipo] || 0), 0)}
-                                    </TableCell>
-                                  ))}
-                                  <TableCell className="py-1 px-2 text-xs text-center text-white">{totalFrecuencia}</TableCell>
-                                  <TableCell className="py-1 px-2 text-xs text-white">{fmt(primeraFecha)}</TableCell>
-                                  <TableCell className="py-1 px-2 text-xs text-white">{fmt(ultimaFecha)}</TableCell>
-                                </TableRow>
-                              );
-                            })()}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  )}
-
-                {/* Sin resultados */}
-                {contactosFrecuentesState.datosCrudos &&
-                  contactosFrecuentesState.datosCrudos.length === 0 && (
-                    <div className="text-sm text-gray-600">
-                      No se encontraron registros de comunicación para el número{" "}
-                      {abonadoValue}
-                    </div>
-                  )}
-              </div>
-            )}
+            <TablaContactosFrecuentes
+              state={contactosFrecuentesState}
+              limitContactos={limitContactos}
+              onSetLimitContactos={setLimitContactos}
+              copiedTable={copiedTable}
+              onCopiar={copiarAlPortapapeles}
+              onVerDatosCrudos={() => setIsContactosTableModalOpen(true)}
+              onVerContactos={() => setIsTop10ModalOpen(true)}
+              tiposColumnas={tiposColumnasMemorized}
+              totales={totalesMemorized}
+              abonadoValue={abonadoValue}
+            />
 
             <FormField
               control={form.control}
