@@ -189,6 +189,7 @@ class Exper_Frecuentes:
                     },
                     'MOVISTAR': {
                         'hoja': 'VOZ' if 'VOZ' in hojas else hojas[0],
+                        'hoja_sms': 'SMS' if 'SMS' in hojas else None,
                         'salto': 14,
                         'A': 'ABONADO_A', 'B': 'ABONADO_B',
                         'mapeo': {
@@ -222,6 +223,22 @@ class Exper_Frecuentes:
             # Carga de datos
             datos = pd.read_excel(xls, sheet_name=conf['hoja'], skiprows=conf['salto'])
             datos.columns = datos.columns.str.strip().str.upper()
+
+            # Para Movistar: también leer la hoja SMS y combinarla
+            if operador_key == 'MOVISTAR' and conf.get('hoja_sms'):
+                try:
+                    datos_sms = pd.read_excel(xls, sheet_name=conf['hoja_sms'], skiprows=conf['salto'])
+                    datos_sms.columns = datos_sms.columns.str.strip().str.upper()
+                    # Renombrar CANT_CARACTERES a DURACION para unificar estructura
+                    if 'CANT_CARACTERES' in datos_sms.columns:
+                        datos_sms = datos_sms.rename(columns={'CANT_CARACTERES': 'DURACION'})
+                    # Convertir fechas de formato ISO (YYYY-MM-DD) a DD/MM/YYYY
+                    datos_sms['FECHA'] = pd.to_datetime(datos_sms['FECHA'], errors='coerce').dt.strftime('%d/%m/%Y')
+                    # Combinar VOZ + SMS en un único DataFrame
+                    datos = pd.concat([datos, datos_sms], ignore_index=True)
+                    print(f"[DEBUG BTS] Hoja SMS cargada y combinada. Total filas: {len(datos)}")
+                except Exception as e_sms:
+                    print(f"[DEBUG BTS] No se pudo cargar hoja SMS: {e_sms}")
 
             # --- SOLUCIÓN AL PROBLEMA DEL .0 Y LIMPIEZA ---
             def limpiar_telefonos(serie):
@@ -263,9 +280,9 @@ class Exper_Frecuentes:
 
             elif operador_key == 'MOVISTAR':
                 datos_interes['Tipo Transacción'] = datos_interes['TIPO_CDR'].fillna('') + " . " + datos_interes['TRANSACCION'].fillna('')
-                datos_interes['BTS-Celda'] = datos_interes['DIRECCION_INICIAL_A'].astype(str).str.split('-').str[0]
-                datos_interes['Coordenadas A'] = datos_interes['LATITUD_INICIAL_A'].astype(str) + ", " + datos_interes['LONGITUD_INICIAL_A'].astype(str)
-                datos_interes['Coordenadas B'] = datos_interes['LATITUD_INICIAL_B'].astype(str) + ", " + datos_interes['LONGITUD_INICIAL_B'].astype(str)
+                datos_interes['BTS-Celda'] = datos_interes['DIRECCION_INICIAL_A'].fillna('').astype(str).str.split('-').str[0]
+                datos_interes['Coordenadas A'] = datos_interes['LATITUD_INICIAL_A'].fillna('').astype(str).replace('', 'N/D') + ", " + datos_interes['LONGITUD_INICIAL_A'].fillna('').astype(str).replace('', 'N/D')
+                datos_interes['Coordenadas B'] = datos_interes['LATITUD_INICIAL_B'].fillna('').astype(str).replace('', 'N/D') + ", " + datos_interes['LONGITUD_INICIAL_B'].fillna('').astype(str).replace('', 'N/D')
 
             elif operador_key == 'MOVILNET':
                 # (Aquí mantienes la lógica de SMS que ya tenías)
@@ -313,7 +330,7 @@ class Exper_Frecuentes:
                 for cat in ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE']:
                     frecuencias[cat] = frecuencias[cat].fillna(0).astype(int)
 
-            top_10_list = frecuencias.head(10).rename(columns={'CONTACTO': 'numero'}).to_dict('records')
+            top_10_list = frecuencias.rename(columns={'CONTACTO': 'numero'}).to_dict('records')
 
             # --- PREPARACIÓN DE TABLA FINAL ---
         

@@ -44,6 +44,7 @@ import {
   Eye,
   Clipboard,
   Check,
+  Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
@@ -169,6 +170,16 @@ export function ExperticiasForm({
 
   // Controla si el modal del TOP 10 contactos frecuentes está abierto
   const [isTop10ModalOpen, setIsTop10ModalOpen] = useState(false);
+
+  // Controla cuántos contactos frecuentes se muestran en la tabla (10, 25 o todos)
+  const [limitContactos, setLimitContactos] = useState<number | 'todos'>(10);
+
+  // Buscadores de los modales
+  const [searchBTS, setSearchBTS] = useState('');
+  const [searchContactosFrecuentes, setSearchContactosFrecuentes] = useState('');
+  const [searchRegistros, setSearchRegistros] = useState('');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
 
   // Controla qué tabla fue copiada recientemente (feedback visual)
   const [copiedTable, setCopiedTable] = useState<string | null>(null);
@@ -1742,15 +1753,31 @@ export function ExperticiasForm({
                           Contactos Frecuentes
                         </h5>
                         <div className="flex items-center gap-1">
+                          <select
+                            value={limitContactos}
+                            onChange={(e) =>
+                              setLimitContactos(
+                                e.target.value === 'todos' ? 'todos' : Number(e.target.value)
+                              )
+                            }
+                            className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                            title="Cantidad de contactos a mostrar"
+                          >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value="todos">Todos</option>
+                          </select>
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const datos = contactosFrecuentesState.todosLosContactos!;
+                              const visibles = limitContactos === 'todos'
+                                ? contactosFrecuentesState.todosLosContactos!
+                                : contactosFrecuentesState.todosLosContactos!.slice(0, limitContactos as number);
                               const ordenPrioridad = ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE'];
                               const tiposSet = new Set<string>();
-                              datos.forEach((c: any) => Object.keys(c).forEach((k) => {
+                              visibles.forEach((c: any) => Object.keys(c).forEach((k) => {
                                 if (!['numero', 'frecuencia', 'primera_fecha', 'ultima_fecha'].includes(k)) tiposSet.add(k);
                               }));
                               const tiposSorted = Array.from(tiposSet).sort((a, b) => {
@@ -1759,8 +1786,25 @@ export function ExperticiasForm({
                                 if (ia !== -1) return -1; if (ib !== -1) return 1;
                                 return a.localeCompare(b);
                               });
-                              const cols = ['numero', ...tiposSorted, 'frecuencia', 'primera_fecha', 'ultima_fecha'];
-                              copiarAlPortapapeles('contactos', datos, cols);
+                              const parseFecha = (f: string) => {
+                                if (!f || f === '-') return null;
+                                const [d, m, y] = f.split('/');
+                                return d && m && y ? new Date(`${y}-${m}-${d}`) : new Date(f);
+                              };
+                              const fmt = (d: Date | null) => d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : '-';
+                              const totalFila: any = { NUMERO: 'TOTALES' };
+                              tiposSorted.forEach((tipo) => { totalFila[tipo] = visibles.reduce((s: number, c: any) => s + (c[tipo] || 0), 0); });
+                              totalFila['frecuencia'] = visibles.reduce((s: number, c: any) => s + (c.frecuencia || 0), 0);
+                              const pf = visibles.map((c: any) => parseFecha(c.primera_fecha || '')).filter(Boolean) as Date[];
+                              const uf = visibles.map((c: any) => parseFecha(c.ultima_fecha || '')).filter(Boolean) as Date[];
+                              totalFila['primera_fecha'] = fmt(pf.length ? pf.reduce((a, b) => a < b ? a : b) : null);
+                              totalFila['ultima_fecha'] = fmt(uf.length ? uf.reduce((a, b) => a > b ? a : b) : null);
+                              const datosConTotales = [
+                                ...visibles.map((c: any) => ({ ...c, NUMERO: c.numero })),
+                                totalFila
+                              ];
+                              const cols = ['NUMERO', ...tiposSorted, 'frecuencia', 'primera_fecha', 'ultima_fecha'];
+                              copiarAlPortapapeles('contactos', datosConTotales, cols);
                             }}
                             className="flex items-center gap-1 text-xs"
                             title="Copiar tabla"
@@ -1841,7 +1885,10 @@ export function ExperticiasForm({
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {contactosFrecuentesState.todosLosContactos.map(
+                            {(limitContactos === 'todos'
+                              ? contactosFrecuentesState.todosLosContactos
+                              : contactosFrecuentesState.todosLosContactos.slice(0, limitContactos)
+                            ).map(
                               (contacto: any, index: number) => {
                                 const tiposDetectados = new Set<string>();
                                 const ordenPrioridad = [
@@ -1924,6 +1971,52 @@ export function ExperticiasForm({
                                 );
                               }
                             )}
+                            {/* Fila de TOTALES */}
+                            {(() => {
+                              const visibles = limitContactos === 'todos'
+                                ? contactosFrecuentesState.todosLosContactos!
+                                : contactosFrecuentesState.todosLosContactos!.slice(0, limitContactos as number);
+
+                              const ordenPrioridad = ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE'];
+                              const tiposSet = new Set<string>();
+                              visibles.forEach((c: any) => Object.keys(c).forEach((k) => {
+                                if (!['numero', 'frecuencia', 'primera_fecha', 'ultima_fecha'].includes(k)) tiposSet.add(k);
+                              }));
+                              const tiposSorted = Array.from(tiposSet).sort((a, b) => {
+                                const ia = ordenPrioridad.indexOf(a), ib = ordenPrioridad.indexOf(b);
+                                if (ia !== -1 && ib !== -1) return ia - ib;
+                                if (ia !== -1) return -1; if (ib !== -1) return 1;
+                                return a.localeCompare(b);
+                              });
+
+                              const parseFecha = (f: string) => {
+                                if (!f || f === '-') return null;
+                                const [d, m, y] = f.split('/');
+                                return d && m && y ? new Date(`${y}-${m}-${d}`) : new Date(f);
+                              };
+
+                              const totalFrecuencia = visibles.reduce((s: number, c: any) => s + (c.frecuencia || 0), 0);
+                              const fechas = visibles.map((c: any) => parseFecha(c.primera_fecha || c.PRIMERA_FECHA || '')).filter(Boolean) as Date[];
+                              const fechasUltimas = visibles.map((c: any) => parseFecha(c.ultima_fecha || c.ULTIMA_FECHA || '')).filter(Boolean) as Date[];
+                              const primeraFecha = fechas.length ? fechas.reduce((a, b) => a < b ? a : b) : null;
+                              const ultimaFecha = fechasUltimas.length ? fechasUltimas.reduce((a, b) => a > b ? a : b) : null;
+                              const fmt = (d: Date | null) => d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : '-';
+
+                              return (
+                                <TableRow className="bg-blue-900 text-white font-bold border-t-2 border-blue-700">
+                                  <TableCell className="py-1 px-2 text-xs text-white"></TableCell>
+                                  <TableCell className="py-1 px-2 text-xs text-white tracking-wide">TOTALES</TableCell>
+                                  {tiposSorted.map((tipo) => (
+                                    <TableCell key={tipo} className="py-1 px-2 text-xs text-center text-white">
+                                      {visibles.reduce((s: number, c: any) => s + (c[tipo] || 0), 0)}
+                                    </TableCell>
+                                  ))}
+                                  <TableCell className="py-1 px-2 text-xs text-center text-white">{totalFrecuencia}</TableCell>
+                                  <TableCell className="py-1 px-2 text-xs text-white">{fmt(primeraFecha)}</TableCell>
+                                  <TableCell className="py-1 px-2 text-xs text-white">{fmt(ultimaFecha)}</TableCell>
+                                </TableRow>
+                              );
+                            })()}
                           </TableBody>
                         </Table>
                       </div>
@@ -1978,12 +2071,29 @@ export function ExperticiasForm({
         </form>
       </Form>
 
-      <Dialog open={isTableModalOpen} onOpenChange={setIsTableModalOpen}>
+      <Dialog open={isTableModalOpen} onOpenChange={(open) => { setIsTableModalOpen(open); if (!open) setSearchBTS(''); }}>
         <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Resultados del Análisis BTS</DialogTitle>
           </DialogHeader>
-          <div className="overflow-auto max-h-[75vh]">
+          <div className="flex items-center gap-2 px-1 pb-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Buscar número, dirección..."
+                value={searchBTS}
+                onChange={(e) => setSearchBTS(e.target.value)}
+                className="w-full pl-7 pr-3 h-8 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            {searchBTS && (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {btsAnalysisState.results?.filter((r) => Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(searchBTS.toLowerCase()))).length} resultados
+              </span>
+            )}
+          </div>
+          <div className="overflow-auto max-h-[70vh]">
             {btsAnalysisState.results &&
               btsAnalysisState.results.length > 0 && (
                 <Table>
@@ -1999,7 +2109,9 @@ export function ExperticiasForm({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {btsAnalysisState.results.map((result, index) => (
+                    {btsAnalysisState.results.filter((r) =>
+                      !searchBTS || Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(searchBTS.toLowerCase()))
+                    ).map((result, index) => (
                       <TableRow
                         key={index}
                         onClick={() => toggleRowSelection(index)}
@@ -2042,7 +2154,7 @@ export function ExperticiasForm({
 
       <Dialog
         open={isContactosTableModalOpen}
-        onOpenChange={setIsContactosTableModalOpen}
+        onOpenChange={(open) => { setIsContactosTableModalOpen(open); if (!open) { setFechaDesde(''); setFechaHasta(''); setSearchRegistros(''); } }}
       >
         <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden">
           <DialogHeader>
@@ -2050,7 +2162,62 @@ export function ExperticiasForm({
               Registros de Comunicación - Vista Completa
             </DialogTitle>
           </DialogHeader>
-          <div className="overflow-auto max-h-[75vh]">
+          <div className="flex items-center gap-2 px-1 pb-1 flex-wrap">
+            <div className="relative flex-1 min-w-[160px]">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Buscar número, tipo, fecha..."
+                value={searchRegistros}
+                onChange={(e) => setSearchRegistros(e.target.value)}
+                className="w-full pl-7 pr-3 h-8 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            <span className="text-xs text-muted-foreground font-medium">Fecha:</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Desde</span>
+              <input
+                type="text"
+                placeholder="DD/MM/AAAA"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+                className="w-28 px-2 h-8 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Hasta</span>
+              <input
+                type="text"
+                placeholder="DD/MM/AAAA"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+                className="w-28 px-2 h-8 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            {(fechaDesde || fechaHasta || searchRegistros) && (
+              <>
+                <span className="text-xs text-muted-foreground">
+                  {(() => {
+                    const parseDMY = (s: string) => { const [d,m,y] = s.split('/'); return d&&m&&y ? new Date(`${y}-${m}-${d}`) : null; };
+                    const desde = parseDMY(fechaDesde), hasta = parseDMY(fechaHasta);
+                    const q = searchRegistros.toLowerCase();
+                    return contactosFrecuentesState.datosCrudos?.filter((row) => {
+                      const f = parseDMY(String(row['Fecha'] || row['FECHA'] || ''));
+                      if (fechaDesde || fechaHasta) {
+                        if (!f) return false;
+                        if (desde && f < desde) return false;
+                        if (hasta && f > hasta) return false;
+                      }
+                      if (q && !Object.values(row).some((v) => String(v ?? '').toLowerCase().includes(q))) return false;
+                      return true;
+                    }).length ?? 0;
+                  })()} resultados
+                </span>
+                <button onClick={() => { setFechaDesde(''); setFechaHasta(''); setSearchRegistros(''); }} className="text-xs text-blue-600 hover:underline">Limpiar</button>
+              </>
+            )}
+          </div>
+          <div className="overflow-auto max-h-[68vh]">
             {contactosFrecuentesState.datosCrudos &&
               contactosFrecuentesState.datosCrudos.length > 0 && (
                 <Table>
@@ -2063,15 +2230,29 @@ export function ExperticiasForm({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {contactosFrecuentesState.datosCrudos.map((row, index) => (
-                      <TableRow key={index}>
-                        {Object.keys(row).map((col) => (
-                          <TableCell key={col} className="py-1 px-2 text-xs">
-                            {row[col] || "-"}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
+                    {(() => {
+                      const parseDMY = (s: string) => { const [d,m,y] = s.split('/'); return d&&m&&y ? new Date(`${y}-${m}-${d}`) : null; };
+                      const desde = parseDMY(fechaDesde), hasta = parseDMY(fechaHasta);
+                      const q = searchRegistros.toLowerCase();
+                      return contactosFrecuentesState.datosCrudos!.filter((row) => {
+                        if (fechaDesde || fechaHasta) {
+                          const f = parseDMY(String(row['Fecha'] || row['FECHA'] || ''));
+                          if (!f) return false;
+                          if (desde && f < desde) return false;
+                          if (hasta && f > hasta) return false;
+                        }
+                        if (q && !Object.values(row).some((v) => String(v ?? '').toLowerCase().includes(q))) return false;
+                        return true;
+                      }).map((row, index) => (
+                        <TableRow key={index}>
+                          {Object.keys(row).map((col) => (
+                            <TableCell key={col} className="py-1 px-2 text-xs">
+                              {row[col] || "-"}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ));
+                    })()}
                   </TableBody>
                 </Table>
               )}
@@ -2079,15 +2260,38 @@ export function ExperticiasForm({
         </DialogContent>
       </Dialog>
       {/* Modal TOP 10 Contactos Frecuentes */}
-      <Dialog open={isTop10ModalOpen} onOpenChange={setIsTop10ModalOpen}>
+      <Dialog open={isTop10ModalOpen} onOpenChange={(open) => { setIsTop10ModalOpen(open); if (!open) setSearchContactosFrecuentes(''); }}>
         <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>TOP 10 Contactos Frecuentes</DialogTitle>
+            <DialogTitle>Contactos Frecuentes</DialogTitle>
           </DialogHeader>
-          <div className="overflow-auto max-h-[75vh]">
+          <div className="flex items-center gap-2 px-1 pb-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Buscar número..."
+                value={searchContactosFrecuentes}
+                onChange={(e) => setSearchContactosFrecuentes(e.target.value)}
+                className="w-full pl-7 pr-3 h-8 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            {searchContactosFrecuentes && (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {contactosFrecuentesState.todosLosContactos?.filter((c: any) =>
+                  Object.values(c).some((v) => String(v ?? '').toLowerCase().includes(searchContactosFrecuentes.toLowerCase()))
+                ).length} resultados
+              </span>
+            )}
+          </div>
+          <div className="overflow-auto max-h-[68vh]">
             {contactosFrecuentesState.todosLosContactos &&
               contactosFrecuentesState.todosLosContactos.length > 0 && (() => {
-                const datos = contactosFrecuentesState.todosLosContactos!;
+                const datos = searchContactosFrecuentes
+                  ? contactosFrecuentesState.todosLosContactos!.filter((c: any) =>
+                      Object.values(c).some((v) => String(v ?? '').toLowerCase().includes(searchContactosFrecuentes.toLowerCase()))
+                    )
+                  : contactosFrecuentesState.todosLosContactos!;
                 const ordenPrioridad = ['LLAMADA ENTRANTE', 'LLAMADA SALIENTE', 'SMS ENTRANTE', 'SMS SALIENTE'];
                 const tiposSet = new Set<string>();
                 datos.forEach((c: any) => Object.keys(c).forEach((k) => {
