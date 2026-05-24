@@ -173,11 +173,14 @@ class Exper_Frecuentes:
             # Limpieza inicial del número objetivo
             numero_objetivo_str = str(numero_objetivo).split('.')[0].strip()
 
+            # Mapa case-insensitive: nombre en mayúsculas -> nombre real de la hoja
+            hojas_upper = {h.upper(): h for h in hojas}
+
             # Configuración (se mantiene similar, pero añadimos mapeo de columnas)
             CONFIG = {
                     'DIGITEL': {
-                        'hoja': 'IBM' if 'IBM' in hojas else hojas[0],
-                        'salto': 28,
+                        'hoja': hojas_upper.get('IBM', None),
+                        'salto': 0 if 'IBM' in hojas_upper else 28,
                         'A': 'ABONADO A', 'B': 'ABONADO B',
                         'mapeo': {
                             'ABONADO A': 'ABONADO A', 'ABONADO B': 'ABONADO B',
@@ -221,8 +224,32 @@ class Exper_Frecuentes:
             conf = CONFIG.get(operador_key, CONFIG['DIGITEL'])
 
             # Carga de datos
-            datos = pd.read_excel(xls, sheet_name=conf['hoja'], skiprows=conf['salto'])
-            datos.columns = datos.columns.str.strip().str.upper()
+            if operador_key == 'DIGITEL' and conf['hoja'] is None:
+                # No se encontró hoja IBM — buscar todas las hojas HojaX (case-insensitive)
+                import re
+                hojas_mensuales = [
+                    hojas_upper[k] for k in hojas_upper
+                    if re.fullmatch(r'HOJA\d+', k)
+                ]
+                hojas_mensuales.sort(key=lambda h: int(re.search(r'\d+', h).group()))
+                if not hojas_mensuales:
+                    # Último recurso: usar la primera hoja disponible
+                    hojas_mensuales = [hojas[0]]
+                print(f"[DEBUG BTS] Digitel sin IBM — combinando hojas: {hojas_mensuales}")
+                frames = []
+                for hoja in hojas_mensuales:
+                    try:
+                        df_hoja = pd.read_excel(xls, sheet_name=hoja, skiprows=conf['salto'])
+                        df_hoja.columns = df_hoja.columns.str.strip().str.upper()
+                        frames.append(df_hoja)
+                        print(f"[DEBUG BTS] Hoja '{hoja}' cargada: {len(df_hoja)} filas")
+                    except Exception as e_hoja:
+                        print(f"[DEBUG BTS] No se pudo cargar hoja '{hoja}': {e_hoja}")
+                datos = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+                print(f"[DEBUG BTS] Total filas combinadas Digitel: {len(datos)}")
+            else:
+                datos = pd.read_excel(xls, sheet_name=conf['hoja'], skiprows=conf['salto'])
+                datos.columns = datos.columns.str.strip().str.upper()
 
             # Para Movistar: también leer la hoja SMS y combinarla
             if operador_key == 'MOVISTAR' and conf.get('hoja_sms'):
@@ -253,30 +280,52 @@ class Exper_Frecuentes:
 
             # --- SOLUCIÓN AL CONGELAMIENTO (VECTORIZACIÓN) ---
             # Filtramos solo las filas que nos interesan de golpe (sin iterrows)
-            mask = (datos[col_a] == numero_objetivo_str) | (datos[col_b] == numero_objetivo_str)
+            # Para DIGITEL con hoja IBM los números no llevan el 0 inicial (04225323822 → 4225323822)
+            numeros_buscar = [numero_objetivo_str]
+            if operador_key == 'DIGITEL' and conf['hoja'] is not None and numero_objetivo_str.startswith('0'):
+                numeros_buscar.append(numero_objetivo_str[1:])
+            mask = datos[col_a].isin(numeros_buscar) | datos[col_b].isin(numeros_buscar)
             datos_interes = datos[mask].copy()
+
+            # Normalizar: usar siempre el número sin 0 inicial como clave de comparación en IBM
+            numero_objetivo_cmp = numero_objetivo_str[1:] if (
+                operador_key == 'DIGITEL' and conf['hoja'] is not None and numero_objetivo_str.startswith('0')
+            ) else numero_objetivo_str
 
             if datos_interes.empty:
                 return {'top_10': [], 'datos_crudos': []}
 
             # Identificar quién es el "Contacto" (el que no es el objetivo) de forma vectorial
             datos_interes['CONTACTO'] = np.where(
-                datos_interes[col_a] == numero_objetivo_str, 
+                datos_interes[col_a].isin(numeros_buscar), 
                 datos_interes[col_b], 
                 datos_interes[col_a]
             )
 
-           # 1. Separación de Fecha y Hora (Si vienen juntas)
+           # 1. Separación de Fecha y Hora — _FECHA_DT para cálculos, FECHA como string para salida
             if 'FECHA Y HORA' in datos_interes.columns:
                 temp = datos_interes['FECHA Y HORA'].astype(str).str.split(' ', n=1, expand=True)
-                datos_interes['FECHA'] = temp[0]
+                datos_interes['_FECHA_DT'] = pd.to_datetime(temp[0], errors='coerce')
+                datos_interes['FECHA'] = datos_interes['_FECHA_DT'].dt.strftime('%d/%m/%Y')
                 datos_interes['HORA'] = temp[1]
+            elif 'FECHA' in datos_interes.columns:
+                # IBM ya tiene FECHA separada — guardar datetime y formatear string
+                datos_interes['_FECHA_DT'] = pd.to_datetime(datos_interes['FECHA'], errors='coerce')
+                datos_interes['FECHA'] = datos_interes['_FECHA_DT'].dt.strftime('%d/%m/%Y')
+            else:
+                datos_interes['_FECHA_DT'] = pd.NaT
+                datos_interes['FECHA'] = ''
 
-            if operador_key == 'DIGITEL':
+            # Solo IBM tiene columnas de ubicación/coordenadas — Hoja1/Hoja2 no las tiene
+            if operador_key == 'DIGITEL' and 'UBICACION GEOGRAFICA ABONADO A' in datos_interes.columns:
                 datos_interes['Dirección A'] = datos_interes['UBICACION GEOGRAFICA ABONADO A'].fillna('') + " . " + datos_interes['ESTADO INICIO A'].fillna('')
                 datos_interes['Dirección B'] = datos_interes['UBICACION GEOGRAFICA ABONADO B'].fillna('') + " . " + datos_interes['ESTADO INICIO B'].fillna('')
-                datos_interes['Coordenadas A'] = datos_interes['LATITUD CELDAD INICIO A'].astype(str) + ", " + datos_interes['LONGITUD CELDA INICIO A'].astype(str)
-                datos_interes['Coordenadas B'] = datos_interes['LATITUD CELDA INICIO B'].astype(str) + ", " + datos_interes['LONGITUD CELDA INICIO B'].astype(str)
+                lat_a = datos_interes['LATITUD CELDAD INICIO A'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+                lon_a = datos_interes['LONGITUD CELDA INICIO A'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+                datos_interes['Coordenadas A'] = np.where((lat_a != '') & (lon_a != ''), lat_a + ', ' + lon_a, '')
+                lat_b = datos_interes['LATITUD CELDA INICIO B'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+                lon_b = datos_interes['LONGITUD CELDA INICIO B'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+                datos_interes['Coordenadas B'] = np.where((lat_b != '') & (lon_b != ''), lat_b + ', ' + lon_b, '')
 
             elif operador_key == 'MOVISTAR':
                 datos_interes['Tipo Transacción'] = datos_interes['TIPO_CDR'].fillna('') + " . " + datos_interes['TRANSACCION'].fillna('')
@@ -297,9 +346,11 @@ class Exper_Frecuentes:
             # --- CÁLCULO DE FRECUENCIAS (SÚPER RÁPIDO) ---
             frecuencias = datos_interes.groupby('CONTACTO').agg(
                 frecuencia=('CONTACTO', 'size'),
-                primera_fecha=('FECHA', 'min'),
-                ultima_fecha=('FECHA', 'max')
+                primera_fecha=('_FECHA_DT', 'min'),
+                ultima_fecha=('_FECHA_DT', 'max')
             ).reset_index().sort_values(by='frecuencia', ascending=False)
+            frecuencias['primera_fecha'] = frecuencias['primera_fecha'].dt.strftime('%d/%m/%Y').fillna('-')
+            frecuencias['ultima_fecha'] = frecuencias['ultima_fecha'].dt.strftime('%d/%m/%Y').fillna('-')
 
             # --- DESGLOSE POR TIPO DE TRANSACCIÓN ---
             def estandarizar_tipo(valor):
