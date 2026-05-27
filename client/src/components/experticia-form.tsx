@@ -45,7 +45,9 @@ import {
   Clipboard,
   Check,
   Search,
+  Download,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Badge } from "@/components/ui/badge";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -186,6 +188,31 @@ interface TablaContactosFrecuentesProps {
 
 const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state, limitContactos, onSetLimitContactos, copiedTable, onCopiar, onVerDatosCrudos, onVerContactos, tiposColumnas, totales, abonadoValue }: TablaContactosFrecuentesProps) {
   if (!state.isAnalyzing && !state.datosCrudos && !state.todosLosContactos && !state.error) return null;
+
+  const exportarExcel = () => {
+    const wb = XLSX.utils.book_new();
+
+    if (state.todosLosContactos && state.todosLosContactos.length > 0) {
+      const filasContactos = state.todosLosContactos.map((c: any, i: number) => {
+        const fila: Record<string, any> = { '#': i + 1, INTERLOCUTOR: c.numero || c.NUMERO || '' };
+        tiposColumnas.forEach((tipo) => { fila[tipo] = c[tipo] ?? 0; });
+        fila['TOTAL GENERAL'] = c.frecuencia ?? c.FRECUENCIA ?? 0;
+        fila['PRIMERA FECHA'] = c.primera_fecha ?? c.PRIMERA_FECHA ?? '';
+        fila['ULTIMA FECHA'] = c.ultima_fecha ?? c.ULTIMA_FECHA ?? '';
+        return fila;
+      });
+      const ws1 = XLSX.utils.json_to_sheet(filasContactos);
+      XLSX.utils.book_append_sheet(wb, ws1, 'Contactos Frecuentes');
+    }
+
+    if (state.datosCrudos && state.datosCrudos.length > 0) {
+      const ws2 = XLSX.utils.json_to_sheet(state.datosCrudos);
+      XLSX.utils.book_append_sheet(wb, ws2, 'Datos de Comunicacion');
+    }
+
+    const nombre = abonadoValue ? `Contactos_Frecuentes_${abonadoValue}.xlsx` : 'Contactos_Frecuentes.xlsx';
+    XLSX.writeFile(wb, nombre);
+  };
   return (
     <div className="space-y-4 border-t pt-4">
       <h4 className="text-md font-medium">Análisis de Contactos Frecuentes</h4>
@@ -270,6 +297,9 @@ const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state,
               </Button>
               <Button type="button" variant="outline" size="sm" onClick={onVerContactos} className="flex items-center gap-1 text-xs">
                 <Eye className="h-3.5 w-3.5" />
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={exportarExcel} className="flex items-center gap-1 text-xs" title="Exportar a Excel">
+                <Download className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>

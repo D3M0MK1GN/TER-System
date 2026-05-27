@@ -191,7 +191,7 @@ export function ExperticiasTable({
               Gestión de Experticias
             </CardTitle>
             <div className="flex gap-2">
-              {permissions.canManageUsers && (
+              {permissions.canCreateExperticias && (
                 <Button
                   onClick={onExportExcel}
                   variant="outline"
@@ -201,7 +201,7 @@ export function ExperticiasTable({
                   Exportar Excel
                 </Button>
               )}
-              {permissions.canManageUsers && (
+              {permissions.canCreateExperticias && (
                 <Button onClick={onCreateNew}>
                   <Plus className="h-4 w-4 mr-2" />
                   Nueva Experticia

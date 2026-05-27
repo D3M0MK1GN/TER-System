@@ -3,7 +3,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { users, personasCasos, personaTelefonos } from "@shared/schema";
+import { users, personasCasos, personaTelefonos, experticias } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import {
   insertUserSchema,
@@ -1537,6 +1537,21 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
           
           const personasResults = await Promise.all(personasPromises);
           resultados = personasResults.filter(p => p !== null);
+
+          // También buscar en experticias por abonado
+          const experticiasNumero = await db.select()
+            .from(experticias)
+            .where(sql`${experticias.abonado} LIKE ${'%' + valor + '%'}`);
+          const resultadosExperticiasNumero = experticiasNumero.map(exp => ({
+            id: exp.id,
+            expediente: exp.expediente,
+            cedula: exp.numeroComunicacion,
+            nombreCompleto: '',
+            numeroAsociado: exp.abonado ?? '',
+            delito: '',
+            fechaInicio: ''
+          }));
+          resultados = [...resultados, ...resultadosExperticiasNumero];
           break;
           
         case 'expediente':
@@ -1552,6 +1567,21 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
             delito: p.delito,
             fechaInicio: p.fechaDeInicio
           }));
+
+          // También buscar en experticias por expediente
+          const experticiasExpediente = await db.select()
+            .from(experticias)
+            .where(sql`LOWER(${experticias.expediente}) LIKE LOWER(${'%' + valor + '%'})`);
+          const resultadosExperticiasExp = experticiasExpediente.map(exp => ({
+            id: exp.id,
+            expediente: exp.expediente,
+            cedula: exp.numeroComunicacion,
+            nombreCompleto: '',
+            numeroAsociado: exp.abonado ?? '',
+            delito: '',
+            fechaInicio: ''
+          }));
+          resultados = [...resultados, ...resultadosExperticiasExp];
           break;
           
         default:

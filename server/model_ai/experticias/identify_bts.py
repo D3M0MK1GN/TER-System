@@ -208,10 +208,10 @@ class Exper_Frecuentes:
                         }
                     },
                     'MOVILNET': {
-                        'hoja': 'RESULTS' if 'RESULTS' in hojas else hojas[0],
-                        'salto': 1,
+                        'hoja': hojas_upper.get('RESULTS', hojas[0]),
+                        'hoja_sms': hojas_upper.get('SMS', None),
+                        'salto': 0,
                         'A': 'ASUBS', 'B': 'BSUBS',
-                        # AGREGAMOS ESTO para que el bucle final encuentre las columnas
                         'mapeo': {
                             'ABONADO A': 'ASUBS', 'ABONADO B': 'BSUBS',
                             'Tipo Transacción': 'Tipo Transacción', 'Fecha': 'Fecha',
@@ -250,6 +250,8 @@ class Exper_Frecuentes:
             else:
                 datos = pd.read_excel(xls, sheet_name=conf['hoja'], skiprows=conf['salto'])
                 datos.columns = datos.columns.str.strip().str.upper()
+                if operador_key == 'MOVILNET':
+                    print(f"[MOVILNET] Hoja principal cargada: '{conf['hoja']}' | Filas: {len(datos)} | Columnas: {list(datos.columns)}")
 
             # Para Movistar: también leer la hoja SMS y combinarla
             if operador_key == 'MOVISTAR' and conf.get('hoja_sms'):
@@ -259,47 +261,102 @@ class Exper_Frecuentes:
                     # Renombrar CANT_CARACTERES a DURACION para unificar estructura
                     if 'CANT_CARACTERES' in datos_sms.columns:
                         datos_sms = datos_sms.rename(columns={'CANT_CARACTERES': 'DURACION'})
-                    # Convertir fechas de formato ISO (YYYY-MM-DD) a DD/MM/YYYY
-                    datos_sms['FECHA'] = pd.to_datetime(datos_sms['FECHA'], errors='coerce').dt.strftime('%d/%m/%Y')
+                    # Parsear fechas SMS como datetime (sin convertir a string todavía)
+                    datos_sms['FECHA'] = pd.to_datetime(datos_sms['FECHA'], errors='coerce')
                     # Combinar VOZ + SMS en un único DataFrame
                     datos = pd.concat([datos, datos_sms], ignore_index=True)
                     print(f"[DEBUG BTS] Hoja SMS cargada y combinada. Total filas: {len(datos)}")
                 except Exception as e_sms:
                     print(f"[DEBUG BTS] No se pudo cargar hoja SMS: {e_sms}")
 
+            # Para Movilnet: combinar hoja Results (VOZ) con hoja SMS
+            if operador_key == 'MOVILNET' and conf.get('hoja_sms'):
+                try:
+                    datos['_TIPO_HOJA'] = 'VOZ'
+                    datos_sms = pd.read_excel(xls, sheet_name=conf['hoja_sms'], skiprows=conf['salto'])
+                    datos_sms.columns = datos_sms.columns.str.strip().str.upper()
+                    datos_sms['_TIPO_HOJA'] = 'SMS'
+                    print(f"[MOVILNET] Hoja SMS cargada: '{conf['hoja_sms']}' | Filas SMS: {len(datos_sms)} | Columnas SMS: {list(datos_sms.columns)}")
+                    datos = pd.concat([datos, datos_sms], ignore_index=True)
+                    print(f"[MOVILNET] Total filas combinadas (VOZ+SMS): {len(datos)}")
+                except Exception as e_sms:
+                    print(f"[MOVILNET] No se pudo cargar hoja SMS: {e_sms}")
+                    datos['_TIPO_HOJA'] = 'VOZ'
+            elif operador_key == 'MOVILNET':
+                datos['_TIPO_HOJA'] = 'VOZ'
+                print(f"[MOVILNET] Sin hoja SMS. Total filas VOZ: {len(datos)}")
+
             # --- SOLUCIÓN AL PROBLEMA DEL .0 Y LIMPIEZA ---
             def limpiar_telefonos(serie):
                 # Convierte a string, quita el .0 al final y espacios
                 return serie.astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
 
+            def normalizar_numero(numero):
+                """Elimina el 0 inicial (prefijo nacional) si existe. No toca el prefijo 58."""
+                s = str(numero).strip()
+                if s.startswith('0') and not s.startswith('58'):
+                    return s[1:]
+                return s
+
             col_a = conf['A'].upper()
             col_b = conf['B'].upper()
-            
+
+            # LOG 3 — verificar que las columnas existen y muestra de valores
+            if operador_key == 'MOVILNET':
+                cols_disponibles = list(datos.columns)
+                print(f"[MOVILNET] col_a='{col_a}' | col_b='{col_b}' | Columnas disponibles: {cols_disponibles}")
+                if col_a in datos.columns:
+                    print(f"[MOVILNET] Muestra {col_a}: {datos[col_a].head(5).tolist()}")
+                else:
+                    print(f"[MOVILNET] ERROR: columna '{col_a}' NO encontrada en el DataFrame")
+                if col_b in datos.columns:
+                    print(f"[MOVILNET] Muestra {col_b}: {datos[col_b].head(5).tolist()}")
+                else:
+                    print(f"[MOVILNET] ERROR: columna '{col_b}' NO encontrada en el DataFrame")
+
             datos[col_a] = limpiar_telefonos(datos[col_a])
             datos[col_b] = limpiar_telefonos(datos[col_b])
 
-            # --- SOLUCIÓN AL CONGELAMIENTO (VECTORIZACIÓN) ---
-            # Filtramos solo las filas que nos interesan de golpe (sin iterrows)
-            # Para DIGITEL con hoja IBM los números no llevan el 0 inicial (04225323822 → 4225323822)
-            numeros_buscar = [numero_objetivo_str]
-            if operador_key == 'DIGITEL' and conf['hoja'] is not None and numero_objetivo_str.startswith('0'):
-                numeros_buscar.append(numero_objetivo_str[1:])
-            mask = datos[col_a].isin(numeros_buscar) | datos[col_b].isin(numeros_buscar)
+            # Columnas normalizadas (sin 0 inicial) para comparación — los originales se conservan
+            datos['_A_NORM'] = datos[col_a].apply(normalizar_numero)
+            datos['_B_NORM'] = datos[col_b].apply(normalizar_numero)
+
+            # Normalizar también el número objetivo buscado
+            numero_objetivo_norm = normalizar_numero(numero_objetivo_str)
+            print(f"[DEBUG BTS] Número objetivo original: {numero_objetivo_str} | normalizado: {numero_objetivo_norm}")
+
+            # LOG 4 — comparar número buscado vs muestra de valores normalizados
+            if operador_key == 'MOVILNET':
+                print(f"[MOVILNET] numero_objetivo_norm='{numero_objetivo_norm}'")
+                print(f"[MOVILNET] Muestra _A_NORM: {datos['_A_NORM'].head(5).tolist()}")
+                print(f"[MOVILNET] Muestra _B_NORM: {datos['_B_NORM'].head(5).tolist()}")
+
+            # Filtrar usando las columnas normalizadas para capturar ambas formas (con/sin 0)
+            mask = (datos['_A_NORM'] == numero_objetivo_norm) | (datos['_B_NORM'] == numero_objetivo_norm)
             datos_interes = datos[mask].copy()
 
-            # Normalizar: usar siempre el número sin 0 inicial como clave de comparación en IBM
-            numero_objetivo_cmp = numero_objetivo_str[1:] if (
-                operador_key == 'DIGITEL' and conf['hoja'] is not None and numero_objetivo_str.startswith('0')
-            ) else numero_objetivo_str
+            # LOG 5 — cuántas filas coincidieron; si 0, mostrar valores únicos para diagnóstico
+            if operador_key == 'MOVILNET':
+                print(f"[MOVILNET] Filas que coinciden con el número: {len(datos_interes)}")
+                if datos_interes.empty:
+                    unicos_a = datos['_A_NORM'].unique()[:10].tolist()
+                    unicos_b = datos['_B_NORM'].unique()[:10].tolist()
+                    print(f"[MOVILNET] Sin coincidencias. Valores únicos _A_NORM (muestra): {unicos_a}")
+                    print(f"[MOVILNET] Sin coincidencias. Valores únicos _B_NORM (muestra): {unicos_b}")
+
+            # Sobreescribir col_a y col_b con sus versiones normalizadas para la tabla final
+            datos_interes[col_a] = datos_interes['_A_NORM']
+            datos_interes[col_b] = datos_interes['_B_NORM']
 
             if datos_interes.empty:
                 return {'top_10': [], 'datos_crudos': []}
 
-            # Identificar quién es el "Contacto" (el que no es el objetivo) de forma vectorial
+            # Identificar quién es el "Contacto" (el que no es el objetivo) usando columnas normalizadas
+            # Se usa la versión normalizada para evitar duplicados por el 0 inicial
             datos_interes['CONTACTO'] = np.where(
-                datos_interes[col_a].isin(numeros_buscar), 
-                datos_interes[col_b], 
-                datos_interes[col_a]
+                datos_interes['_A_NORM'] == numero_objetivo_norm,
+                datos_interes['_B_NORM'],
+                datos_interes['_A_NORM']
             )
 
            # 1. Separación de Fecha y Hora — _FECHA_DT para cálculos, FECHA como string para salida
@@ -310,7 +367,7 @@ class Exper_Frecuentes:
                 datos_interes['HORA'] = temp[1]
             elif 'FECHA' in datos_interes.columns:
                 # IBM ya tiene FECHA separada — guardar datetime y formatear string
-                datos_interes['_FECHA_DT'] = pd.to_datetime(datos_interes['FECHA'], errors='coerce')
+                datos_interes['_FECHA_DT'] = pd.to_datetime(datos_interes['FECHA'], dayfirst=True, errors='coerce')
                 datos_interes['FECHA'] = datos_interes['_FECHA_DT'].dt.strftime('%d/%m/%Y')
             else:
                 datos_interes['_FECHA_DT'] = pd.NaT
@@ -334,15 +391,15 @@ class Exper_Frecuentes:
                 datos_interes['Coordenadas B'] = datos_interes['LATITUD_INICIAL_B'].fillna('').astype(str).replace('', 'N/D') + ", " + datos_interes['LONGITUD_INICIAL_B'].fillna('').astype(str).replace('', 'N/D')
 
             elif operador_key == 'MOVILNET':
-                # (Aquí mantienes la lógica de SMS que ya tenías)
-                es_sms = datos_interes['DURACIÓN'].astype(str).str.upper().str.contains('SMS')
-                es_saliente = datos_interes[col_a] == numero_objetivo_str
+                es_sms = datos_interes['_TIPO_HOJA'] == 'SMS'
+                es_saliente = datos_interes['_A_NORM'] == numero_objetivo_norm
                 datos_interes['TIPO TRANSACCIÓN'] = np.where(
-                    es_sms, 
+                    es_sms,
                     np.where(es_saliente, "SMS SALIENTE", "SMS ENTRANTE"),
                     np.where(es_saliente, "LLAMADA SALIENTE", "LLAMADA ENTRANTE")
                 )
-                datos_interes['TIME'] = datos_interes['DURACIÓN'].astype(str).str.replace('SMS', '', case=False).str.strip()
+                col_dur = 'DURACIÓN' if 'DURACIÓN' in datos_interes.columns else 'DURACION'
+                datos_interes['TIME'] = datos_interes[col_dur].astype(str).str.strip()
             # --- CÁLCULO DE FRECUENCIAS (SÚPER RÁPIDO) ---
             frecuencias = datos_interes.groupby('CONTACTO').agg(
                 frecuencia=('CONTACTO', 'size'),
