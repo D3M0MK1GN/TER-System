@@ -1541,7 +1541,8 @@ app.post("/api/plantillas-word/by-expertise/:tipoExperticia/generate", authentic
           // También buscar en experticias por abonado
           const experticiasNumero = await db.select()
             .from(experticias)
-            .where(sql`${experticias.abonado} LIKE ${'%' + valor + '%'}`);
+            .where(sql`${experticias.abonado} LIKE ${'%' + (valor as string) + '%'}`);
+          console.log(`[TRAZABILIDAD DEBUG] Búsqueda por número '${valor}' → experticias encontradas: ${experticiasNumero.length}`, experticiasNumero.map(e => e.abonado));
           const resultadosExperticiasNumero = experticiasNumero.map(exp => ({
             id: exp.id,
             expediente: exp.expediente,

@@ -292,10 +292,16 @@ class Exper_Frecuentes:
                 return serie.astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
 
             def normalizar_numero(numero):
-                """Elimina el 0 inicial (prefijo nacional) si existe. No toca el prefijo 58."""
+                """Elimina el 0 inicial (prefijo nacional) si existe. Convierte prefijos internos de red Movilnet (199→426, 158→416)."""
                 s = str(numero).strip()
+                if s.endswith('.0'):
+                    s = s[:-2]
+                if s.startswith('199'):
+                    s = '426' + s[3:]
+                elif s.startswith('158'):
+                    s = '416' + s[3:]
                 if s.startswith('0') and not s.startswith('58'):
-                    return s[1:]
+                    s = s[1:]
                 return s
 
             col_a = conf['A'].upper()
@@ -400,6 +406,29 @@ class Exper_Frecuentes:
                 )
                 col_dur = 'DURACIÓN' if 'DURACIÓN' in datos_interes.columns else 'DURACION'
                 datos_interes['TIME'] = datos_interes[col_dur].astype(str).str.strip()
+                if 'IROUTE' in datos_interes.columns:
+                    datos_interes['BTS-Celda'] = datos_interes['IROUTE'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+                if 'DIROUTE' in datos_interes.columns:
+                    datos_interes['Dirección A'] = datos_interes['DIROUTE'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+                if 'LAT_LON_IROUTE' in datos_interes.columns:
+                    datos_interes['Coordenadas A'] = datos_interes['LAT_LON_IROUTE'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+                if 'DOROUTE' in datos_interes.columns:
+                    datos_interes['Dirección B'] = datos_interes['DOROUTE'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+                if 'LAT_LON_OROUTE' in datos_interes.columns:
+                    datos_interes['Coordenadas B'] = datos_interes['LAT_LON_OROUTE'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+
+            # Para Movilnet: restaurar el prefijo '0' nacional en los números para visualización
+            if operador_key == 'MOVILNET':
+                def agregar_prefijo_nacional(numero):
+                    s = str(numero).strip()
+                    if len(s) == 10 and s.isdigit() and not s.startswith('0'):
+                        return '0' + s
+                    return s
+                datos_interes[col_a] = datos_interes[col_a].apply(agregar_prefijo_nacional)
+                datos_interes[col_b] = datos_interes[col_b].apply(agregar_prefijo_nacional)
+                datos_interes['CONTACTO'] = datos_interes['CONTACTO'].apply(agregar_prefijo_nacional)
+                print(f"[MOVILNET] Prefijo '0' restaurado. Muestra CONTACTO: {datos_interes['CONTACTO'].head(3).tolist()}")
+
             # --- CÁLCULO DE FRECUENCIAS (SÚPER RÁPIDO) ---
             frecuencias = datos_interes.groupby('CONTACTO').agg(
                 frecuencia=('CONTACTO', 'size'),
