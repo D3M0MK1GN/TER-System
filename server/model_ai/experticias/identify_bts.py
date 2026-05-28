@@ -215,7 +215,8 @@ class Exper_Frecuentes:
                         'mapeo': {
                             'ABONADO A': 'ASUBS', 'ABONADO B': 'BSUBS',
                             'Tipo Transacción': 'Tipo Transacción', 'Fecha': 'Fecha',
-                            'Hora': 'Hora', 'Time': 'Time', 'BTS-Celda': 'BTS-Celda',
+                            'Hora': 'Hora', 'Time': 'Time', 'BTS-Celda A': 'BTS-Celda A',
+                            'BTS-Celda B': 'BTS-Celda B',
                             'Dirección A': 'Dirección A', 'Coordenadas A': 'Coordenadas A',
                             'IMEI A': 'IMEI A', 'IMEI B': 'IMEI B'
                         }
@@ -407,7 +408,9 @@ class Exper_Frecuentes:
                 col_dur = 'DURACIÓN' if 'DURACIÓN' in datos_interes.columns else 'DURACION'
                 datos_interes['TIME'] = datos_interes[col_dur].astype(str).str.strip()
                 if 'IROUTE' in datos_interes.columns:
-                    datos_interes['BTS-Celda'] = datos_interes['IROUTE'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+                    datos_interes['BTS-Celda A'] = datos_interes['IROUTE'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
+                if 'OROUTE' in datos_interes.columns:
+                    datos_interes['BTS-Celda B'] = datos_interes['OROUTE'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
                 if 'DIROUTE' in datos_interes.columns:
                     datos_interes['Dirección A'] = datos_interes['DIROUTE'].fillna('').astype(str).str.replace(r'^nan$', '', regex=True)
                 if 'LAT_LON_IROUTE' in datos_interes.columns:
@@ -481,8 +484,8 @@ class Exper_Frecuentes:
             # 3. Definimos las columnas que queremos en el JSON (exactamente como están en las llaves del mapeo)
             cabeceras_tabla = [
                 'ABONADO A', 'ABONADO B', 'Tipo Transacción', 'Fecha', 'Hora', 'Time',
-                'BTS-Celda', 'Dirección A', 'Dirección B', 'Coordenadas A', 'Coordenadas B',
-                'Orientación A', 'Orientación B', 'IMEI A', 'IMEI B'
+                'BTS-Celda', 'BTS-Celda A', 'BTS-Celda B', 'Dirección A', 'Dirección B',
+                'Coordenadas A', 'Coordenadas B', 'Orientación A', 'Orientación B', 'IMEI A', 'IMEI B'
             ]
 
             
