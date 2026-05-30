@@ -63,7 +63,7 @@ export interface IStorage {
   notifyUserSuspensionLifted(userId: number): Promise<void>;
   notifyAdminsOfFailedLoginSuspension(username: string, ip: string): Promise<void>;
   cleanupOldNotifications(): Promise<void>;
-  
+
   // Session management
   setUserSession(userId: number, sessionToken: string, expiresAt: Date): Promise<void>;
   clearUserSession(userId: number): Promise<void>;
@@ -80,7 +80,7 @@ export interface IStorage {
     page?: number;
     limit?: number;
   }): Promise<{ solicitudes: Solicitud[]; total: number }>;
-  
+
   getSolicitudesByUser(userId: number, filters?: {
     operador?: string;
     estado?: string;
@@ -100,7 +100,7 @@ export interface IStorage {
   // Plantillas de correo
   getPlantillasCorreo(usuarioId?: number): Promise<PlantillaCorreo[]>;
   getPlantillaCorreoById(id: number): Promise<PlantillaCorreo | undefined>;
-  
+
   // Plantillas Word
   getPlantillasWord(tipoExperticia?: string): Promise<PlantillaWord[]>;
   getPlantillaWordById(id: number): Promise<PlantillaWord | undefined>;
@@ -109,7 +109,7 @@ export interface IStorage {
   createPlantillaWord(plantilla: InsertPlantillaWord): Promise<PlantillaWord>;
   updatePlantillaWord(id: number, plantilla: Partial<InsertPlantillaWord>): Promise<PlantillaWord | undefined>;
   deletePlantillaWord(id: number): Promise<boolean>;
-  
+
   createPlantillaCorreo(plantilla: InsertPlantillaCorreo): Promise<PlantillaCorreo>;
   updatePlantillaCorreo(id: number, plantilla: Partial<InsertPlantillaCorreo>): Promise<PlantillaCorreo | undefined>;
   deletePlantillaCorreo(id: number): Promise<boolean>;
@@ -134,7 +134,7 @@ export interface IStorage {
     solicitudesPorOperador: { operador: string; total: number }[];
     actividadReciente: any[];
   }>;
-  
+
   getDashboardStatsByUser(userId: number): Promise<{
     totalSolicitudes: number;
     pendientes: number;
@@ -306,8 +306,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserLastAccess(id: number, ip?: string): Promise<void> {
-    const updateData: { ultimoAcceso: Date; direccionIp?: string } = { 
-      ultimoAcceso: new Date() 
+    const updateData: { ultimoAcceso: Date; direccionIp?: string } = {
+      ultimoAcceso: new Date()
     };
     if (ip) {
       updateData.direccionIp = ip;
@@ -417,10 +417,10 @@ export class DatabaseStorage implements IStorage {
       return await db.transaction(async (tx) => {
         // First delete related notifications
         await tx.delete(notificaciones).where(eq(notificaciones.solicitudId, id));
-        
+
         // Then delete history records
         await tx.delete(historialSolicitudes).where(eq(historialSolicitudes.solicitudId, id));
-        
+
         // Finally delete the solicitud
         const result = await tx.delete(solicitudes).where(eq(solicitudes.id, id));
         return (result.rowCount || 0) > 0;
@@ -538,9 +538,9 @@ export class DatabaseStorage implements IStorage {
     // First get the user to find their coordinacion
     const user = await this.getUser(userId);
     // console.log(`[DEBUG] getDashboardStatsByUser - User: ${user?.username}, Coordinacion: ${user?.coordinacion}`); Informacion por log 
-    
+
     if (!user || !user.coordinacion) {
-    //  console.log(`[DEBUG] User not found or no coordinacion - returning empty stats`); Informacion por log 
+      //  console.log(`[DEBUG] User not found or no coordinacion - returning empty stats`); Informacion por log 
       // If user doesn't exist or has no coordinacion, return empty stats
       return {
         totalSolicitudes: 0,
@@ -647,21 +647,21 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-    const [solicitudesResult, totalResult] = await Promise.all([
-      db
-        .select()
-        .from(solicitudes)
-        .where(whereClause)
-        .orderBy(desc(solicitudes.fechaSolicitud))
-        .limit(limit)
-        .offset(offset),
-      db
-        .select({ count: count() })
-        .from(solicitudes)
-        .where(whereClause)
-    ]);
+      const [solicitudesResult, totalResult] = await Promise.all([
+        db
+          .select()
+          .from(solicitudes)
+          .where(whereClause)
+          .orderBy(desc(solicitudes.fechaSolicitud))
+          .limit(limit)
+          .offset(offset),
+        db
+          .select({ count: count() })
+          .from(solicitudes)
+          .where(whereClause)
+      ]);
 
       return {
         solicitudes: solicitudesResult,
@@ -700,7 +700,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(solicitudes, eq(notificaciones.solicitudId, solicitudes.id))
       .where(eq(notificaciones.usuarioId, userId))
       .orderBy(desc(notificaciones.createdAt));
-    
+
     return result;
   }
 
@@ -716,7 +716,7 @@ export class DatabaseStorage implements IStorage {
       .select({ count: count() })
       .from(notificaciones)
       .where(and(eq(notificaciones.usuarioId, userId), eq(notificaciones.leida, false)));
-    
+
     return result[0]?.count || 0;
   }
 
@@ -724,13 +724,13 @@ export class DatabaseStorage implements IStorage {
   async cleanupOldNotifications(): Promise<void> {
     try {
       const now = new Date();
-      
+
       // Get admin user IDs first to optimize the queries
       const adminUsers = await db
         .select({ id: users.id })
         .from(users)
         .where(eq(users.rol, 'admin'));
-      
+
       const adminIds = adminUsers.map(user => user.id);
 
       // For admin users: delete notifications older than 120 hours (5 days)
@@ -769,7 +769,7 @@ export class DatabaseStorage implements IStorage {
     try {
       await db
         .update(users)
-        .set({ 
+        .set({
           intentosFallidos: sql`${users.intentosFallidos} + 1`,
           ultimoIntentoFallido: new Date()
         })
@@ -784,7 +784,7 @@ export class DatabaseStorage implements IStorage {
     try {
       await db
         .update(users)
-        .set({ 
+        .set({
           intentosFallidos: 0,
           ultimoIntentoFallido: null
         })
@@ -806,7 +806,7 @@ export class DatabaseStorage implements IStorage {
 
         await db
           .update(users)
-          .set({ 
+          .set({
             status: 'suspendido',
             fechaSuspension: new Date(),
             tiempoSuspension: suspensionEnd,
@@ -835,7 +835,7 @@ export class DatabaseStorage implements IStorage {
           // Levantar suspensión
           await db
             .update(users)
-            .set({ 
+            .set({
               status: 'activo',
               fechaSuspension: null,
               tiempoSuspension: null,
@@ -921,7 +921,7 @@ export class DatabaseStorage implements IStorage {
   async setUserSession(userId: number, sessionToken: string, expiresAt: Date): Promise<void> {
     await db
       .update(users)
-      .set({ 
+      .set({
         sessionToken: sessionToken,
         sessionExpires: expiresAt
       })
@@ -931,7 +931,7 @@ export class DatabaseStorage implements IStorage {
   async clearUserSession(userId: number): Promise<void> {
     await db
       .update(users)
-      .set({ 
+      .set({
         sessionToken: null,
         sessionExpires: null
       })
@@ -951,11 +951,11 @@ export class DatabaseStorage implements IStorage {
       .select({ sessionToken: users.sessionToken, sessionExpires: users.sessionExpires })
       .from(users)
       .where(eq(users.id, userId));
-    
+
     if (!user || !user.sessionToken || !user.sessionExpires) {
       return false;
     }
-    
+
     const now = new Date();
     return now < user.sessionExpires;
   }
@@ -965,7 +965,7 @@ export class DatabaseStorage implements IStorage {
     if (tipoExperticia) {
       return await db.select().from(plantillasWord).where(eq(plantillasWord.tipoExperticia, tipoExperticia as any));
     }
-    
+
     return await db.select().from(plantillasWord);
   }
 
@@ -1036,15 +1036,15 @@ export class DatabaseStorage implements IStorage {
 
   async setChatbotConfig(clave: string, valor: string, usuarioId: number, descripcion?: string): Promise<void> {
     const existingConfig = await this.getChatbotConfig(clave);
-    
+
     if (existingConfig) {
       await db
         .update(configuracionSistema)
-        .set({ 
-          valor, 
-          usuarioId, 
+        .set({
+          valor,
+          usuarioId,
           descripcion: descripcion || existingConfig.descripcion,
-          updatedAt: new Date() 
+          updatedAt: new Date()
         })
         .where(eq(configuracionSistema.clave, clave));
     } else {
@@ -1096,18 +1096,18 @@ export class DatabaseStorage implements IStorage {
 
   async incrementUserChatbotMessages(userId: number): Promise<boolean> {
     const status = await this.getUserChatbotStatus(userId);
-    
+
     // Get user role to check if admin
     const [user] = await db
       .select({ rol: users.rol })
       .from(users)
       .where(eq(users.id, userId));
-    
+
     // Admins have unlimited access, no need to check limits or increment
     if (user?.rol === 'admin') {
       return true;
     }
-    
+
     if (!status.habilitado || status.mensajesUsados >= status.limite) {
       return false;
     }
@@ -1133,10 +1133,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveChatbotMessage(
-    usuarioId: number, 
-    mensaje: string, 
-    respuesta: string, 
-    tieneArchivo?: boolean, 
+    usuarioId: number,
+    mensaje: string,
+    respuesta: string,
+    tieneArchivo?: boolean,
     nombreArchivo?: string
   ): Promise<void> {
     await db.insert(chatbotMensajes).values({
@@ -1515,7 +1515,7 @@ export class DatabaseStorage implements IStorage {
 
   async getRegistrosComunicacionByTelefonoIds(telefonoIds: number[]): Promise<RegistroComunicacion[]> {
     if (telefonoIds.length === 0) return [];
-    
+
     // Buscar registros donde abonadoAId o abonadoBId estén en la lista de IDs
     return await db
       .select()
