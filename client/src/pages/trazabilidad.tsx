@@ -49,6 +49,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface ResultadoBusqueda {
   id: number;
+  personaId: number | null;
   expediente: string;
   cedula: string;
   nombreCompleto: string;
@@ -152,7 +153,7 @@ export default function Trazabilidad() {
     setShowPersonaModal(true);
 
     try {
-      const response = await fetch(`/api/personas-casos/${personaId}`, {
+      const response = await fetch(`/api/expedientes-sujetos/${personaId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -162,7 +163,6 @@ export default function Trazabilidad() {
         const data = await response.json();
         setPersonaData(data);
       } else {
-        // En caso de error, cerrar el modal
         setShowPersonaModal(false);
         toast({
           title: "Error",
@@ -172,7 +172,6 @@ export default function Trazabilidad() {
       }
     } catch (error) {
       console.error("Error al obtener información de persona:", error);
-      // En caso de error, cerrar el modal
       setShowPersonaModal(false);
       toast({
         title: "Error",
@@ -430,7 +429,7 @@ export default function Trazabilidad() {
     setShowEditModal(true);
 
     try {
-      const response = await fetch(`/api/personas-casos/${personaId}`, {
+      const response = await fetch(`/api/expedientes-sujetos/${personaId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -484,7 +483,7 @@ export default function Trazabilidad() {
 
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/personas-casos/${editData.nro}`, {
+      const response = await fetch(`/api/expedientes-sujetos/${editData.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -653,7 +652,7 @@ export default function Trazabilidad() {
     }
   };
 
-  const handleDelete = async (personaId: number, nombreCompleto: string) => {
+  const handleDelete = async (expedienteId: number, personaId: number | null, nombreCompleto: string) => {
     if (
       !confirm(
         `¿Está seguro que desea eliminar el registro de ${nombreCompleto}?`
@@ -663,7 +662,13 @@ export default function Trazabilidad() {
     }
 
     try {
-      const response = await fetch(`/api/personas-casos/${personaId}`, {
+      // Si tiene personaId (persona registrada), eliminar la persona completa (cascade elimina sus expedientes)
+      // Si no (resultado de experticia), solo eliminar el expediente
+      const url = personaId
+        ? `/api/personas-casos/${personaId}`
+        : `/api/expedientes-sujetos/${expedienteId}`;
+
+      const response = await fetch(url, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -673,10 +678,12 @@ export default function Trazabilidad() {
       if (response.ok) {
         toast({
           title: "Éxito",
-          description: "Persona/Caso eliminado correctamente",
+          description: "Registro eliminado correctamente",
         });
-        // Actualizar la lista de resultados
-        setResultados(resultados.filter((r) => r.id !== personaId));
+        // Filtrar todos los resultados de la misma persona o el expediente específico
+        setResultados(resultados.filter((r) =>
+          personaId ? r.personaId !== personaId : r.id !== expedienteId
+        ));
       } else {
         const error = await response.json();
         toast({
@@ -911,6 +918,7 @@ export default function Trazabilidad() {
                                 onClick={() =>
                                   handleDelete(
                                     resultado.id,
+                                    resultado.personaId,
                                     resultado.nombreCompleto
                                   )
                                 }

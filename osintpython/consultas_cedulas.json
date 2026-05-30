@@ -2076,5 +2076,32 @@
                 "request_date": "2026-05-26T14:25:53.556Z"
             }
         }
+    },
+    {
+        "timestamp": "2026-05-28T19:14:57.198250",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "10753905",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=10753905",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 10753905,
+                "fecha_nac": "1972-02-06",
+                "rif": "V107539057",
+                "cne": {
+                    "estado": "ARAGUA",
+                    "municipio": "LIBERTADOR",
+                    "parroquia": "SAN MARTIN DE PORRES",
+                    "centro_electoral": "UNIDA EDUCATIVA PRIVADA MENCA DE LEONI"
+                },
+                "primer_apellido": "BOTELLO",
+                "segundo_apellido": "MONZON",
+                "primer_nombre": "YELITZA",
+                "segundo_nombre": "COROMOTO",
+                "request_date": "2026-05-28T23:14:57.140Z"
+            }
+        }
     }
 ]

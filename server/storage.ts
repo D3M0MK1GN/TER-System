@@ -11,6 +11,7 @@ import {
   personasCasos,
   personaTelefonos,
   registrosComunicacion,
+  expedientesSujetos,
   type User,
   type InsertUser,
   type Solicitud,
@@ -29,6 +30,8 @@ import {
   type InsertExperticia,
   type PersonaCaso,
   type InsertPersonaCaso,
+  type ExpedienteSujeto,
+  type InsertExpedienteSujeto,
   type PersonaTelefono,
   type InsertPersonaTelefono,
   type RegistroComunicacion,
@@ -175,9 +178,18 @@ export interface IStorage {
   }): Promise<{ personasCasos: PersonaCaso[]; total: number }>;
   getPersonaCasoById(nro: number): Promise<PersonaCaso | undefined>;
   getPersonaCasoByTelefono(telefono: string): Promise<PersonaCaso | undefined>;
+  findPersonaByCedula(cedula: string): Promise<PersonaCaso | undefined>;
   createPersonaCaso(personaCaso: InsertPersonaCaso): Promise<PersonaCaso>;
   updatePersonaCaso(nro: number, personaCaso: Partial<InsertPersonaCaso>): Promise<PersonaCaso | undefined>;
   deletePersonaCaso(nro: number): Promise<boolean>;
+  upsertPersonaCasoByAbonado(abonado: string, data: Partial<InsertPersonaCaso>): Promise<PersonaCaso>;
+
+  // Expedientes Sujetos - Datos del caso por persona
+  createExpedienteSujeto(data: InsertExpedienteSujeto): Promise<ExpedienteSujeto>;
+  getExpedientesSujetosByPersonaId(personaId: number): Promise<ExpedienteSujeto[]>;
+  getExpedienteSujetoById(id: number): Promise<ExpedienteSujeto | undefined>;
+  updateExpedienteSujeto(id: number, data: Partial<InsertExpedienteSujeto>): Promise<ExpedienteSujeto | undefined>;
+  deleteExpedienteSujeto(id: number): Promise<boolean>;
 
   // Persona Teléfonos - Catálogo de números
   getPersonaTelefonos(personaId: number): Promise<PersonaTelefono[]>;
@@ -1336,7 +1348,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPersonaCasoByTelefono(telefono: string): Promise<PersonaCaso | undefined> {
-    const [persona] = await db.select().from(personasCasos).where(eq(personasCasos.telefono, telefono));
+    const [exp] = await db.select().from(expedientesSujetos).where(eq(expedientesSujetos.telefonoCaso, telefono));
+    if (!exp?.personaId) return undefined;
+    const [persona] = await db.select().from(personasCasos).where(eq(personasCasos.nro, exp.personaId));
+    return persona || undefined;
+  }
+
+  async findPersonaByCedula(cedula: string): Promise<PersonaCaso | undefined> {
+    const [persona] = await db.select().from(personasCasos).where(eq(personasCasos.cedula, cedula));
     return persona || undefined;
   }
 
@@ -1358,6 +1377,72 @@ export class DatabaseStorage implements IStorage {
     // CASCADE eliminará automáticamente los teléfonos asociados de persona_telefonos
     // Los registros de comunicación mantendrán sus strings pero perderán las FKs
     const result = await db.delete(personasCasos).where(eq(personasCasos.nro, nro));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async upsertPersonaCasoByAbonado(abonado: string, data: Partial<InsertPersonaCaso>): Promise<PersonaCaso> {
+    // Buscar persona existente por cédula (si se provee) o por teléfono en expedientesSujetos
+    let persona: PersonaCaso | undefined;
+
+    if (data.cedula) {
+      const [byCedula] = await db.select().from(personasCasos).where(eq(personasCasos.cedula, data.cedula));
+      persona = byCedula;
+    }
+
+    if (!persona) {
+      const [expRow] = await db.select().from(expedientesSujetos).where(eq(expedientesSujetos.telefonoCaso, abonado));
+      if (expRow?.personaId) {
+        const [byPhone] = await db.select().from(personasCasos).where(eq(personasCasos.nro, expRow.personaId));
+        persona = byPhone;
+      }
+    }
+
+    const { ...bioData } = data;
+
+    if (persona) {
+      const [updated] = await db
+        .update(personasCasos)
+        .set({ ...bioData, updatedAt: new Date() })
+        .where(eq(personasCasos.nro, persona.nro))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(personasCasos)
+        .values(bioData as InsertPersonaCaso)
+        .returning();
+      // Crear expediente mínimo con el teléfono del caso
+      await db.insert(expedientesSujetos).values({ personaId: created.nro, telefonoCaso: abonado });
+      return created;
+    }
+  }
+
+  // Expedientes Sujetos
+  async createExpedienteSujeto(data: InsertExpedienteSujeto): Promise<ExpedienteSujeto> {
+    const [row] = await db.insert(expedientesSujetos).values(data).returning();
+    return row;
+  }
+
+  async getExpedientesSujetosByPersonaId(personaId: number): Promise<ExpedienteSujeto[]> {
+    return await db.select().from(expedientesSujetos).where(eq(expedientesSujetos.personaId, personaId));
+  }
+
+  async getExpedienteSujetoById(id: number): Promise<ExpedienteSujeto | undefined> {
+    const [row] = await db.select().from(expedientesSujetos).where(eq(expedientesSujetos.id, id));
+    return row || undefined;
+  }
+
+  async updateExpedienteSujeto(id: number, data: Partial<InsertExpedienteSujeto>): Promise<ExpedienteSujeto | undefined> {
+    const [updated] = await db
+      .update(expedientesSujetos)
+      .set(data)
+      .where(eq(expedientesSujetos.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteExpedienteSujeto(id: number): Promise<boolean> {
+    const result = await db.delete(expedientesSujetos).where(eq(expedientesSujetos.id, id));
     return (result.rowCount || 0) > 0;
   }
 

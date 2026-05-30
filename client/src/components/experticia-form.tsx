@@ -820,6 +820,16 @@ export function ExperticiasForm({
   // Set de índices de filas seleccionadas en la tabla de resultados BTS
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
+  const [afiliadoData, setAfiliadoData] = useState({
+    cedula: "",
+    nombre: "",
+    apellido: "",
+    pseudonimo: "",
+    fechaDeNacimiento: "",
+    correo: "",
+    direccion: "",
+  });
+
   /**
    * Alterna la selección de una fila en la tabla BTS
    * Agrega o elimina el índice del set de filas seleccionadas
@@ -933,6 +943,29 @@ export function ExperticiasForm({
   const abonadoValue = useWatch({ control: form.control, name: "abonado" });
   const tipoExperticiaValue = useWatch({ control: form.control, name: "tipoExperticia" });
 
+  useEffect(() => {
+    const abonado = abonadoValue?.trim();
+    if (!abonado) return;
+    fetch(`/api/personas-casos/by-abonado/${encodeURIComponent(abonado)}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) {
+          setAfiliadoData({
+            cedula: data.cedula || "",
+            nombre: data.nombre || "",
+            apellido: data.apellido || "",
+            pseudonimo: data.pseudonimo || "",
+            fechaDeNacimiento: data.fechaDeNacimiento || "",
+            correo: data.correo || "",
+            direccion: data.direccion || "",
+          });
+        }
+      })
+      .catch(() => {});
+  }, [abonadoValue]);
+
   /** Tipos de columnas de transacción calculados una sola vez cuando cambian los contactos */
   const tiposColumnasMemorized = useMemo(() => {
     const tipos = new Set<string>();
@@ -1041,6 +1074,30 @@ export function ExperticiasForm({
 
     if (esContactoFrecuente && !esMultiTarget) {
       submitData.todosLosContactos = contactosFrecuentesState.todosLosContactos;
+    }
+
+    const abonado = (data as any).abonado?.trim();
+    if (abonado) {
+      const tieneData = Object.values(afiliadoData).some((v) => v.trim() !== "");
+      if (tieneData) {
+        fetch(`/api/personas-casos/by-abonado/${encodeURIComponent(abonado)}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            cedula: afiliadoData.cedula || null,
+            nombre: afiliadoData.nombre || null,
+            apellido: afiliadoData.apellido || null,
+            pseudonimo: afiliadoData.pseudonimo || null,
+            fechaDeNacimiento: afiliadoData.fechaDeNacimiento || null,
+            correo: afiliadoData.correo || null,
+            direccion: afiliadoData.direccion || null,
+            expediente: (data as any).expediente || null,
+          }),
+        }).catch(() => {});
+      }
     }
 
     onSubmit(submitData);
@@ -1849,6 +1906,72 @@ export function ExperticiasForm({
               totales={totalesMemorized}
               abonadoValue={abonadoValue}
             />
+
+            {/* ── Datos Afiliados ── */}
+            <div className="border rounded-lg p-4 space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Datos Afiliados
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Cédula</label>
+                  <Input
+                    placeholder="Cédula del afiliado"
+                    value={afiliadoData.cedula}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, cedula: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Nombre</label>
+                  <Input
+                    placeholder="Nombre"
+                    value={afiliadoData.nombre}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, nombre: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Apellido</label>
+                  <Input
+                    placeholder="Apellido"
+                    value={afiliadoData.apellido}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, apellido: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Seudónimo</label>
+                  <Input
+                    placeholder="Seudónimo o alias"
+                    value={afiliadoData.pseudonimo}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, pseudonimo: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Fecha de Nacimiento</label>
+                  <Input
+                    placeholder="DD/MM/AAAA"
+                    value={afiliadoData.fechaDeNacimiento}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, fechaDeNacimiento: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Correo</label>
+                  <Input
+                    placeholder="Correo electrónico"
+                    type="email"
+                    value={afiliadoData.correo}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, correo: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-sm font-medium">Dirección</label>
+                  <Input
+                    placeholder="Dirección del afiliado"
+                    value={afiliadoData.direccion}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, direccion: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
 
             <FormField
               control={form.control}

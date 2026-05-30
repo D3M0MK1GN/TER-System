@@ -953,6 +953,52 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
     }
   });
 
+  // GET /api/personas-casos/by-abonado/:abonado - Obtener datos afiliado por número de abonado
+  app.get("/api/personas-casos/by-abonado/:abonado", authenticateToken, async (req: any, res) => {
+    try {
+      const { abonado } = req.params;
+      const persona = await storage.getPersonaCasoByTelefono(abonado);
+      if (!persona) {
+        return res.status(404).json({ message: "No se encontraron datos del afiliado" });
+      }
+      res.json(persona);
+    } catch (error) {
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
+
+  // POST /api/personas-casos/by-abonado/:abonado - Crear o actualizar datos afiliado por número de abonado
+  app.post("/api/personas-casos/by-abonado/:abonado", authenticateToken, async (req: any, res) => {
+    try {
+      const { abonado } = req.params;
+      const { cedula, nombre, apellido, pseudonimo, fechaDeNacimiento, correo, direccion, expediente } = req.body;
+      const persona = await storage.upsertPersonaCasoByAbonado(abonado, {
+        cedula: cedula || null,
+        nombre: nombre || null,
+        apellido: apellido || null,
+        fechaDeNacimiento: fechaDeNacimiento || null,
+        correo: correo || null,
+        direccion: direccion || null,
+      });
+
+      // Si viene un expediente, actualizar el expedienteSujeto correspondiente
+      if (expediente) {
+        const exps = await storage.getExpedientesSujetosByPersonaId(persona.nro);
+        const expConTelefono = exps.find(e => e.telefonoCaso === abonado);
+        if (expConTelefono) {
+          await storage.updateExpedienteSujeto(expConTelefono.id, {
+            expediente,
+            pseudonimo: pseudonimo || expConTelefono.pseudonimo || undefined,
+          });
+        }
+      }
+
+      res.json(persona);
+    } catch (error) {
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
+
   // Ruta para generar archivo Excel con datos de experticia
   app.post("/api/experticias/generate-excel", authenticateToken, async (req: any, res) => {
     try {

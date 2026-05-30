@@ -404,22 +404,14 @@ export type LoginData = z.infer<typeof loginSchema>;
 // Tabla PERSONA_CASO - Almacena datos estáticos del caso y de la persona
 export const personasCasos = pgTable("personas_casos", {
   nro: serial("nro").primaryKey(),
-  telefono: text("telefono"), // Teléfono principal (opcional, sin UNIQUE)
   cedula: text("cedula").unique(),
   nombre: text("nombre"),
   apellido: text("apellido"),
-  pseudonimo: text("pseudonimo"),
   edad: integer("edad"),
   fechaDeNacimiento: text("fecha_de_nacimiento"),
   profesion: text("profesion"),
+  correo: text("correo"),
   direccion: text("direccion"),
-  expediente: text("expediente"),
-  fechaDeInicio: text("fecha_de_inicio"),
-  delito: text("delito"),
-  nOficio: text("n_oficio"),
-  fiscalia: text("fiscalia"),
-  descripcion: text("descripcion"),
-  observacion: text("observacion"),
   usuarioId: integer("usuario_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -429,7 +421,7 @@ export const personasCasos = pgTable("personas_casos", {
 export const personaTelefonos = pgTable("persona_telefonos", {
   id: serial("id").primaryKey(),
   personaId: integer("persona_id").references(() => personasCasos.nro, { onDelete: 'cascade' }),
-  numero: text("numero").notNull().unique(), // Número de teléfono único
+  numero: text("numero").notNull(), // Número de teléfono (sin UNIQUE: puede repetirse en casos independientes)
   tipo: text("tipo"), // Tipo: móvil, fijo, trabajo, etc.
   iconoTipo: text("icono_tipo"), // Icono asignado para visualización en el grafo
   activo: boolean("activo").default(true),
@@ -459,6 +451,22 @@ export const registrosComunicacion = pgTable("registros_comunicacion", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Tabla EXPEDIENTES_SUJETOS - Datos del caso asociados a una persona
+export const expedientesSujetos = pgTable("expedientes_sujetos", {
+  id: serial("id").primaryKey(),
+  personaId: integer("persona_id").references(() => personasCasos.nro, { onDelete: 'cascade' }),
+  telefonoCaso: text("telefono_caso"),
+  expediente: text("expediente"),
+  pseudonimo: text("pseudonimo"),
+  delito: text("delito"),
+  fiscalia: text("fiscalia"),
+  nOficio: text("n_oficio"),
+  fechaDeInicio: text("fecha_de_inicio"),
+  descripcion: text("descripcion"),
+  observacion: text("observacion"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relaciones
 export const personasCasosRelations = relations(personasCasos, ({ one, many }) => ({
   usuario: one(users, {
@@ -466,6 +474,14 @@ export const personasCasosRelations = relations(personasCasos, ({ one, many }) =
     references: [users.id],
   }),
   telefonos: many(personaTelefonos),
+  expedientes: many(expedientesSujetos),
+}));
+
+export const expedientesSujetosRelations = relations(expedientesSujetos, ({ one }) => ({
+  persona: one(personasCasos, {
+    fields: [expedientesSujetos.personaId],
+    references: [personasCasos.nro],
+  }),
 }));
 
 export const personaTelefonosRelations = relations(personaTelefonos, ({ one, many }) => ({
@@ -495,105 +511,50 @@ export const registrosComunicacionRelations = relations(registrosComunicacion, (
 }));
 
 // Insert schemas
+const optionalText = z.union([z.string(), z.null()])
+  .optional()
+  .transform(val => {
+    if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
+    return typeof val === 'string' ? val.trim() : undefined;
+  });
+
+const nullableText = z.union([z.string(), z.null()])
+  .optional()
+  .transform(val => {
+    if (val === null) return null;
+    if (val === undefined) return undefined;
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      return trimmed === '' ? null : trimmed;
+    }
+    return undefined;
+  });
+
 export const insertPersonaCasoSchema = createInsertSchema(personasCasos).omit({
   nro: true,
   createdAt: true,
   updatedAt: true,
 }).extend({
-  telefono: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  cedula: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (val === null) return null;
-      if (val === undefined) return undefined;
-      if (typeof val === 'string') {
-        const trimmed = val.trim();
-        return trimmed === '' ? null : trimmed;
-      }
-      return undefined;
-    }),
-  expediente: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (val === null) return null;
-      if (val === undefined) return undefined;
-      if (typeof val === 'string') {
-        const trimmed = val.trim();
-        return trimmed === '' ? null : trimmed;
-      }
-      return undefined;
-    }),
-  apellido: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  pseudonimo: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  fechaDeNacimiento: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  profesion: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  direccion: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  fechaDeInicio: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  delito: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  nOficio: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  fiscalia: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  descripcion: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
-  observacion: z.union([z.string(), z.null()])
-    .optional()
-    .transform(val => {
-      if (!val || val === null || (typeof val === 'string' && val.trim() === '')) return undefined;
-      return typeof val === 'string' ? val.trim() : undefined;
-    }),
+  cedula: nullableText,
+  apellido: optionalText,
+  fechaDeNacimiento: optionalText,
+  profesion: optionalText,
+  direccion: optionalText,
+});
+
+export const insertExpedienteSujetoSchema = createInsertSchema(expedientesSujetos).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  telefonoCaso: optionalText,
+  expediente: nullableText,
+  pseudonimo: optionalText,
+  delito: optionalText,
+  fiscalia: optionalText,
+  nOficio: optionalText,
+  fechaDeInicio: optionalText,
+  descripcion: optionalText,
+  observacion: optionalText,
 });
 
 export const insertPersonaTelefonoSchema = createInsertSchema(personaTelefonos).omit({
@@ -622,6 +583,8 @@ export const insertRegistroComunicacionSchema = createInsertSchema(registrosComu
 // Types
 export type PersonaCaso = typeof personasCasos.$inferSelect;
 export type InsertPersonaCaso = z.infer<typeof insertPersonaCasoSchema>;
+export type ExpedienteSujeto = typeof expedientesSujetos.$inferSelect;
+export type InsertExpedienteSujeto = z.infer<typeof insertExpedienteSujetoSchema>;
 export type PersonaTelefono = typeof personaTelefonos.$inferSelect;
 export type InsertPersonaTelefono = z.infer<typeof insertPersonaTelefonoSchema>;
 export type RegistroComunicacion = typeof registrosComunicacion.$inferSelect;
