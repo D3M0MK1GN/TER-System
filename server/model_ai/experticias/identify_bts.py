@@ -503,7 +503,52 @@ class Exper_Frecuentes:
         except Exception as e:
             print(f"[ERROR] {str(e)}")
             return None
-       
+
+    def extraer_datos_filiatorios_movistar(self, archivo_excel: str) -> dict:
+        """
+        Extrae datos filiatorios del titular de la línea desde la hoja 'DATOS FILIATORIOS'
+        del archivo Excel Movistar. La hoja tiene estructura clave-valor por fila.
+        """
+        try:
+            xls = pd.ExcelFile(archivo_excel)
+            hojas_upper = {h.upper(): h for h in xls.sheet_names}
+            hoja_real = hojas_upper.get('DATOS FILIATORIOS')
+            if hoja_real is None:
+                print("[FILIATORIOS] Hoja 'DATOS FILIATORIOS' no encontrada.")
+                return {}
+
+            df = pd.read_excel(xls, sheet_name=hoja_real, header=None)
+            datos = {}
+            for _, row in df.iterrows():
+                if len(row) >= 2 and pd.notna(row.iloc[0]):
+                    clave = str(row.iloc[0]).strip()
+                    valor = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else ""
+                    datos[clave] = valor
+
+            ci_rif = datos.get('Ci Rif', '')
+            cliente_titular = datos.get('Cliente Titular', '')
+            direccion = datos.get('Direccion', '')
+            region = datos.get('Region', '')
+            fecha_nacimiento = datos.get('Fecha Nacimiento', '')
+            correo = datos.get('Correo', '')
+            status_linea = datos.get('Status Linea', '')
+
+            direccion_completa = ", ".join(filter(None, [region, direccion]))
+
+            result = {
+                'cedula': ci_rif,
+                'nombre': cliente_titular,
+                'fechaNacimiento': fecha_nacimiento,
+                'correo': correo,
+                'direccion': direccion_completa,
+                'statusLinea': status_linea,
+            }
+            print(f"[FILIATORIOS] Datos extraídos: {result}")
+            return result
+        except Exception as e:
+            print(f"[FILIATORIOS ERROR] {str(e)}")
+            return {}
+
 # Ejemplo de uso:
 if __name__ == "__main__":
     operador = input("Ingrese la operador (digitel o movistar): ")

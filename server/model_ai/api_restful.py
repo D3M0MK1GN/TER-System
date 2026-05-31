@@ -90,6 +90,7 @@ class AnalizarContactosFrecuentesResponse(BaseModel):
     success: bool
     datos_crudos: Optional[List[Dict[str, Any]]] = None
     top_10_contactos: Optional[List[Dict[str, Any]]] = None
+    datos_filiatorios: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     timestamp: str
 
@@ -332,12 +333,20 @@ async def analizar_contactos_frecuentes(request: AnalizarContactosFrecuentesRequ
             request.numero_buscar,
             request.operador
         )
-        
+
+        # Extraer datos filiatorios si el operador es Movistar
+        datos_filiatorios = None
+        if 'movistar' in request.operador.lower():
+            datos_filiatorios = analizador.extraer_datos_filiatorios_movistar(request.archivo_excel)
+            if not datos_filiatorios:
+                datos_filiatorios = None
+
         if not resultado:
             return AnalizarContactosFrecuentesResponse(
                 success=True,
                 datos_crudos=[],
                 top_10_contactos=[],
+                datos_filiatorios=datos_filiatorios,
                 timestamp=datetime.now().isoformat()
             )
         
@@ -346,6 +355,7 @@ async def analizar_contactos_frecuentes(request: AnalizarContactosFrecuentesRequ
             success=True,
             datos_crudos=resultado.get('datos_crudos', []),
             top_10_contactos=resultado.get('top_10', []),
+            datos_filiatorios=datos_filiatorios,
             timestamp=datetime.now().isoformat()
         )
         

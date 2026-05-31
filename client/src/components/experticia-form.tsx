@@ -578,6 +578,18 @@ export function ExperticiasForm({
             todosLosContactos: data.top_10_contactos,
             error: null,
           });
+          if (data.datos_filiatorios && Object.keys(data.datos_filiatorios).length > 0) {
+            const f = data.datos_filiatorios;
+            setAfiliadoData((prev) => ({
+              ...prev,
+              cedula: f.cedula || prev.cedula,
+              nombre: f.nombre || prev.nombre,
+              fechaDeNacimiento: f.fechaNacimiento || prev.fechaDeNacimiento,
+              correo: f.correo || prev.correo,
+              direccion: f.direccion || prev.direccion,
+              statusLinea: f.statusLinea || prev.statusLinea,
+            }));
+          }
         } else {
           setContactosFrecuentesState({
             isAnalyzing: false,
@@ -735,6 +747,18 @@ export function ExperticiasForm({
                 todosLosContactos: data.top_10_contactos,
               },
             };
+            if (data.datos_filiatorios && Object.keys(data.datos_filiatorios).length > 0) {
+              const f = data.datos_filiatorios;
+              setAfiliadoData((prev) => ({
+                ...prev,
+                cedula: f.cedula || prev.cedula,
+                nombre: f.nombre || prev.nombre,
+                fechaDeNacimiento: f.fechaNacimiento || prev.fechaDeNacimiento,
+                correo: f.correo || prev.correo,
+                direccion: f.direccion || prev.direccion,
+                statusLinea: f.statusLinea || prev.statusLinea,
+              }));
+            }
             console.log(`[MULTI-TARGET] Item ${i} completado. Filas crudas: ${data.datos_crudos?.length}, Top contactos: ${data.todos_los_contactos?.length}`);
           } else {
             console.error(`[MULTI-TARGET] Análisis devolvió success=false:`, data.message);
@@ -828,6 +852,7 @@ export function ExperticiasForm({
     fechaDeNacimiento: "",
     correo: "",
     direccion: "",
+    statusLinea: "",
   });
 
   /**
@@ -1984,6 +2009,14 @@ export function ExperticiasForm({
                     type="email"
                     value={afiliadoData.correo}
                     onChange={(e) => setAfiliadoData((p) => ({ ...p, correo: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Status Línea</label>
+                  <Input
+                    placeholder="Estado de la línea"
+                    value={afiliadoData.statusLinea}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, statusLinea: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-1 md:col-span-2">

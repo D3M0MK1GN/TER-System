@@ -2103,5 +2103,39 @@
                 "request_date": "2026-05-28T23:14:57.140Z"
             }
         }
+    },
+    {
+        "timestamp": "2026-05-31T15:50:33.113506",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "2623819",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=2623819",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-05-31T15:50:44.119673",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "26238198",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=26238198",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 26238198,
+                "fecha_nac": "1997-12-28",
+                "rif": "V262381982",
+                "primer_apellido": "MONTES",
+                "segundo_apellido": "ALVAREZ",
+                "primer_nombre": "DARLIN",
+                "segundo_nombre": "DIOSBEL",
+                "request_date": "2026-05-31T19:50:43.772Z"
+            }
+        },
+        "success": true
     }
 ]
