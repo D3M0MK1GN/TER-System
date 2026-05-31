@@ -55,7 +55,7 @@ interface ResultadoBusqueda {
   nombreCompleto: string;
   numeroAsociado: string;
   delito: string;
-  fechaInicio: string;
+  fechaRegistro: string;
 }
 
 export default function Trazabilidad() {
@@ -821,7 +821,7 @@ export default function Trazabilidad() {
                         <TableHead>Nombre Completo</TableHead>
                         <TableHead>Número Asociado</TableHead>
                         <TableHead>Delito</TableHead>
-                        <TableHead>Fecha Inicio</TableHead>
+                        <TableHead>Fecha Registro</TableHead>
                         <TableHead className="text-center w-[300px]">
                           Acciones
                         </TableHead>
@@ -852,10 +852,12 @@ export default function Trazabilidad() {
                             {resultado.delito}
                           </TableCell>
                           <TableCell data-testid={`text-fecha-${index}`}>
-                            {resultado.fechaInicio
-                              ? new Date(
-                                  resultado.fechaInicio
-                                ).toLocaleDateString("es-ES")
+                            {resultado.fechaRegistro
+                              ? new Date(resultado.fechaRegistro).toLocaleDateString("es-ES", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
                               : "N/A"}
                           </TableCell>
                           <TableCell>

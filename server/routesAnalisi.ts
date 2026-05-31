@@ -136,6 +136,23 @@ export function registerAnalisisRoutes(
     }
   });
 
+  // Buscar persona por cédula (para auto-relleno en formularios)
+  app.get("/api/personas-casos/by-cedula/:cedula", authenticateToken, async (req: any, res) => {
+    try {
+      const { cedula } = req.params;
+      if (!cedula || cedula.length < 5) {
+        return res.status(400).json({ message: "Cédula muy corta" });
+      }
+      const persona = await storage.findPersonaByCedula(cedula);
+      if (!persona) {
+        return res.status(404).json({ message: "Sujeto no encontrado en el historial" });
+      }
+      res.json(persona);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error al buscar persona por cédula" });
+    }
+  });
+
   // Obtener persona/caso completo con teléfonos asociados
   app.get("/api/personas-casos/:id", authenticateToken, async (req: any, res) => {
     try {
@@ -349,7 +366,12 @@ export function registerAnalisisRoutes(
     try {
       const { tipo, valor } = req.query;
 
+      console.log(`\n🔍 [TRAZABILIDAD BUSCAR] ──────────────────────────────`);
+      console.log(`   Tipo de búsqueda : "${tipo}"`);
+      console.log(`   Valor buscado    : "${valor}"`);
+
       if (!tipo || !valor) {
+        console.log(`   ❌ Parámetros incompletos — abortando`);
         return res.status(400).json({ message: "Se requieren los parámetros tipo y valor" });
       }
 
@@ -362,7 +384,7 @@ export function registerAnalisisRoutes(
         apellido: personasCasos.apellido,
         numeroAsociado: expedientesSujetos.telefonoCaso,
         delito: expedientesSujetos.delito,
-        fechaInicio: expedientesSujetos.fechaDeInicio,
+        createdAt: expedientesSujetos.createdAt,
       };
 
       const mapRow = (row: any) => ({
@@ -373,23 +395,28 @@ export function registerAnalisisRoutes(
         nombreCompleto: `${row.nombre || ""} ${row.apellido || ""}`.trim(),
         numeroAsociado: row.numeroAsociado,
         delito: row.delito,
-        fechaInicio: row.fechaInicio,
+        fechaRegistro: row.createdAt,
       });
 
       let resultados: any[] = [];
 
       switch (tipo) {
         case "cedula": {
+          console.log(`   📋 Consulta: expedientes_sujetos INNER JOIN personas_casos`);
+          console.log(`      WHERE personas_casos.cedula = '${valor}'`);
           const rows = await db
             .select(joinSelect)
             .from(expedientesSujetos)
             .innerJoin(personasCasos, eq(expedientesSujetos.personaId, personasCasos.nro))
             .where(eq(personasCasos.cedula, valor as string));
+          console.log(`   📦 Filas crudas devueltas por DB: ${rows.length}`);
           resultados = rows.map(mapRow);
           break;
         }
 
         case "nombre": {
+          console.log(`   📋 Consulta: expedientes_sujetos INNER JOIN personas_casos`);
+          console.log(`      WHERE nombre ILIKE '%${valor}%' OR apellido ILIKE '%${valor}%'`);
           const rows = await db
             .select(joinSelect)
             .from(expedientesSujetos)
@@ -397,93 +424,65 @@ export function registerAnalisisRoutes(
             .where(
               sql`LOWER(${personasCasos.nombre}) LIKE LOWER(${"%" + valor + "%"}) OR LOWER(${personasCasos.apellido}) LIKE LOWER(${"%" + valor + "%"})`
             );
+          console.log(`   📦 Filas crudas devueltas por DB: ${rows.length}`);
           resultados = rows.map(mapRow);
           break;
         }
 
         case "seudonimo": {
+          console.log(`   📋 Consulta: expedientes_sujetos INNER JOIN personas_casos`);
+          console.log(`      WHERE pseudonimo ILIKE '%${valor}%'`);
           const rows = await db
             .select(joinSelect)
             .from(expedientesSujetos)
             .innerJoin(personasCasos, eq(expedientesSujetos.personaId, personasCasos.nro))
             .where(sql`LOWER(${expedientesSujetos.pseudonimo}) LIKE LOWER(${"%" + valor + "%"})`);
+          console.log(`   📦 Filas crudas devueltas por DB: ${rows.length}`);
           resultados = rows.map(mapRow);
           break;
         }
 
         case "numero": {
+          console.log(`   📋 Consulta: expedientes_sujetos INNER JOIN personas_casos`);
+          console.log(`      WHERE expedientes_sujetos.telefono_caso LIKE '%${valor}%'`);
           const rowsExp = await db
             .select(joinSelect)
             .from(expedientesSujetos)
             .innerJoin(personasCasos, eq(expedientesSujetos.personaId, personasCasos.nro))
             .where(sql`${expedientesSujetos.telefonoCaso} LIKE ${"%" + valor + "%"}`);
+          console.log(`   📦 Filas crudas devueltas por DB: ${rowsExp.length}`);
           resultados = rowsExp.map(mapRow);
-
-          const telefonos = await db
-            .select()
-            .from(personaTelefonos)
-            .where(sql`${personaTelefonos.numero} LIKE ${"%" + valor + "%"}`);
-
-          for (const tel of telefonos) {
-            if (tel.personaId) {
-              const exps = await db
-                .select(joinSelect)
-                .from(expedientesSujetos)
-                .innerJoin(personasCasos, eq(expedientesSujetos.personaId, personasCasos.nro))
-                .where(eq(expedientesSujetos.personaId, tel.personaId));
-              resultados.push(...exps.map((r) => ({ ...mapRow(r), numeroAsociado: tel.numero })));
-            }
-          }
-
-          const experticiasNumero = await db
-            .select()
-            .from(experticias)
-            .where(sql`${experticias.abonado} LIKE ${"%" + (valor as string) + "%"}`);
-          resultados.push(
-            ...experticiasNumero.map((exp) => ({
-              id: exp.id,
-              personaId: null,
-              expediente: exp.expediente,
-              cedula: exp.numeroComunicacion,
-              nombreCompleto: "",
-              numeroAsociado: exp.abonado ?? "",
-              delito: "",
-              fechaInicio: "",
-            }))
-          );
           break;
         }
 
         case "expediente": {
+          console.log(`   📋 Consulta: expedientes_sujetos INNER JOIN personas_casos`);
+          console.log(`      WHERE expediente ILIKE '%${valor}%'`);
           const rows = await db
             .select(joinSelect)
             .from(expedientesSujetos)
             .innerJoin(personasCasos, eq(expedientesSujetos.personaId, personasCasos.nro))
             .where(sql`LOWER(${expedientesSujetos.expediente}) LIKE LOWER(${"%" + valor + "%"})`);
+          console.log(`   📦 Filas crudas devueltas por DB: ${rows.length}`);
           resultados = rows.map(mapRow);
-
-          const experticiasExpediente = await db
-            .select()
-            .from(experticias)
-            .where(sql`LOWER(${experticias.expediente}) LIKE LOWER(${"%" + valor + "%"})`);
-          resultados.push(
-            ...experticiasExpediente.map((exp) => ({
-              id: exp.id,
-              personaId: null,
-              expediente: exp.expediente,
-              cedula: exp.numeroComunicacion,
-              nombreCompleto: "",
-              numeroAsociado: exp.abonado ?? "",
-              delito: "",
-              fechaInicio: "",
-            }))
-          );
           break;
         }
 
         default:
+          console.log(`   ❌ Tipo de búsqueda no reconocido: "${tipo}"`);
           return res.status(400).json({ message: "Tipo de búsqueda no válido" });
       }
+
+      console.log(`   ✅ Total resultados finales enviados al cliente: ${resultados.length}`);
+      if (resultados.length > 0) {
+        console.log(`   📊 Detalle de resultados:`);
+        resultados.forEach((r, i) => {
+          console.log(`      [${i + 1}] expediente="${r.expediente}" | cédula="${r.cedula}" | nombre="${r.nombreCompleto}" | número="${r.numeroAsociado}" | fechaRegistro="${r.fechaRegistro}"`);
+        });
+      } else {
+        console.log(`   ⚠️  No se encontraron resultados para la búsqueda`);
+      }
+      console.log(`──────────────────────────────────────────────────────\n`);
 
       res.json({
         resultados,
@@ -492,6 +491,7 @@ export function registerAnalisisRoutes(
         valorBusqueda: valor,
       });
     } catch (error: any) {
+      console.log(`   💥 [TRAZABILIDAD BUSCAR] Error: ${error.message}`);
       res.status(500).json({ message: "Error al buscar trazabilidad" });
     }
   });

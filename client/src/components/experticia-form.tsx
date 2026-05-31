@@ -943,28 +943,41 @@ export function ExperticiasForm({
   const abonadoValue = useWatch({ control: form.control, name: "abonado" });
   const tipoExperticiaValue = useWatch({ control: form.control, name: "tipoExperticia" });
 
+  const [sujetoEncontrado, setSujetoEncontrado] = useState<boolean | null>(null);
+
   useEffect(() => {
-    const abonado = abonadoValue?.trim();
-    if (!abonado) return;
-    fetch(`/api/personas-casos/by-abonado/${encodeURIComponent(abonado)}`, {
+    const cedula = afiliadoData.cedula?.trim();
+    if (!cedula || cedula.length <= 5) {
+      setSujetoEncontrado(null);
+      return;
+    }
+    const controller = new AbortController();
+    fetch(`/api/personas-casos/by-cedula/${encodeURIComponent(cedula)}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      signal: controller.signal,
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data) {
-          setAfiliadoData({
-            cedula: data.cedula || "",
+          setAfiliadoData((prev) => ({
+            cedula: prev.cedula,
             nombre: data.nombre || "",
             apellido: data.apellido || "",
             pseudonimo: data.pseudonimo || "",
             fechaDeNacimiento: data.fechaDeNacimiento || "",
             correo: data.correo || "",
             direccion: data.direccion || "",
-          });
+          }));
+          setSujetoEncontrado(true);
+        } else {
+          setSujetoEncontrado(false);
         }
       })
-      .catch(() => {});
-  }, [abonadoValue]);
+      .catch((err) => {
+        if (err.name !== "AbortError") setSujetoEncontrado(false);
+      });
+    return () => controller.abort();
+  }, [afiliadoData.cedula]);
 
   /** Tipos de columnas de transacción calculados una sola vez cuando cambian los contactos */
   const tiposColumnasMemorized = useMemo(() => {
@@ -1077,27 +1090,25 @@ export function ExperticiasForm({
     }
 
     const abonado = (data as any).abonado?.trim();
-    if (abonado) {
-      const tieneData = Object.values(afiliadoData).some((v) => v.trim() !== "");
-      if (tieneData) {
-        fetch(`/api/personas-casos/by-abonado/${encodeURIComponent(abonado)}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            cedula: afiliadoData.cedula || null,
-            nombre: afiliadoData.nombre || null,
-            apellido: afiliadoData.apellido || null,
-            pseudonimo: afiliadoData.pseudonimo || null,
-            fechaDeNacimiento: afiliadoData.fechaDeNacimiento || null,
-            correo: afiliadoData.correo || null,
-            direccion: afiliadoData.direccion || null,
-            expediente: (data as any).expediente || null,
-          }),
-        }).catch(() => {});
-      }
+    if (abonado && afiliadoData.cedula.trim()) {
+      fetch(`/api/personas-casos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          cedula: afiliadoData.cedula.trim(),
+          nombre: afiliadoData.nombre || null,
+          apellido: afiliadoData.apellido || null,
+          pseudonimo: afiliadoData.pseudonimo || null,
+          fechaDeNacimiento: afiliadoData.fechaDeNacimiento || null,
+          correo: afiliadoData.correo || null,
+          direccion: afiliadoData.direccion || null,
+          telefono: abonado,
+          expediente: (data as any).expediente || null,
+        }),
+      }).catch(() => {});
     }
 
     onSubmit(submitData);
@@ -1918,8 +1929,21 @@ export function ExperticiasForm({
                   <Input
                     placeholder="Cédula del afiliado"
                     value={afiliadoData.cedula}
-                    onChange={(e) => setAfiliadoData((p) => ({ ...p, cedula: e.target.value }))}
+                    onChange={(e) => {
+                      setSujetoEncontrado(null);
+                      setAfiliadoData((p) => ({ ...p, cedula: e.target.value }));
+                    }}
                   />
+                  {sujetoEncontrado === true && (
+                    <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                      ✅ Sujeto encontrado en el historial
+                    </p>
+                  )}
+                  {sujetoEncontrado === false && afiliadoData.cedula.length > 5 && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      🔍 Sujeto nuevo — se registrará al guardar
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium">Nombre</label>
