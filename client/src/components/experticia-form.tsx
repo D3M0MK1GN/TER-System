@@ -580,11 +580,22 @@ export function ExperticiasForm({
           });
           if (data.datos_filiatorios && Object.keys(data.datos_filiatorios).length > 0) {
             const f = data.datos_filiatorios;
+            
+            let cedulaLimpia = f.cedula || "";
+            if (typeof cedulaLimpia === "string") cedulaLimpia = cedulaLimpia.replace(/\D/g, "");
+            else if (typeof cedulaLimpia === "number") cedulaLimpia = String(cedulaLimpia);
+            
+            let fechaLimpia = f.fechaNacimiento || "";
+            if (typeof fechaLimpia === "string") {
+              const match = fechaLimpia.match(/^(\d{4})[-\/](\d{2})[-\/](\d{2})/);
+              if (match) fechaLimpia = `${match[3]}/${match[2]}/${match[1]}`;
+            }
+
             setAfiliadoData((prev) => ({
               ...prev,
-              cedula: f.cedula || prev.cedula,
+              cedula: cedulaLimpia || prev.cedula,
               nombre: f.nombre || prev.nombre,
-              fechaDeNacimiento: f.fechaNacimiento || prev.fechaDeNacimiento,
+              fechaDeNacimiento: fechaLimpia || prev.fechaDeNacimiento,
               correo: f.correo || prev.correo,
               direccion: f.direccion || prev.direccion,
               statusLinea: f.statusLinea || prev.statusLinea,
@@ -749,15 +760,39 @@ export function ExperticiasForm({
             };
             if (data.datos_filiatorios && Object.keys(data.datos_filiatorios).length > 0) {
               const f = data.datos_filiatorios;
-              setAfiliadoData((prev) => ({
-                ...prev,
-                cedula: f.cedula || prev.cedula,
-                nombre: f.nombre || prev.nombre,
-                fechaDeNacimiento: f.fechaNacimiento || prev.fechaDeNacimiento,
-                correo: f.correo || prev.correo,
-                direccion: f.direccion || prev.direccion,
-                statusLinea: f.statusLinea || prev.statusLinea,
-              }));
+
+              let cedulaLimpia = f.cedula || "";
+              if (typeof cedulaLimpia === "string") cedulaLimpia = cedulaLimpia.replace(/\D/g, "");
+              else if (typeof cedulaLimpia === "number") cedulaLimpia = String(cedulaLimpia);
+              
+              let fechaLimpia = f.fechaNacimiento || "";
+              if (typeof fechaLimpia === "string") {
+                const match = fechaLimpia.match(/^(\d{4})[-\/](\d{2})[-\/](\d{2})/);
+                if (match) fechaLimpia = `${match[3]}/${match[2]}/${match[1]}`;
+              }
+
+              const prevData = afiliadosMapRef.current[item.numero] || {
+                cedula: "", nombre: "", apellido: "", pseudonimo: "", fechaDeNacimiento: "", correo: "", direccion: "", statusLinea: "", rol: "Relacionado"
+              };
+              const newData = {
+                ...prevData,
+                cedula: cedulaLimpia || prevData.cedula,
+                nombre: f.nombre || prevData.nombre,
+                fechaDeNacimiento: fechaLimpia || prevData.fechaDeNacimiento,
+                correo: f.correo || prevData.correo,
+                direccion: f.direccion || prevData.direccion,
+                statusLinea: f.statusLinea || prevData.statusLinea,
+                rol: prevData.rol || "Relacionado",
+              };
+
+              afiliadosMapRef.current[item.numero] = newData;
+
+              setSelectedIndex((currentIdx) => {
+                if (currentIdx === i) {
+                  setAfiliadoData(newData);
+                }
+                return currentIdx;
+              });
             }
             console.log(`[MULTI-TARGET] Item ${i} completado. Filas crudas: ${data.datos_crudos?.length}, Top contactos: ${data.todos_los_contactos?.length}`);
           } else {
@@ -853,7 +888,11 @@ export function ExperticiasForm({
     correo: "",
     direccion: "",
     statusLinea: "",
+    rol: "Relacionado",
   });
+
+  // Ref to hold the mapped afiliado data for each multi-target number
+  const afiliadosMapRef = useRef<Record<string, typeof afiliadoData>>({});
 
   /**
    * Alterna la selección de una fila en la tabla BTS
@@ -970,6 +1009,50 @@ export function ExperticiasForm({
 
   const [sujetoEncontrado, setSujetoEncontrado] = useState<boolean | null>(null);
 
+  /**
+   * Restaura los Datos Afiliados desde el mapa local cuando se selecciona
+   * un número distinto en la tabla Multi-Target.
+   */
+  useEffect(() => {
+    if (
+      tipoExperticiaValue === "determinar_contacto_frecuente" &&
+      selectedIndex !== null &&
+      listaAnalisis[selectedIndex]
+    ) {
+      const numero = listaAnalisis[selectedIndex].numero;
+      if (afiliadosMapRef.current[numero]) {
+        setAfiliadoData(afiliadosMapRef.current[numero]);
+      } else {
+        setAfiliadoData({
+          cedula: "",
+          nombre: "",
+          apellido: "",
+          pseudonimo: "",
+          fechaDeNacimiento: "",
+          correo: "",
+          direccion: "",
+          statusLinea: "",
+          rol: "Relacionado",
+        });
+      }
+    }
+  }, [selectedIndex, listaAnalisis, tipoExperticiaValue]);
+
+  /**
+   * Guarda automáticamente los Datos Afiliados en el mapa local
+   * asociados al número seleccionado actualmente en la tabla Multi-Target.
+   */
+  useEffect(() => {
+    if (
+      tipoExperticiaValue === "determinar_contacto_frecuente" &&
+      selectedIndex !== null &&
+      listaAnalisis[selectedIndex]
+    ) {
+      const numero = listaAnalisis[selectedIndex].numero;
+      afiliadosMapRef.current[numero] = afiliadoData;
+    }
+  }, [afiliadoData, selectedIndex, listaAnalisis, tipoExperticiaValue]);
+
   useEffect(() => {
     const cedula = afiliadoData.cedula?.trim();
     if (!cedula || cedula.length <= 5) {
@@ -992,6 +1075,8 @@ export function ExperticiasForm({
             fechaDeNacimiento: data.fechaDeNacimiento || "",
             correo: data.correo || "",
             direccion: data.direccion || "",
+            statusLinea: prev.statusLinea,
+            rol: prev.rol || "Relacionado",
           }));
           setSujetoEncontrado(true);
         } else {
@@ -1956,7 +2041,8 @@ export function ExperticiasForm({
                     value={afiliadoData.cedula}
                     onChange={(e) => {
                       setSujetoEncontrado(null);
-                      setAfiliadoData((p) => ({ ...p, cedula: e.target.value }));
+                      const val = e.target.value.replace(/\D/g, '');
+                      setAfiliadoData((p) => ({ ...p, cedula: val }));
                     }}
                   />
                   {sujetoEncontrado === true && (
@@ -2018,6 +2104,22 @@ export function ExperticiasForm({
                     value={afiliadoData.statusLinea}
                     onChange={(e) => setAfiliadoData((p) => ({ ...p, statusLinea: e.target.value }))}
                   />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Rol</label>
+                  <Select
+                    value={afiliadoData.rol}
+                    onValueChange={(val) => setAfiliadoData((p) => ({ ...p, rol: val }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione rol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Victima">Víctima</SelectItem>
+                      <SelectItem value="Investigado">Investigado</SelectItem>
+                      <SelectItem value="Relacionado">Relacionado</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1 md:col-span-2">
                   <label className="text-sm font-medium">Dirección</label>

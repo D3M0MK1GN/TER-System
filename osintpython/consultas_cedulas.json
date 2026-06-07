@@ -2137,5 +2137,129 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2026-06-01T10:53:13.434572",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "32316667",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=32316667",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-01T10:53:26.530008",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=28609925",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28609925,
+                "fecha_nac": "2001-06-26",
+                "rif": "V286099250",
+                "primer_apellido": "JIMENEZ",
+                "segundo_apellido": "MENDOZA",
+                "primer_nombre": "RAUL",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2026-06-01T14:53:26.477Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-01T10:53:37.364615",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "32316667",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=32316667",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-01T10:54:19.978094",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "17625100",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=17625100",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 17625100,
+                "fecha_nac": "1987-02-13",
+                "rif": "V176251006",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "JUAN DE VILLEGAS",
+                    "centro_electoral": "ESCUELA ESTADAL GRADUADA GENERAL JOSE TRINIDAD MORAN"
+                },
+                "primer_apellido": "RODRIGUEZ",
+                "segundo_apellido": "SANCHEZ",
+                "primer_nombre": "NEREIDA",
+                "segundo_nombre": "PASTORA",
+                "request_date": "2026-06-01T14:54:19.922Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-01T10:59:08.440316",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "30025751",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=30025751",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 30025751,
+                "fecha_nac": "2003-05-17",
+                "rif": "V300257514",
+                "primer_apellido": "MENDOZA",
+                "segundo_apellido": "CORRO",
+                "primer_nombre": "YUSBELY",
+                "segundo_nombre": "DIVEANA",
+                "request_date": "2026-06-01T14:59:08.391Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-03T10:27:55.834272",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "9607469",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=9607469",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 9607469,
+                "fecha_nac": "1964-06-25",
+                "rif": "V096074693",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "ESC NAC JUAN GUILLERMO IRIBARREN"
+                },
+                "primer_apellido": "CAMACARO",
+                "segundo_apellido": "PERDOMO",
+                "primer_nombre": "MARITZA",
+                "segundo_nombre": "DEL CARMEN",
+                "request_date": "2026-06-03T14:27:55.768Z"
+            }
+        },
+        "success": true
     }
 ]

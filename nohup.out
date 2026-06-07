@@ -47,3 +47,11 @@ ThunarThumbnailCache: failed to call Copy(): Se alcanzó el tiempo de expiració
 (thunar:195488): GLib-GIO-CRITICAL **: 15:06:37.729: GFileInfo created without standard::size
 
 (thunar:195488): GLib-GIO-CRITICAL **: 15:06:37.729: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:198405): GLib-GIO-CRITICAL **: 08:08:12.305: GFileInfo created without standard::size
+
+(thunar:198405): GLib-GIO-CRITICAL **: 08:08:12.410: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:198405): GLib-GIO-CRITICAL **: 08:08:59.335: GFileInfo created without standard::size
+
+(thunar:198405): GLib-GIO-CRITICAL **: 08:08:59.335: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
