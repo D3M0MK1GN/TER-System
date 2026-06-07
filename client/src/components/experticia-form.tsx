@@ -1199,26 +1199,64 @@ export function ExperticiasForm({
       submitData.todosLosContactos = contactosFrecuentesState.todosLosContactos;
     }
 
-    const abonado = (data as any).abonado?.trim();
-    if (abonado && afiliadoData.cedula.trim()) {
-      fetch(`/api/personas-casos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          cedula: afiliadoData.cedula.trim(),
-          nombre: afiliadoData.nombre || null,
-          apellido: afiliadoData.apellido || null,
-          pseudonimo: afiliadoData.pseudonimo || null,
-          fechaDeNacimiento: afiliadoData.fechaDeNacimiento || null,
-          correo: afiliadoData.correo || null,
-          direccion: afiliadoData.direccion || null,
-          telefono: abonado,
-          expediente: (data as any).expediente || null,
-        }),
-      }).catch(() => {});
+    // Asegurar que el número actualmente visible queda guardado en el mapa
+    if (
+      esContactoFrecuente &&
+      esMultiTarget &&
+      selectedIndex !== null &&
+      listaAnalisis[selectedIndex]
+    ) {
+      const numeroActual = listaAnalisis[selectedIndex].numero;
+      afiliadosMapRef.current[numeroActual] = afiliadoData;
+    }
+
+    if (esContactoFrecuente && esMultiTarget) {
+      // MODO MULTI-TARGET: un POST por cada número con cédula registrada
+      Object.entries(afiliadosMapRef.current).forEach(([numeroAbonado, datosAfiliado]) => {
+        if (datosAfiliado.cedula?.trim()) {
+          fetch(`/api/personas-casos`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({
+              cedula: datosAfiliado.cedula.trim(),
+              nombre: datosAfiliado.nombre || null,
+              apellido: datosAfiliado.apellido || null,
+              pseudonimo: datosAfiliado.pseudonimo || null,
+              fechaDeNacimiento: datosAfiliado.fechaDeNacimiento || null,
+              correo: datosAfiliado.correo || null,
+              direccion: datosAfiliado.direccion || null,
+              telefono: numeroAbonado,
+              expediente: (data as any).expediente || null,
+            }),
+          }).catch((err) => console.error(`Error guardando afiliado ${numeroAbonado}:`, err));
+        }
+      });
+    } else {
+      // MODO INDIVIDUAL: comportamiento original
+      const abonadoUnico = (data as any).abonado?.trim();
+      if (abonadoUnico && afiliadoData.cedula.trim()) {
+        fetch(`/api/personas-casos`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            cedula: afiliadoData.cedula.trim(),
+            nombre: afiliadoData.nombre || null,
+            apellido: afiliadoData.apellido || null,
+            pseudonimo: afiliadoData.pseudonimo || null,
+            fechaDeNacimiento: afiliadoData.fechaDeNacimiento || null,
+            correo: afiliadoData.correo || null,
+            direccion: afiliadoData.direccion || null,
+            telefono: abonadoUnico,
+            expediente: (data as any).expediente || null,
+          }),
+        }).catch(() => {});
+      }
     }
 
     onSubmit(submitData);
