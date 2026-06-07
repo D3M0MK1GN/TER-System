@@ -848,6 +848,81 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         usuarioId: req.user.id,
       });
 
+      // ── Normalizar registros de comunicación desde listaAnalisis ─────────
+      // Si el frontend envió listaAnalisis (modo Multi-Target con datos crudos),
+      // se insertan filas individuales en registros_comunicacion en lugar de
+      // quedar atrapados dentro del JSONB de la experticia.
+      const listaAnalisis: any[] = Array.isArray(req.body.listaAnalisis)
+        ? req.body.listaAnalisis
+        : [];
+
+      if (listaAnalisis.length > 0) {
+        try {
+          const mapearFila = (row: any, numeroOrigen: string, archivoNombre: string): any => ({
+            abonadoA: row["ABONADO A"] || row["abonado_a"] || row["AbonadoA"] || numeroOrigen,
+            abonadoB: row["ABONADO B"] || row["abonado_b"] || row["AbonadoB"] || "",
+            tipoTransaccion: row["Tipo Transacción"] || row["TIPO DE TRANSACCION"] || row["tipo_de_transaccion"] || row["TipoTransaccion"] || "",
+            fecha: row["Fecha"] || row["FECHA"] || row["fecha"] || "",
+            hora: row["Hora"] || row["HORA"] || row["hora"] || "",
+            time: row["Time"] || row["TIME"] || row["SEG"] || row["seg"] || row["segundos"] || null,
+            btsCelda: row["BTS-Celda"] || row["bts_celda"] || row["BTS_CELDA"] || "",
+            btsCeldaA: row["BTS-Celda A"] || row["bts_celda_a"] || row["BTS_CELDA_A"] || "",
+            btsCeldaB: row["BTS-Celda B"] || row["bts_celda_b"] || row["BTS_CELDA_B"] || "",
+            direccionA: row["Dirección A"] || row["DIRECCION A"] || row["direccion_a"] || row["Atena"] || row["DIRECCION"] || "",
+            direccionB: row["Dirección B"] || row["DIRECCION B"] || row["direccion_b"] || "",
+            coordenadasA: row["Coordenadas A"] || row["coordenadas_a"] || row["LATITUD CELDAD INICIO A"] || "",
+            coordenadasB: row["Coordenadas B"] || row["coordenadas_b"] || "",
+            orientacionA: row["Orientación A"] || row["orientacion_a"] || row["ORIENTACION A"] || "",
+            orientacionB: row["Orientación B"] || row["orientacion_b"] || row["ORIENTACION B"] || "",
+            imeiA: row["IMEI A"] || row["imei_a"] || row["IMEI ABONADO A"] || row["imei_abonado_a"] || "",
+            imeiB: row["IMEI B"] || row["imei_b"] || row["IMEI ABONADO B"] || row["imei_abonado_b"] || "",
+            archivo: archivoNombre || "",
+            peso: "",
+          });
+
+          for (const item of listaAnalisis) {
+            const numero: string = item.numero?.trim() || "";
+            const datosCrudos: any[] = item.resultados?.contactos?.datosCrudos ?? [];
+
+            if (!numero || datosCrudos.length === 0) continue;
+
+            // Registrar SOLO el número analizado en persona_telefonos.
+            // Los interlocutores (abonadoB) se guardan como texto en la columna
+            // abonado_b de registros_comunicacion; no se catalogan aquí.
+            let telAnalizado = await storage.getPersonaTelefonoByNumero(numero);
+            if (!telAnalizado) {
+              telAnalizado = await storage.createPersonaTelefono({
+                numero,
+                tipo: "móvil",
+                activo: true,
+                personaId: null,
+              });
+            }
+            const abonadoAId = telAnalizado.id;
+
+            // Mapear cada fila al formato de registros_comunicacion
+            const filasMapeadas = datosCrudos
+              .map((row: any) => {
+                const mapped = mapearFila(row, numero, item.archivoNombre || "");
+                mapped.experticiaId = experticia.id;
+                mapped.abonadoAId = abonadoAId;
+                mapped.abonadoBId = null; // interlocutor no se cataloga
+                return mapped;
+              })
+              .filter((r: any) => r.abonadoA?.trim());
+
+            if (filasMapeadas.length > 0) {
+              await storage.createRegistrosComunicacionBulk(filasMapeadas);
+            }
+          }
+        } catch (normError: any) {
+          // No abortar la respuesta: la experticia ya fue creada.
+          // El error se registra para diagnóstico.
+          console.error("[CREATE EXPERTICIA] Error normalizando registros de comunicación:", normError?.message);
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────────
+
       // Intentar generar automáticamente el documento Word de experticia
       try {
         const plantilla = await storage.getPlantillaWordByTipoExperticiaTipoPlantilla(

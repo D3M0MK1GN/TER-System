@@ -641,10 +641,9 @@ export function registerAnalisisRoutes(
         const key = `${from}-${to}`;
         weightMap.set(key, (weightMap.get(key) || 0) + 1);
 
-        const duracion = reg.segundos ? `${reg.segundos}s` : "N/A";
         const fechaHora =
           reg.fecha && reg.hora ? `${reg.fecha} ${reg.hora}` : reg.fecha || "Sin fecha";
-        const title = `${reg.tipoYTransaccion || "Comunicación"} (${duracion}) - ${fechaHora}`;
+        const title = `${reg.tipoTransaccion || "Comunicación"} - ${fechaHora}`;
 
         aristas.push({
           id: reg.registroId,
@@ -652,18 +651,22 @@ export function registerAnalisisRoutes(
           to,
           title,
           weight: 1,
-          transactionType: reg.tipoYTransaccion || "Desconocido",
+          transactionType: reg.tipoTransaccion || "Desconocido",
           metadata: {
             fecha: reg.fecha,
             hora: reg.hora,
-            segundos: reg.segundos,
-            latitud: reg.latitudInicialA,
-            longitud: reg.longitudInicialA,
-            direccion: reg.direccionInicialA,
-            imei1A: reg.imei1A,
-            imei2A: reg.imei2A,
-            imei1B: reg.imei1B,
-            imei2B: reg.imei2B,
+            time: reg.time,
+            btsCelda: reg.btsCelda,
+            btsCeldaA: reg.btsCeldaA,
+            btsCeldaB: reg.btsCeldaB,
+            direccionA: reg.direccionA,
+            direccionB: reg.direccionB,
+            coordenadasA: reg.coordenadasA,
+            coordenadasB: reg.coordenadasB,
+            orientacionA: reg.orientacionA,
+            orientacionB: reg.orientacionB,
+            imeiA: reg.imeiA,
+            imeiB: reg.imeiB,
           },
         });
       });
@@ -927,20 +930,21 @@ export function registerAnalisisRoutes(
         const mapearRegistro = (row: any): any => ({
           abonadoA: row["ABONADO A"] || row["abonado_a"] || row["AbonadoA"] || "",
           abonadoB: row["ABONADO B"] || row["abonado_b"] || row["AbonadoB"] || "",
-          imei1A: row["IMSI ABONADO A"] || row["imsi_abonado_a"] || "",
-          imei2A: row["IMEI ABONADO A"] || row["imei_abonado_a"] || "",
-          imei1B: row["IMSI ABONADO B"] || row["imsi_abonado_b"] || "",
-          imei2B: row["IMEI ABONADO B"] || row["imei_abonado_b"] || "",
-          tipoYTransaccion:
-            row["TIPO DE TRANSACCION"] || row["tipo_de_transaccion"] || row["TipoTransaccion"] || "",
-          fecha: row["FECHA"] || row["fecha"] || "",
-          hora: row["HORA"] || row["hora"] || "",
-          segundos: row["SEG"] || row["seg"] || row["segundos"] || null,
-          direccionInicialA: row["Atena"] || row["atena"] || row["DIRECCION"] || "",
-          latitudInicialA:
-            row["LATITUD CELDAD INICIO A"] || row["latitud_celda_inicio_a"] || row["LATITUD"] || "",
-          longitudInicialA:
-            row["LONGITUD CELDA INICIO A"] || row["longitud_celda_inicio_a"] || row["LONGITUD"] || "",
+          tipoTransaccion: row["Tipo Transacción"] || row["TIPO DE TRANSACCION"] || row["tipo_de_transaccion"] || row["TipoTransaccion"] || "",
+          fecha: row["Fecha"] || row["FECHA"] || row["fecha"] || "",
+          hora: row["Hora"] || row["HORA"] || row["hora"] || "",
+          time: row["Time"] || row["TIME"] || row["SEG"] || row["seg"] || row["segundos"] || "",
+          btsCelda: row["BTS-Celda"] || row["bts_celda"] || row["BTS_CELDA"] || "",
+          btsCeldaA: row["BTS-Celda A"] || row["bts_celda_a"] || row["BTS_CELDA_A"] || "",
+          btsCeldaB: row["BTS-Celda B"] || row["bts_celda_b"] || row["BTS_CELDA_B"] || "",
+          direccionA: row["Dirección A"] || row["DIRECCION A"] || row["direccion_a"] || row["Atena"] || row["DIRECCION"] || "",
+          direccionB: row["Dirección B"] || row["DIRECCION B"] || row["direccion_b"] || "",
+          coordenadasA: row["Coordenadas A"] || row["coordenadas_a"] || row["LATITUD CELDAD INICIO A"] || "",
+          coordenadasB: row["Coordenadas B"] || row["coordenadas_b"] || "",
+          orientacionA: row["Orientación A"] || row["orientacion_a"] || row["ORIENTACION A"] || "",
+          orientacionB: row["Orientación B"] || row["orientacion_b"] || row["ORIENTACION B"] || "",
+          imeiA: row["IMEI A"] || row["imei_a"] || row["IMEI ABONADO A"] || row["imei_abonado_a"] || "",
+          imeiB: row["IMEI B"] || row["imei_b"] || row["IMEI ABONADO B"] || row["imei_abonado_b"] || "",
           archivo: file.originalname,
           peso: "",
         });
@@ -1044,7 +1048,7 @@ export function registerAnalisisRoutes(
           ...r,
           abonadoAId: r.abonadoA ? numerosTelefonoMap.get(r.abonadoA.trim()) || null : null,
           abonadoBId: r.abonadoB ? numerosTelefonoMap.get(r.abonadoB.trim()) || null : null,
-          segundos: r.segundos ? parseInt(r.segundos) : null,
+          time: r.time || null,
         }));
 
         const newRegistros = await storage.createRegistrosComunicacionBulk(registrosConIds);

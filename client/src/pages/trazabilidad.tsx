@@ -253,7 +253,7 @@ export default function Trazabilidad() {
     // Filtro por tipo de evento
     if (tipoEvento !== "todos") {
       filtrados = filtrados.filter((reg) =>
-        reg.tipoYTransaccion?.toLowerCase().includes(tipoEvento.toLowerCase())
+        reg.tipoTransaccion?.toLowerCase().includes(tipoEvento.toLowerCase())
       );
     }
 
@@ -277,15 +277,19 @@ export default function Trazabilidad() {
       "Abonado B",
       "Fecha",
       "Hora",
-      "Tipo y Transacción",
-      "Segundos",
-      "Dirección Inicial A",
-      "Latitud",
-      "Longitud",
-      "IMEI1 A",
-      "IMEI2 A",
-      "IMEI1 B",
-      "IMEI2 B",
+      "Tipo Transacción",
+      "Time",
+      "BTS-Celda",
+      "BTS-Celda A",
+      "BTS-Celda B",
+      "Dirección A",
+      "Dirección B",
+      "Coordenadas A",
+      "Coordenadas B",
+      "Orientación A",
+      "Orientación B",
+      "IMEI A",
+      "IMEI B",
       "Archivo",
       "Peso",
     ];
@@ -295,15 +299,19 @@ export default function Trazabilidad() {
       reg.abonadoB || "",
       reg.fecha || "",
       reg.hora || "",
-      reg.tipoYTransaccion || "",
-      reg.segundos || "",
-      reg.direccionInicialA || "",
-      reg.latitudInicialA || "",
-      reg.longitudInicialA || "",
-      reg.imei1A || "",
-      reg.imei2A || "",
-      reg.imei1B || "",
-      reg.imei2B || "",
+      reg.tipoTransaccion || "",
+      reg.time || "",
+      reg.btsCelda || "",
+      reg.btsCeldaA || "",
+      reg.btsCeldaB || "",
+      reg.direccionA || "",
+      reg.direccionB || "",
+      reg.coordenadasA || "",
+      reg.coordenadasB || "",
+      reg.orientacionA || "",
+      reg.orientacionB || "",
+      reg.imeiA || "",
+      reg.imeiB || "",
       reg.archivo || "",
       reg.peso || "",
     ]);
@@ -1211,10 +1219,10 @@ export default function Trazabilidad() {
                             <TableHead className="text-xs">Abonado B</TableHead>
                             <TableHead className="text-xs">Fecha</TableHead>
                             <TableHead className="text-xs">Hora</TableHead>
-                            <TableHead className="text-xs">Tipo</TableHead>
-                            <TableHead className="text-xs">Seg.</TableHead>
-                            <TableHead className="text-xs">Dirección</TableHead>
-                            <TableHead className="text-xs">Lat/Long</TableHead>
+                            <TableHead className="text-xs">Tipo Transacción</TableHead>
+                            <TableHead className="text-xs">Time</TableHead>
+                            <TableHead className="text-xs">Dir. A</TableHead>
+                            <TableHead className="text-xs">Coords A</TableHead>
                             <TableHead className="text-xs">IMEI A</TableHead>
                             <TableHead className="text-xs">IMEI B</TableHead>
                             <TableHead className="text-xs text-center">
@@ -1247,25 +1255,22 @@ export default function Trazabilidad() {
                                 {registro.hora || "N/A"}
                               </TableCell>
                               <TableCell className="text-xs">
-                                {registro.tipoYTransaccion || "N/A"}
+                                {registro.tipoTransaccion || "N/A"}
                               </TableCell>
                               <TableCell className="text-xs">
-                                {registro.segundos || "0"}
+                                {registro.time || "N/A"}
                               </TableCell>
                               <TableCell className="text-xs max-w-[150px] truncate">
-                                {registro.direccionInicialA || "N/A"}
+                                {registro.direccionA || "N/A"}
                               </TableCell>
                               <TableCell className="text-xs">
-                                {registro.latitudInicialA &&
-                                registro.longitudInicialA
-                                  ? `${registro.latitudInicialA}, ${registro.longitudInicialA}`
-                                  : "N/A"}
+                                {registro.coordenadasA || "N/A"}
                               </TableCell>
                               <TableCell className="font-mono text-xs">
-                                {registro.imei1A || "N/A"}
+                                {registro.imeiA || "N/A"}
                               </TableCell>
                               <TableCell className="font-mono text-xs">
-                                {registro.imei1B || "N/A"}
+                                {registro.imeiB || "N/A"}
                               </TableCell>
                               <TableCell className="text-center">
                                 <Button

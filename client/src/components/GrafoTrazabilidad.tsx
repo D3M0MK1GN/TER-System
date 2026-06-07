@@ -53,14 +53,18 @@ interface Arista {
   metadata?: {
     fecha?: string;
     hora?: string;
-    segundos?: number;
-    latitud?: string;
-    longitud?: string;
-    direccion?: string;
-    imei1A?: string;
-    imei2A?: string;
-    imei1B?: string;
-    imei2B?: string;
+    time?: string;
+    btsCelda?: string;
+    btsCeldaA?: string;
+    btsCeldaB?: string;
+    direccionA?: string;
+    direccionB?: string;
+    coordenadasA?: string;
+    coordenadasB?: string;
+    orientacionA?: string;
+    orientacionB?: string;
+    imeiA?: string;
+    imeiB?: string;
   };
 }
 
@@ -1097,56 +1101,76 @@ export function GrafoTrazabilidad({
                     <p className="text-sm">{selectedEdgeData.metadata.hora}</p>
                   </div>
                 )}
-                {selectedEdgeData.metadata?.segundos !== undefined && (
+                {selectedEdgeData.metadata?.time && (
                   <div>
-                    <p className="text-xs text-gray-500">Duración</p>
-                    <p className="text-sm">
-                      {selectedEdgeData.metadata.segundos} segundos
-                    </p>
+                    <p className="text-xs text-gray-500">Time</p>
+                    <p className="text-sm">{selectedEdgeData.metadata.time}</p>
                   </div>
                 )}
-                {selectedEdgeData.metadata?.direccion && (
+                {selectedEdgeData.metadata?.btsCelda && (
                   <div>
-                    <p className="text-xs text-gray-500">Dirección</p>
-                    <p className="text-sm">
-                      {selectedEdgeData.metadata.direccion}
-                    </p>
+                    <p className="text-xs text-gray-500">BTS-Celda</p>
+                    <p className="text-sm">{selectedEdgeData.metadata.btsCelda}</p>
                   </div>
                 )}
-                {selectedEdgeData.metadata?.latitud &&
-                  selectedEdgeData.metadata?.longitud && (
-                    <div>
-                      <p className="text-xs text-gray-500">Coordenadas GPS</p>
-                      <p className="text-xs font-mono">
-                        {selectedEdgeData.metadata.latitud},{" "}
-                        {selectedEdgeData.metadata.longitud}
-                      </p>
-                    </div>
-                  )}
-                {selectedEdgeData.metadata?.imei1A && (
+                {selectedEdgeData.metadata?.btsCeldaA && (
+                  <div>
+                    <p className="text-xs text-gray-500">BTS-Celda A</p>
+                    <p className="text-sm">{selectedEdgeData.metadata.btsCeldaA}</p>
+                  </div>
+                )}
+                {selectedEdgeData.metadata?.btsCeldaB && (
+                  <div>
+                    <p className="text-xs text-gray-500">BTS-Celda B</p>
+                    <p className="text-sm">{selectedEdgeData.metadata.btsCeldaB}</p>
+                  </div>
+                )}
+                {selectedEdgeData.metadata?.direccionA && (
+                  <div>
+                    <p className="text-xs text-gray-500">Dirección A</p>
+                    <p className="text-sm">{selectedEdgeData.metadata.direccionA}</p>
+                  </div>
+                )}
+                {selectedEdgeData.metadata?.direccionB && (
+                  <div>
+                    <p className="text-xs text-gray-500">Dirección B</p>
+                    <p className="text-sm">{selectedEdgeData.metadata.direccionB}</p>
+                  </div>
+                )}
+                {selectedEdgeData.metadata?.coordenadasA && (
+                  <div>
+                    <p className="text-xs text-gray-500">Coordenadas A</p>
+                    <p className="text-xs font-mono">{selectedEdgeData.metadata.coordenadasA}</p>
+                  </div>
+                )}
+                {selectedEdgeData.metadata?.coordenadasB && (
+                  <div>
+                    <p className="text-xs text-gray-500">Coordenadas B</p>
+                    <p className="text-xs font-mono">{selectedEdgeData.metadata.coordenadasB}</p>
+                  </div>
+                )}
+                {selectedEdgeData.metadata?.orientacionA && (
+                  <div>
+                    <p className="text-xs text-gray-500">Orientación A</p>
+                    <p className="text-sm">{selectedEdgeData.metadata.orientacionA}</p>
+                  </div>
+                )}
+                {selectedEdgeData.metadata?.orientacionB && (
+                  <div>
+                    <p className="text-xs text-gray-500">Orientación B</p>
+                    <p className="text-sm">{selectedEdgeData.metadata.orientacionB}</p>
+                  </div>
+                )}
+                {selectedEdgeData.metadata?.imeiA && (
                   <div>
                     <p className="text-xs text-gray-500">IMEI Abonado A</p>
-                    <p className="text-xs font-mono">
-                      {selectedEdgeData.metadata.imei1A}
-                    </p>
-                    {selectedEdgeData.metadata?.imei2A && (
-                      <p className="text-xs font-mono">
-                        {selectedEdgeData.metadata.imei2A}
-                      </p>
-                    )}
+                    <p className="text-xs font-mono">{selectedEdgeData.metadata.imeiA}</p>
                   </div>
                 )}
-                {selectedEdgeData.metadata?.imei1B && (
+                {selectedEdgeData.metadata?.imeiB && (
                   <div>
                     <p className="text-xs text-gray-500">IMEI Abonado B</p>
-                    <p className="text-xs font-mono">
-                      {selectedEdgeData.metadata.imei1B}
-                    </p>
-                    {selectedEdgeData.metadata?.imei2B && (
-                      <p className="text-xs font-mono">
-                        {selectedEdgeData.metadata.imei2B}
-                      </p>
-                    )}
+                    <p className="text-xs font-mono">{selectedEdgeData.metadata.imeiB}</p>
                   </div>
                 )}
                 <div>

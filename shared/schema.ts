@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -431,25 +431,34 @@ export const personaTelefonos = pgTable("persona_telefonos", {
 // Tabla REGISTRO_COMUNICACION - Almacena cada evento de comunicación
 export const registrosComunicacion = pgTable("registros_comunicacion", {
   registroId: serial("registro_id").primaryKey(),
-  abonadoA: text("abonado_a").notNull(), // String puro para integridad histórica
+  experticiaId: integer("experticia_id").references(() => experticias.id, { onDelete: 'cascade' }),
+  abonadoA: text("abonado_a").notNull(),
   abonadoB: text("abonado_b"),
-  abonadoAId: integer("abonado_a_id").references(() => personaTelefonos.id), // FK opcional para trazabilidad
-  abonadoBId: integer("abonado_b_id").references(() => personaTelefonos.id), // FK opcional para trazabilidad
-  imei1A: text("imei1_a"),
-  imei2A: text("imei2_a"),
-  imei1B: text("imei1_b"),
-  imei2B: text("imei2_b"),
-  tipoYTransaccion: text("tipo_y_transaccion"),
-  segundos: integer("segundos"),
-  hora: text("hora"),
+  abonadoAId: integer("abonado_a_id").references(() => personaTelefonos.id),
+  abonadoBId: integer("abonado_b_id").references(() => personaTelefonos.id),
+  tipoTransaccion: text("tipo_transaccion"),
   fecha: text("fecha"),
-  direccionInicialA: text("direccion_inicial_a"),
-  latitudInicialA: text("latitud_inicial_a"),
-  longitudInicialA: text("longitud_inicial_a"),
+  hora: text("hora"),
+  time: text("time"),
+  btsCelda: text("bts_celda"),
+  btsCeldaA: text("bts_celda_a"),
+  btsCeldaB: text("bts_celda_b"),
+  direccionA: text("direccion_a"),
+  direccionB: text("direccion_b"),
+  coordenadasA: text("coordenadas_a"),
+  coordenadasB: text("coordenadas_b"),
+  orientacionA: text("orientacion_a"),
+  orientacionB: text("orientacion_b"),
+  imeiA: text("imei_a"),
+  imeiB: text("imei_b"),
   archivo: text("archivo"),
   peso: text("peso"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  abonadoAIdx:   index("idx_registros_abonado_a").on(table.abonadoA),
+  abonadoBIdx:   index("idx_registros_abonado_b").on(table.abonadoB),
+  experticiaIdx: index("idx_registros_experticia").on(table.experticiaId),
+}));
 
 // Tabla EXPEDIENTES_SUJETOS - Datos del caso asociados a una persona
 export const expedientesSujetos = pgTable("expedientes_sujetos", {
@@ -498,6 +507,10 @@ export const personaTelefonosRelations = relations(personaTelefonos, ({ one, man
 }));
 
 export const registrosComunicacionRelations = relations(registrosComunicacion, ({ one }) => ({
+  experticia: one(experticias, {
+    fields: [registrosComunicacion.experticiaId],
+    references: [experticias.id],
+  }),
   telefonoA: one(personaTelefonos, {
     fields: [registrosComunicacion.abonadoAId],
     references: [personaTelefonos.id],
