@@ -2261,5 +2261,74 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2026-06-07T19:20:32.386341",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28115226",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=28115226",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28115226,
+                "fecha_nac": "1993-09-01",
+                "rif": "V281152269",
+                "primer_apellido": "KEY",
+                "segundo_apellido": "RAMIREZ",
+                "primer_nombre": "CARLOS",
+                "segundo_nombre": "JOSE",
+                "request_date": "2026-06-07T23:20:32.321Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-06-07T19:22:41.010821",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "12092700",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=12092700",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 12092700,
+                "fecha_nac": "1974-01-01",
+                "rif": "V120927007",
+                "cne": {
+                    "estado": "PORTUGUESA",
+                    "municipio": "TUREN",
+                    "parroquia": "SANTA CRUZ",
+                    "centro_electoral": "ESCUELA ESTADAL CONCENTRADA SANTA ROSA NUMERO 420"
+                },
+                "primer_apellido": "SUAREZ",
+                "segundo_apellido": "OLIVERO",
+                "primer_nombre": "TRINIDAD",
+                "segundo_nombre": "DE JESUS",
+                "request_date": "2026-06-07T23:22:40.872Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-06-07T20:44:55.370831",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "27217572",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=27217572",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 27217572,
+                "fecha_nac": "2000-04-22",
+                "rif": "V272175728",
+                "primer_apellido": "CRESPO",
+                "segundo_apellido": "RODRIGUEZ",
+                "primer_nombre": "CRISMARY",
+                "segundo_nombre": "YESELYS",
+                "request_date": "2026-06-08T00:44:55.355Z"
+            }
+        }
     }
 ]

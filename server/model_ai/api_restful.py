@@ -334,10 +334,14 @@ async def analizar_contactos_frecuentes(request: AnalizarContactosFrecuentesRequ
             request.operador
         )
 
-        # Extraer datos filiatorios si el operador es Movistar
+        # Extraer datos filiatorios según el operador
         datos_filiatorios = None
         if 'movistar' in request.operador.lower():
             datos_filiatorios = analizador.extraer_datos_filiatorios_movistar(request.archivo_excel)
+            if not datos_filiatorios:
+                datos_filiatorios = None
+        elif 'digitel' in request.operador.lower():
+            datos_filiatorios = analizador.extraer_datos_filiatorios_digitel(request.archivo_excel)
             if not datos_filiatorios:
                 datos_filiatorios = None
 

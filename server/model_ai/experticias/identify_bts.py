@@ -533,6 +533,16 @@ class Exper_Frecuentes:
             correo = datos.get('Correo', '')
             status_linea = datos.get('Status Linea', '')
 
+            # Fecha Inicio → formato DD/MM/AAAA
+            fecha_inicio_raw = datos.get('Fecha Inicio', '')
+            fecha_activacion = ''
+            if fecha_inicio_raw:
+                partes = str(fecha_inicio_raw).strip().split('-')
+                if len(partes) == 3:
+                    fecha_activacion = f"{partes[2]}/{partes[1]}/{partes[0]}"
+                else:
+                    fecha_activacion = fecha_inicio_raw
+
             direccion_completa = ", ".join(filter(None, [region, direccion]))
 
             result = {
@@ -542,11 +552,108 @@ class Exper_Frecuentes:
                 'correo': correo,
                 'direccion': direccion_completa,
                 'statusLinea': status_linea,
+                'fechaActivacion': fecha_activacion,
             }
             print(f"[FILIATORIOS] Datos extraídos: {result}")
             return result
         except Exception as e:
             print(f"[FILIATORIOS ERROR] {str(e)}")
+            return {}
+
+    def extraer_datos_filiatorios_digitel(self, archivo_excel: str) -> dict:
+        """
+        Extrae datos filiatorios del titular de la línea desde la hoja 'Hoja1'
+        del archivo Excel Digitel. La hoja tiene estructura clave-valor por fila
+        (columna A = campo, columna B = valor) hasta la fila con 'ABONADO A'.
+        """
+        try:
+            xls = pd.ExcelFile(archivo_excel)
+            hojas_upper = {h.upper(): h for h in xls.sheet_names}
+            hoja_real = hojas_upper.get('HOJA1')
+            if hoja_real is None:
+                print("[FILIATORIOS DIGITEL] Hoja 'Hoja1' no encontrada.")
+                return {}
+
+            df = pd.read_excel(xls, sheet_name=hoja_real, header=None)
+            datos = {}
+            for _, row in df.iterrows():
+                if len(row) >= 2 and pd.notna(row.iloc[0]):
+                    clave = str(row.iloc[0]).strip()
+                    # Detener al llegar a la sección de IMSI/tráfico
+                    if clave.upper() == 'ABONADO A':
+                        break
+                    valor = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else ""
+                    datos[clave] = valor
+
+            # Cédula: solo el número (sin tipo)
+            identificacion = datos.get('IDENTIFICACION', '').strip()
+            cedula = identificacion
+
+            # Nombre completo: NOMBRES + APELLIDOS
+            nombres = datos.get('NOMBRES', '').strip()
+            apellidos = datos.get('APELLIDOS', '').strip()
+            nombre_completo = f"{nombres} {apellidos}".strip()
+
+            # Función auxiliar para formatear fechas a DD/MM/AAAA
+            def formatear_fecha(raw):
+                if not raw:
+                    return ''
+                parte_fecha = str(raw).strip().split(' ')[0]  # "2003-04-26"
+                partes = parte_fecha.split('-')
+                if len(partes) == 3:
+                    return f"{partes[2]}/{partes[1]}/{partes[0]}"
+                return parte_fecha
+
+            fecha_nac = formatear_fecha(datos.get('FECHA NACIMIENTO', ''))
+            fecha_activacion = formatear_fecha(datos.get('FECHA ACTIVACION', ''))
+
+            # Dirección completa
+            partes_dir = []
+            avenida = datos.get('AVENIDA/CALLE', '').strip()
+            edificio = datos.get('EDIFICIO/TORRE', '').strip()
+            urbanizacion = datos.get('URBANIZACION', '').strip()
+            ciudad = datos.get('CIUDAD', '').strip()
+            estado = datos.get('ESTADO', '').strip()
+
+            if avenida and avenida.upper() != 'N/A':
+                partes_dir.append(avenida)
+            if edificio and edificio.upper() != 'N/A':
+                partes_dir.append(edificio)
+            if urbanizacion and urbanizacion.upper() != 'N/A':
+                partes_dir.append(urbanizacion)
+            if ciudad and ciudad.upper() != 'N/A':
+                partes_dir.append(ciudad)
+            if estado and estado.upper() != 'N/A':
+                partes_dir.append(estado)
+
+            direccion_completa = ", ".join(partes_dir)
+
+            # Correo
+            correo = datos.get('Email', '').strip()
+
+            # Estatus
+            estatus = datos.get('ESTATUS', '').strip()
+
+            # Otros teléfonos: TELEFONO DIA y TELEFONO NOCHE
+            tlf_dia = datos.get('TELEFONO DIA', '').strip()
+            tlf_noche = datos.get('TELEFONO NOCHE', '').strip()
+            otros_tlf_lista = [t for t in [tlf_dia, tlf_noche] if t]
+            otros_tlf = " / ".join(otros_tlf_lista)
+
+            result = {
+                'cedula': cedula,
+                'nombre': nombre_completo,
+                'fechaNacimiento': fecha_nac,
+                'correo': correo,
+                'direccion': direccion_completa,
+                'statusLinea': estatus,
+                'fechaActivacion': fecha_activacion,
+                'otrosTlf': otros_tlf,
+            }
+            print(f"[FILIATORIOS DIGITEL] Datos extraídos: {result}")
+            return result
+        except Exception as e:
+            print(f"[FILIATORIOS DIGITEL ERROR] {str(e)}")
             return {}
 
 # Ejemplo de uso:

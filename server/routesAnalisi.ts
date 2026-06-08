@@ -67,6 +67,9 @@ export function registerAnalisisRoutes(
         profesion: body.profesion,
         correo: body.correo,
         direccion: body.direccion,
+        statusLinea: body.statusLinea || null,
+        fechaActivacion: body.fechaActivacion || null,
+        otrosTlf: body.otrosTlf || null,
         usuarioId: req.user.id,
       };
 
