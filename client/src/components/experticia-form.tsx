@@ -1,4 +1,4 @@
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, Control } from "react-hook-form";
 import { useRef, useState, useEffect, useMemo, useCallback, memo } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
@@ -255,7 +255,7 @@ const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state,
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {state.datosCrudos.map((row, index) => (
+                {state.datosCrudos.slice(0, 200).map((row, index) => (
                   <TableRow key={index}>
                     {Object.keys(row).map((col) => (
                       <TableCell key={col} className="py-1 px-2 text-xs">{row[col] || "-"}</TableCell>
@@ -358,6 +358,421 @@ const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state,
   );
 });
 
+// ─── Type alias for multi-target analysis item ──────────────────────────────
+type AnalisisItem = {
+  id: string;
+  numero: string;
+  archivoNombre: string;
+  archivoData: string;
+  operador: string;
+  resultados: {
+    bts?: any[];
+    contactos?: {
+      datosCrudos: any[];
+      top10: any[];
+    };
+  } | null;
+};
+
+// ─── Subcomponente aislado: Input Abonado ────────────────────────────────────
+interface AbonadoInputProps {
+  control: Control<FormData>;
+}
+
+const AbonadoInput = memo(function AbonadoInput({ control }: AbonadoInputProps) {
+  return (
+    <FormField
+      control={control}
+      name="abonado"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Abonado</FormLabel>
+          <FormControl>
+            <Input
+              placeholder="Número o identificación del abonado"
+              {...field}
+              value={field.value || ""}
+              onKeyDown={(e) => {
+                if (e.ctrlKey || e.metaKey) {
+                  const allowedCtrlKeys = ["v","c","x","a","z","y","V","C","X","A","Z","Y"];
+                  if (allowedCtrlKeys.includes(e.key)) {
+                    return;
+                  }
+                }
+                handleDateInputKeyDown(e, CHAR_PATTERNS.numeric);
+              }}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+});
+
+// ─── Subcomponente contenedor aislado: Sección Análisis Objetivos ─────────────
+interface SeccionAnalisisObjetivosProps {
+  control: Control<FormData>;
+  tipoExperticiaValue: string;
+  listaAnalisis: AnalisisItem[];
+  setListaAnalisis: React.Dispatch<React.SetStateAction<AnalisisItem[]>>;
+  selectedIndex: number | null;
+  setSelectedIndex: React.Dispatch<React.SetStateAction<number | null>>;
+  agregarAnalisis: (numero: string, file: File, operador: string) => Promise<void>;
+  procesarTodosLosAnalisis: () => Promise<void>;
+  procesarArchivoAdjuntoDirecto: (numero: string, rutaArchivo: string, operador: string) => Promise<void>;
+  fileUploadState: { isUploading: boolean; uploadedFile: { name: string; size: string } | null; error: string | null };
+  setFileUploadState: React.Dispatch<React.SetStateAction<{ isUploading: boolean; uploadedFile: { name: string; size: string } | null; error: string | null }>>;
+  formatFileSize: (bytes: number) => string;
+  getOperador: () => string;
+  setFormValue: (name: keyof FormData, value: any) => void;
+  btsAnalysisState: { isAnalyzing: boolean; results: any[] | null; error: string | null };
+  contactosFrecuentesState: { isAnalyzing: boolean; datosCrudos: any[] | null; todosLosContactos: any[] | null; error: string | null };
+  selectedRows: Set<number>;
+  copiedTable: string | null;
+  copiarAlPortapapeles: (tableId: string, filas: any[], columnas: string[]) => void;
+  onVerTabla: () => void;
+  onVerDatosCrudos: () => void;
+  onVerContactos: () => void;
+  limitContactos: number | 'todos';
+  setLimitContactos: React.Dispatch<React.SetStateAction<number | 'todos'>>;
+  tiposColumnas: string[];
+  totales: { visibles: any[]; totalFrecuencia: number; primeraFecha: string; ultimaFecha: string; sumasPorTipo: Record<string, number> } | null;
+}
+
+const SeccionAnalisisObjetivos = memo(function SeccionAnalisisObjetivos({
+  control,
+  tipoExperticiaValue,
+  listaAnalisis,
+  setListaAnalisis,
+  selectedIndex,
+  setSelectedIndex,
+  agregarAnalisis,
+  procesarTodosLosAnalisis,
+  procesarArchivoAdjuntoDirecto,
+  fileUploadState,
+  setFileUploadState,
+  formatFileSize,
+  getOperador,
+  setFormValue,
+  btsAnalysisState,
+  contactosFrecuentesState,
+  selectedRows,
+  copiedTable,
+  copiarAlPortapapeles,
+  onVerTabla,
+  onVerDatosCrudos,
+  onVerContactos,
+  limitContactos,
+  setLimitContactos,
+  tiposColumnas,
+  totales,
+}: SeccionAnalisisObjetivosProps) {
+  const abonadoValue = useWatch({ control, name: "abonado" });
+
+  return (
+    <>
+      {/* Campo: Tabla de Multi-Target — solo para Contactos Frecuentes */}
+      {tipoExperticiaValue === "determinar_contacto_frecuente" && (
+        <div className="space-y-3 border rounded-lg p-3 bg-gray-50 dark:bg-gray-900/20">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Tabla de Experticia - Multi-Target
+            </h4>
+            <div className="flex items-center space-x-2">
+              <Input
+                type="file"
+                className="hidden"
+                id="multi-file-upload"
+                accept=".xls,.xlsx"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file && abonadoValue) {
+                    agregarAnalisis(abonadoValue, file, getOperador());
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() =>
+                  document.getElementById("multi-file-upload")?.click()
+                }
+                disabled={!abonadoValue || listaAnalisis.length >= 10}
+              >
+                <Upload className="h-3.5 w-3.5 mr-1.5" />
+                {listaAnalisis.length >= 10 ? "Límite Alcanzado" : "Agregar"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={procesarTodosLosAnalisis}
+                disabled={
+                  listaAnalisis.length === 0 ||
+                  btsAnalysisState.isAnalyzing
+                }
+              >
+                {btsAnalysisState.isAnalyzing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                ) : (
+                  <Atom className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                Analizar Todo
+              </Button>
+            </div>
+          </div>
+
+          {listaAnalisis.length > 0 && (
+            <div className="border rounded-md overflow-hidden bg-white dark:bg-black shadow-sm">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow className="hover:bg-transparent border-b h-8">
+                    <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight px-3">
+                      Número
+                    </TableHead>
+                    <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight px-3">
+                      Archivo
+                    </TableHead>
+                    <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight w-[100px] px-3">
+                      Estado
+                    </TableHead>
+                    <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight w-[50px] text-center px-3">
+                      Acción
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {listaAnalisis.map((item, index) => (
+                    <TableRow
+                      key={item.id}
+                      className={`cursor-pointer transition-colors h-8 border-b last:border-0 ${
+                        selectedIndex === index
+                          ? "bg-blue-50/80 dark:bg-blue-900/20"
+                          : "hover:bg-muted/30"
+                      }`}
+                      onClick={() => setSelectedIndex(index)}
+                    >
+                      <TableCell className="py-1 px-3 font-mono text-[11px] font-medium">
+                        {item.numero}
+                      </TableCell>
+                      <TableCell
+                        className="py-1 px-3 max-w-[180px] truncate text-[11px] text-muted-foreground"
+                        title={item.archivoNombre}
+                      >
+                        {item.archivoNombre}
+                      </TableCell>
+                      <TableCell className="py-1 px-3">
+                        {item.resultados ? (
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-1.5 py-0 text-[9px] font-bold bg-green-50 text-green-700 border-green-200/50 rounded-full"
+                          >
+                            <CheckCircle className="h-2.5 w-2.5 mr-1" />{" "}
+                            LISTO
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-1.5 py-0 text-[9px] font-bold bg-amber-50 text-amber-700 border-amber-200/50 rounded-full"
+                          >
+                            PENDIENTE
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-1 px-3 text-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setListaAnalisis((prev) =>
+                              prev.filter((_, i) => i !== index)
+                            );
+                            if (selectedIndex === index)
+                              setSelectedIndex(null);
+                          }}
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Campo: Adjuntar Archivo — solo para tipos distintos a Contactos Frecuentes */}
+      {tipoExperticiaValue !== "determinar_contacto_frecuente" && (
+        <FormField
+          control={control}
+          name="archivoAdjunto"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center space-x-2">
+                <Upload className="h-4 w-4" />
+                <span>Adjuntar Archivo</span>
+              </FormLabel>
+              <FormControl>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    accept=".xls,.xlsx"
+                    disabled={
+                      !abonadoValue ||
+                      fileUploadState.isUploading ||
+                      listaAnalisis.length > 0
+                    }
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setFileUploadState({
+                          isUploading: true,
+                          uploadedFile: null,
+                          error: null,
+                        });
+
+                        try {
+                          const formData = new FormData();
+                          formData.append("archivo", file);
+
+                          const response = await fetch(
+                            "/api/experticias/upload-archivo",
+                            {
+                              method: "POST",
+                              headers: {
+                                Authorization: `Bearer ${localStorage.getItem("token")}`,
+                              },
+                              body: formData,
+                            }
+                          );
+
+                          if (response.ok) {
+                            const result = await response.json();
+                            field.onChange(result.archivo.rutaArchivo);
+                            setFormValue("nombreArchivo", result.archivo.nombreArchivo);
+                            setFormValue("tamañoArchivo", result.archivo.tamañoArchivo);
+
+                            setFileUploadState({
+                              isUploading: false,
+                              uploadedFile: {
+                                name: result.archivo.nombreArchivo,
+                                size: formatFileSize(result.archivo.tamañoArchivo),
+                              },
+                              error: null,
+                            });
+
+                            if (abonadoValue) {
+                              procesarArchivoAdjuntoDirecto(
+                                abonadoValue,
+                                result.archivo.rutaArchivo,
+                                getOperador()
+                              );
+                            }
+                          } else {
+                            const errorText = await response.text();
+                            field.onChange("");
+                            setFileUploadState({
+                              isUploading: false,
+                              uploadedFile: null,
+                              error: errorText || "Error subiendo archivo",
+                            });
+                          }
+                        } catch (error) {
+                          field.onChange("");
+                          setFileUploadState({
+                            isUploading: false,
+                            uploadedFile: null,
+                            error: "Error de conexión al subir archivo",
+                          });
+                        }
+                      }
+                    }}
+                    className={`file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium ${
+                      fileUploadState.uploadedFile
+                        ? "border-green-500"
+                        : fileUploadState.error
+                        ? "border-red-500"
+                        : ""
+                    }`}
+                  />
+
+                  {fileUploadState.isUploading && (
+                    <div className="flex items-center space-x-2 text-sm text-blue-600">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Subiendo archivo...</span>
+                    </div>
+                  )}
+
+                  {fileUploadState.uploadedFile && (
+                    <div className="flex items-center space-x-2 text-sm text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <FileSpreadsheet className="h-4 w-4" />
+                      <span>{fileUploadState.uploadedFile.name}</span>
+                      <span className="text-gray-500">
+                        ({fileUploadState.uploadedFile.size})
+                      </span>
+                    </div>
+                  )}
+
+                  {fileUploadState.error && (
+                    <div className="flex items-center space-x-2 text-sm text-red-600">
+                      <XCircle className="h-4 w-4" />
+                      <span>{fileUploadState.error}</span>
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+              <p className="text-sm text-gray-600">
+                Formatos permitidos: XLS, XLSX
+              </p>
+              <FormMessage />
+              {listaAnalisis.length > 0 && (
+                <p className="text-xs text-amber-600 mt-1 font-medium">
+                  Carga individual deshabilitada porque hay elementos en la
+                  Lista Multi-Target.
+                </p>
+              )}
+            </FormItem>
+          )}
+        />
+      )}
+
+      {/* SECCIÓN: Resultados del análisis BTS */}
+      <TablaBTS
+        isAnalyzing={btsAnalysisState.isAnalyzing}
+        results={btsAnalysisState.results}
+        error={btsAnalysisState.error}
+        selectedRows={selectedRows}
+        copiedTable={copiedTable}
+        onCopiar={copiarAlPortapapeles}
+        onVerTabla={onVerTabla}
+        abonadoValue={abonadoValue}
+      />
+
+      <TablaContactosFrecuentes
+        state={contactosFrecuentesState}
+        limitContactos={limitContactos}
+        onSetLimitContactos={setLimitContactos}
+        copiedTable={copiedTable}
+        onCopiar={copiarAlPortapapeles}
+        onVerDatosCrudos={onVerDatosCrudos}
+        onVerContactos={onVerContactos}
+        tiposColumnas={tiposColumnas}
+        totales={totales}
+        abonadoValue={abonadoValue}
+      />
+    </>
+  );
+});
+
 /**
  * Componente: Formulario para crear, editar o duplicar experticias
  *
@@ -380,8 +795,15 @@ export function ExperticiasForm({
   const isEditing = !!experticia?.id; // true si estamos editando
   const isDuplicating = !!experticia && !experticia.id; // true si estamos duplicando
   const scrollContainerRef = useRef<HTMLFormElement>(null); // Ref para scroll suave del formulario
+  const isSubmittingRef = useRef(false); // Ref para bloquear envíos duplicados
   const permissions = usePermissions(); // Permisos del usuario (ej: canEditCreationDates)
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!isLoading) {
+      isSubmittingRef.current = false;
+    }
+  }, [isLoading]);
 
   /**
    * Estado para la subida de archivos Excel
@@ -453,6 +875,33 @@ export function ExperticiasForm({
   const [searchRegistros, setSearchRegistros] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+
+  const [debouncedSearchRegistros, setDebouncedSearchRegistros] = useState('');
+  const [registrosScrollTop, setRegistrosScrollTop] = useState(0);
+  const registrosScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchRegistros(searchRegistros), 200);
+    return () => clearTimeout(timer);
+  }, [searchRegistros]);
+
+  const filteredRegistros = useMemo(() => {
+    if (!contactosFrecuentesState.datosCrudos) return [];
+    const parseDMY = (s: string) => { const [d, m, y] = s.split('/'); return d && m && y ? new Date(`${y}-${m}-${d}`) : null; };
+    const desde = parseDMY(fechaDesde);
+    const hasta = parseDMY(fechaHasta);
+    const q = debouncedSearchRegistros.toLowerCase();
+    return contactosFrecuentesState.datosCrudos.filter((row) => {
+      if (fechaDesde || fechaHasta) {
+        const f = parseDMY(String(row['Fecha'] || row['FECHA'] || ''));
+        if (!f) return false;
+        if (desde && f < desde) return false;
+        if (hasta && f > hasta) return false;
+      }
+      if (q && !Object.values(row).some((v) => String(v ?? '').toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [contactosFrecuentesState.datosCrudos, debouncedSearchRegistros, fechaDesde, fechaHasta]);
 
   // Controla qué tabla fue copiada recientemente (feedback visual)
   const [copiedTable, setCopiedTable] = useState<string | null>(null);
@@ -997,7 +1446,6 @@ export function ExperticiasForm({
   /**
    * Observa cambios en los campos del formulario para habilitación de controles
    */
-  const abonadoValue = useWatch({ control: form.control, name: "abonado" });
   const tipoExperticiaValue = useWatch({ control: form.control, name: "tipoExperticia" });
 
   const [sujetoEncontrado, setSujetoEncontrado] = useState<boolean | null>(null);
@@ -1136,6 +1584,8 @@ export function ExperticiasForm({
    */
   const handleSubmit = (data: FormData) => {
     if (fileUploadState.isUploading) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
 
     let filasSeleccionadas: any[] = [];
     let datosAnalisis: any = null;
@@ -1226,10 +1676,19 @@ export function ExperticiasForm({
               statusLinea: datosAfiliado.statusLinea || null,
               fechaActivacion: datosAfiliado.fechaActivacion || null,
               otrosTlf: datosAfiliado.otrosTlf || null,
+              rol: datosAfiliado.rol || null,
               telefono: numeroAbonado,
               expediente: (data as any).expediente || null,
             }),
           }).catch((err) => console.error(`Error guardando afiliado ${numeroAbonado}:`, err));
+        }
+        // Guardar statusLinea/fechaActivacion en persona_telefonos independientemente de cédula
+        if (datosAfiliado.statusLinea || datosAfiliado.fechaActivacion) {
+          fetch(`/api/persona-telefonos/update-by-numero`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+            body: JSON.stringify({ numero: numeroAbonado, statusLinea: datosAfiliado.statusLinea || null, fechaActivacion: datosAfiliado.fechaActivacion || null }),
+          }).catch(() => {});
         }
       });
     } else {
@@ -1253,9 +1712,18 @@ export function ExperticiasForm({
             statusLinea: afiliadoData.statusLinea || null,
             fechaActivacion: afiliadoData.fechaActivacion || null,
             otrosTlf: afiliadoData.otrosTlf || null,
+            rol: afiliadoData.rol || null,
             telefono: abonadoUnico,
             expediente: (data as any).expediente || null,
           }),
+        }).catch(() => {});
+      }
+      // Guardar statusLinea/fechaActivacion en persona_telefonos independientemente de cédula
+      if (abonadoUnico && (afiliadoData.statusLinea || afiliadoData.fechaActivacion)) {
+        fetch(`/api/persona-telefonos/update-by-numero`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+          body: JSON.stringify({ numero: abonadoUnico, statusLinea: afiliadoData.statusLinea || null, fechaActivacion: afiliadoData.fechaActivacion || null }),
         }).catch(() => {});
       }
     }
@@ -1696,375 +2164,37 @@ export function ExperticiasForm({
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Análisis, Detalles Técnicos</h3>
 
-            {/* Campo Abonado: número de teléfono a analizar (solo números) */}
-            <FormField
+            {/* Campo Abonado: componente aislado para evitar re-renders en cascada */}
+            <AbonadoInput control={form.control} />
+
+            {/* Sección de análisis aislada — useWatch("abonado") vive solo aquí */}
+            <SeccionAnalisisObjetivos
               control={form.control}
-              name="abonado"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Abonado</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Número o identificación del abonado"
-                      {...field}
-                      value={field.value || ""}
-                      onKeyDown={(e) => {
-                        // Permitir combinaciones de Ctrl (o Meta en Mac) para copiar, pegar, deshacer, etc.
-                        if (e.ctrlKey || e.metaKey) {
-                          const allowedCtrlKeys = [
-                            "v",
-                            "c",
-                            "x",
-                            "a",
-                            "z",
-                            "y",
-                            "V",
-                            "C",
-                            "X",
-                            "A",
-                            "Z",
-                            "Y",
-                          ];
-                          if (allowedCtrlKeys.includes(e.key)) {
-                            return; // Permitir la acción
-                          }
-                        }
-                        handleDateInputKeyDown(e, CHAR_PATTERNS.numeric);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Campo: Tabla de Multi-Target
-                SOLO se muestra para Contactos Frecuentes
-                - Permite agregar múltiples archivos
-                - Analizar todos en paralelo
-                - Tabla de progreso
-            */}
-            {tipoExperticiaValue === "determinar_contacto_frecuente" && (
-              <div className="space-y-3 border rounded-lg p-3 bg-gray-50 dark:bg-gray-900/20">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Tabla de Experticia - Multi-Target
-                  </h4>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      type="file"
-                      className="hidden"
-                      id="multi-file-upload"
-                      accept=".xls,.xlsx"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file && abonadoValue) {
-                          agregarAnalisis(
-                            abonadoValue,
-                            file,
-                            form.getValues("operador") || ""
-                          );
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() =>
-                        document.getElementById("multi-file-upload")?.click()
-                      }
-                      disabled={!abonadoValue || listaAnalisis.length >= 10}
-                    >
-                      <Upload className="h-3.5 w-3.5 mr-1.5" />
-                      {listaAnalisis.length >= 10
-                        ? "Límite Alcanzado"
-                        : "Agregar"}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={procesarTodosLosAnalisis}
-                      disabled={
-                        listaAnalisis.length === 0 ||
-                        btsAnalysisState.isAnalyzing
-                      }
-                    >
-                      {btsAnalysisState.isAnalyzing ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                      ) : (
-                        <Atom className="h-3.5 w-3.5 mr-1.5" />
-                      )}
-                      Analizar Todo
-                    </Button>
-                  </div>
-                </div>
-
-                {listaAnalisis.length > 0 && (
-                  <div className="border rounded-md overflow-hidden bg-white dark:bg-black shadow-sm">
-                    <Table>
-                      <TableHeader className="bg-muted/30">
-                        <TableRow className="hover:bg-transparent border-b h-8">
-                          <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight px-3">
-                            Número
-                          </TableHead>
-                          <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight px-3">
-                            Archivo
-                          </TableHead>
-                          <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight w-[100px] px-3">
-                            Estado
-                          </TableHead>
-                          <TableHead className="h-8 py-1 text-[11px] font-bold uppercase tracking-tight w-[50px] text-center px-3">
-                            Acción
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {listaAnalisis.map((item, index) => (
-                          <TableRow
-                            key={item.id}
-                            className={`cursor-pointer transition-colors h-8 border-b last:border-0 ${
-                              selectedIndex === index
-                                ? "bg-blue-50/80 dark:bg-blue-900/20"
-                                : "hover:bg-muted/30"
-                            }`}
-                            onClick={() => setSelectedIndex(index)}
-                          >
-                            <TableCell className="py-1 px-3 font-mono text-[11px] font-medium">
-                              {item.numero}
-                            </TableCell>
-                            <TableCell
-                              className="py-1 px-3 max-w-[180px] truncate text-[11px] text-muted-foreground"
-                              title={item.archivoNombre}
-                            >
-                              {item.archivoNombre}
-                            </TableCell>
-                            <TableCell className="py-1 px-3">
-                              {item.resultados ? (
-                                <Badge
-                                  variant="outline"
-                                  className="h-5 px-1.5 py-0 text-[9px] font-bold bg-green-50 text-green-700 border-green-200/50 rounded-full"
-                                >
-                                  <CheckCircle className="h-2.5 w-2.5 mr-1" />{" "}
-                                  LISTO
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant="outline"
-                                  className="h-5 px-1.5 py-0 text-[9px] font-bold bg-amber-50 text-amber-700 border-amber-200/50 rounded-full"
-                                >
-                                  PENDIENTE
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-1 px-3 text-center">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setListaAnalisis((prev) =>
-                                    prev.filter((_, i) => i !== index)
-                                  );
-                                  if (selectedIndex === index)
-                                    setSelectedIndex(null);
-                                }}
-                              >
-                                <XCircle className="h-3.5 w-3.5" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {tipoExperticiaValue !== "determinar_contacto_frecuente" && (
-            <FormField
-              control={form.control}
-              name="archivoAdjunto"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center space-x-2">
-                    <Upload className="h-4 w-4" />
-                    <span>Adjuntar Archivo</span>
-                  </FormLabel>
-                  <FormControl>
-                    <div className="space-y-2">
-                      <Input
-                        type="file"
-                        accept=".xls,.xlsx"
-                        disabled={
-                          !abonadoValue ||
-                          fileUploadState.isUploading ||
-                          listaAnalisis.length > 0
-                        }
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            // Paso 1: Inicia carga de archivo
-                            setFileUploadState({
-                              isUploading: true,
-                              uploadedFile: null,
-                              error: null,
-                            });
-
-                            try {
-                              const formData = new FormData();
-                              formData.append("archivo", file);
-
-                              // POST a servidor: sube archivo Excel
-                              const response = await fetch(
-                                "/api/experticias/upload-archivo",
-                                {
-                                  method: "POST",
-                                  headers: {
-                                    Authorization: `Bearer ${localStorage.getItem(
-                                      "token"
-                                    )}`,
-                                  },
-                                  body: formData,
-                                }
-                              );
-
-                              if (response.ok) {
-                                const result = await response.json();
-                                // Guarda ruta del archivo en el campo
-                                field.onChange(result.archivo.rutaArchivo);
-                                // Guarda metadata del archivo (nombre, tamaño)
-                                form.setValue(
-                                  "nombreArchivo",
-                                  result.archivo.nombreArchivo
-                                );
-                                form.setValue(
-                                  "tamañoArchivo",
-                                  result.archivo.tamañoArchivo
-                                );
-
-                                // Actualiza UI con archivo subido exitosamente
-                                setFileUploadState({
-                                  isUploading: false,
-                                  uploadedFile: {
-                                    name: result.archivo.nombreArchivo,
-                                    size: formatFileSize(
-                                      result.archivo.tamañoArchivo
-                                    ),
-                                  },
-                                  error: null,
-                                });
-
-                                // Paso 2: Si hay abonado, inicia análisis automático directamente
-                                if (abonadoValue) {
-                                  procesarArchivoAdjuntoDirecto(
-                                    abonadoValue,
-                                    result.archivo.rutaArchivo,
-                                    form.getValues("operador") || ""
-                                  );
-                                }
-                              } else {
-                                const errorText = await response.text();
-                                field.onChange("");
-                                setFileUploadState({
-                                  isUploading: false,
-                                  uploadedFile: null,
-                                  error: errorText || "Error subiendo archivo",
-                                });
-                              }
-                            } catch (error) {
-                              field.onChange("");
-                              setFileUploadState({
-                                isUploading: false,
-                                uploadedFile: null,
-                                error: "Error de conexión al subir archivo",
-                              });
-                            }
-                          }
-                        }}
-                        className={`file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium ${
-                          fileUploadState.uploadedFile
-                            ? "border-green-500"
-                            : fileUploadState.error
-                            ? "border-red-500"
-                            : ""
-                        }`}
-                      />
-
-                      {/* Indicador: Carga en progreso */}
-                      {fileUploadState.isUploading && (
-                        <div className="flex items-center space-x-2 text-sm text-blue-600">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Subiendo archivo...</span>
-                        </div>
-                      )}
-
-                      {/* Indicador: Carga exitosa con metadata del archivo */}
-                      {fileUploadState.uploadedFile && (
-                        <div className="flex items-center space-x-2 text-sm text-green-600">
-                          <CheckCircle className="h-4 w-4" />
-                          <FileSpreadsheet className="h-4 w-4" />
-                          <span>{fileUploadState.uploadedFile.name}</span>
-                          <span className="text-gray-500">
-                            ({fileUploadState.uploadedFile.size})
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Indicador: Error en carga o análisis */}
-                      {fileUploadState.error && (
-                        <div className="flex items-center space-x-2 text-sm text-red-600">
-                          <XCircle className="h-4 w-4" />
-                          <span>{fileUploadState.error}</span>
-                        </div>
-                      )}
-                    </div>
-                  </FormControl>
-                  <p className="text-sm text-gray-600">
-                    Formatos permitidos: XLS, XLSX
-                  </p>
-                  <FormMessage />
-                  {listaAnalisis.length > 0 && (
-                    <p className="text-xs text-amber-600 mt-1 font-medium">
-                      Carga individual deshabilitada porque hay elementos en la
-                      Lista Multi-Target.
-                    </p>
-                  )}
-                </FormItem>
-              )}
-            />
-            )}
-
-            {/* SECCIÓN: Resultados del análisis BTS
-                Muestra tabla de resultados con selección de filas
-                Solo se renderiza si hay análisis en progreso, resultados o error */}
-            <TablaBTS
-              isAnalyzing={btsAnalysisState.isAnalyzing}
-              results={btsAnalysisState.results}
-              error={btsAnalysisState.error}
+              tipoExperticiaValue={tipoExperticiaValue}
+              listaAnalisis={listaAnalisis}
+              setListaAnalisis={setListaAnalisis}
+              selectedIndex={selectedIndex}
+              setSelectedIndex={setSelectedIndex}
+              agregarAnalisis={agregarAnalisis}
+              procesarTodosLosAnalisis={procesarTodosLosAnalisis}
+              procesarArchivoAdjuntoDirecto={procesarArchivoAdjuntoDirecto}
+              fileUploadState={fileUploadState}
+              setFileUploadState={setFileUploadState}
+              formatFileSize={formatFileSize}
+              getOperador={() => form.getValues("operador") || ""}
+              setFormValue={(name, value) => form.setValue(name as any, value)}
+              btsAnalysisState={btsAnalysisState}
+              contactosFrecuentesState={contactosFrecuentesState}
               selectedRows={selectedRows}
               copiedTable={copiedTable}
-              onCopiar={copiarAlPortapapeles}
+              copiarAlPortapapeles={copiarAlPortapapeles}
               onVerTabla={() => setIsTableModalOpen(true)}
-              abonadoValue={abonadoValue}
-            />
-
-            <TablaContactosFrecuentes
-              state={contactosFrecuentesState}
-              limitContactos={limitContactos}
-              onSetLimitContactos={setLimitContactos}
-              copiedTable={copiedTable}
-              onCopiar={copiarAlPortapapeles}
               onVerDatosCrudos={() => setIsContactosTableModalOpen(true)}
               onVerContactos={() => setIsTop10ModalOpen(true)}
+              limitContactos={limitContactos}
+              setLimitContactos={setLimitContactos}
               tiposColumnas={tiposColumnasMemorized}
               totales={totalesMemorized}
-              abonadoValue={abonadoValue}
             />
 
             {/* ── Datos Afiliados ── */}
@@ -2350,65 +2480,47 @@ export function ExperticiasForm({
             {(fechaDesde || fechaHasta || searchRegistros) && (
               <>
                 <span className="text-xs text-muted-foreground">
-                  {(() => {
-                    const parseDMY = (s: string) => { const [d,m,y] = s.split('/'); return d&&m&&y ? new Date(`${y}-${m}-${d}`) : null; };
-                    const desde = parseDMY(fechaDesde), hasta = parseDMY(fechaHasta);
-                    const q = searchRegistros.toLowerCase();
-                    return contactosFrecuentesState.datosCrudos?.filter((row) => {
-                      const f = parseDMY(String(row['Fecha'] || row['FECHA'] || ''));
-                      if (fechaDesde || fechaHasta) {
-                        if (!f) return false;
-                        if (desde && f < desde) return false;
-                        if (hasta && f > hasta) return false;
-                      }
-                      if (q && !Object.values(row).some((v) => String(v ?? '').toLowerCase().includes(q))) return false;
-                      return true;
-                    }).length ?? 0;
-                  })()} resultados
+                  {filteredRegistros.length} resultados
                 </span>
                 <button onClick={() => { setFechaDesde(''); setFechaHasta(''); setSearchRegistros(''); }} className="text-xs text-blue-600 hover:underline">Limpiar</button>
               </>
             )}
           </div>
-          <div className="overflow-auto max-h-[68vh]">
-            {contactosFrecuentesState.datosCrudos &&
-              contactosFrecuentesState.datosCrudos.length > 0 && (
+          <div
+            ref={registrosScrollRef}
+            className="overflow-auto max-h-[68vh]"
+            onScroll={(e) => setRegistrosScrollTop((e.target as HTMLDivElement).scrollTop)}
+          >
+            {filteredRegistros.length > 0 && contactosFrecuentesState.datosCrudos && (() => {
+              const ROW_H = 32;
+              const containerH = registrosScrollRef.current?.clientHeight ?? 500;
+              const buffer = 20;
+              const startIdx = Math.max(0, Math.floor(registrosScrollTop / ROW_H) - buffer);
+              const endIdx = Math.min(filteredRegistros.length, startIdx + Math.ceil(containerH / ROW_H) + buffer * 2);
+              const paddingTop = startIdx * ROW_H;
+              const paddingBottom = (filteredRegistros.length - endIdx) * ROW_H;
+              const cols = Object.keys(contactosFrecuentesState.datosCrudos[0]);
+              return (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      {contactosFrecuentesState.datosCrudos.length > 0 &&
-                        Object.keys(
-                          contactosFrecuentesState.datosCrudos[0]
-                        ).map((col) => <TableHead key={col}>{col}</TableHead>)}
+                      {cols.map((col) => <TableHead key={col}>{col}</TableHead>)}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(() => {
-                      const parseDMY = (s: string) => { const [d,m,y] = s.split('/'); return d&&m&&y ? new Date(`${y}-${m}-${d}`) : null; };
-                      const desde = parseDMY(fechaDesde), hasta = parseDMY(fechaHasta);
-                      const q = searchRegistros.toLowerCase();
-                      return contactosFrecuentesState.datosCrudos!.filter((row) => {
-                        if (fechaDesde || fechaHasta) {
-                          const f = parseDMY(String(row['Fecha'] || row['FECHA'] || ''));
-                          if (!f) return false;
-                          if (desde && f < desde) return false;
-                          if (hasta && f > hasta) return false;
-                        }
-                        if (q && !Object.values(row).some((v) => String(v ?? '').toLowerCase().includes(q))) return false;
-                        return true;
-                      }).map((row, index) => (
-                        <TableRow key={index}>
-                          {Object.keys(row).map((col) => (
-                            <TableCell key={col} className="py-1 px-2 text-xs">
-                              {row[col] || "-"}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ));
-                    })()}
+                    {paddingTop > 0 && <tr style={{ height: paddingTop }}><td colSpan={cols.length} /></tr>}
+                    {filteredRegistros.slice(startIdx, endIdx).map((row, i) => (
+                      <TableRow key={startIdx + i}>
+                        {cols.map((col) => (
+                          <TableCell key={col} className="py-1 px-2 text-xs">{row[col] || "-"}</TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                    {paddingBottom > 0 && <tr style={{ height: paddingBottom }}><td colSpan={cols.length} /></tr>}
                   </TableBody>
                 </Table>
-              )}
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>

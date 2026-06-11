@@ -2330,5 +2330,55 @@
                 "request_date": "2026-06-08T00:44:55.355Z"
             }
         }
+    },
+    {
+        "timestamp": "2026-06-08T15:05:56.033286",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "25474955",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=25474955",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 25474955,
+                "fecha_nac": "1981-04-21",
+                "rif": "V254749555",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "ESCUELA BASICA EZEQUIEL ZAMORA"
+                },
+                "primer_apellido": "GONZALEZ",
+                "segundo_apellido": "QUERO",
+                "primer_nombre": "JOEL",
+                "segundo_nombre": "JOSE",
+                "request_date": "2026-06-08T19:05:55.979Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-08T15:08:17.561646",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "19780538",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=19780538",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 19780538,
+                "fecha_nac": "1988-08-16",
+                "rif": "V197805389",
+                "primer_apellido": "SUAREZ",
+                "segundo_apellido": "CAMACARO",
+                "primer_nombre": "MARIA",
+                "segundo_nombre": "DE LOS ANGELES",
+                "request_date": "2026-06-08T19:08:17.499Z"
+            }
+        },
+        "success": true
     }
 ]

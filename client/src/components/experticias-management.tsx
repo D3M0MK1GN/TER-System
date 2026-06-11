@@ -70,6 +70,7 @@ export function ExperticiasManagement() {
     data: InsertExperticia & { filasSeleccionadas?: any[] },
     isCreating: boolean
   ) => {
+    if (createMutation.isPending || updateMutation.isPending) return;
     try {
       const experticia = isCreating
         ? await createMutation.mutateAsync({

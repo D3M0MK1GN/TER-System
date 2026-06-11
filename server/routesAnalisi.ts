@@ -54,6 +54,32 @@ export function registerAnalisisRoutes(
     }
   });
 
+  // Ruta liviana: actualiza/crea status_linea y fecha_activacion en persona_telefonos por número
+  app.post("/api/persona-telefonos/update-by-numero", authenticateToken, async (req: any, res) => {
+    try {
+      const { numero, statusLinea, fechaActivacion } = req.body;
+      if (!numero) return res.status(400).json({ message: "numero es requerido" });
+
+      const telExistente = await storage.getPersonaTelefonoByNumero(numero);
+      if (telExistente) {
+        const updated = await storage.updatePersonaTelefono(telExistente.id, {
+          statusLinea: statusLinea || undefined,
+          fechaActivacion: fechaActivacion || undefined,
+        });
+        return res.json(updated);
+      } else {
+        const created = await storage.createPersonaTelefono({
+          numero,
+          statusLinea: statusLinea || undefined,
+          fechaActivacion: fechaActivacion || undefined,
+        });
+        return res.status(201).json(created);
+      }
+    } catch {
+      res.status(500).json({ message: "Error actualizando teléfono" });
+    }
+  });
+
   app.post("/api/personas-casos", authenticateToken, async (req: any, res) => {
     try {
       const body = req.body;
@@ -67,9 +93,8 @@ export function registerAnalisisRoutes(
         profesion: body.profesion,
         correo: body.correo,
         direccion: body.direccion,
-        statusLinea: body.statusLinea || null,
-        fechaActivacion: body.fechaActivacion || null,
         otrosTlf: body.otrosTlf || null,
+        rol: body.rol || null,
         usuarioId: req.user.id,
       };
 
@@ -95,6 +120,25 @@ export function registerAnalisisRoutes(
         persona = await storage.createPersonaCaso(validatedBio);
       } else {
         persona = (await storage.updatePersonaCaso(persona.nro, validatedBio)) || persona;
+      }
+
+      // Upsert status_linea y fecha_activacion en persona_telefonos si se provee el teléfono
+      const telefonoNumero = body.telefono || body.telefonoCaso;
+      if (telefonoNumero && (body.statusLinea || body.fechaActivacion)) {
+        const telExistente = await storage.getPersonaTelefonoByNumero(telefonoNumero);
+        if (telExistente) {
+          await storage.updatePersonaTelefono(telExistente.id, {
+            statusLinea: body.statusLinea || undefined,
+            fechaActivacion: body.fechaActivacion || undefined,
+          });
+        } else {
+          await storage.createPersonaTelefono({
+            personaId: persona.nro,
+            numero: telefonoNumero,
+            statusLinea: body.statusLinea || undefined,
+            fechaActivacion: body.fechaActivacion || undefined,
+          });
+        }
       }
 
       const validatedCase = insertExpedienteSujetoSchema.parse({ ...caseFields, personaId: persona.nro });
