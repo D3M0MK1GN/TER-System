@@ -89,3 +89,26 @@ Warning: failed to launch javaldx - java may not function correctly
 (thunar:15627): GLib-GIO-CRITICAL **: 14:22:34.171: GFileInfo created without standard::size
 
 (thunar:15627): GLib-GIO-CRITICAL **: 14:22:34.171: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+
+(thunar:15627): GLib-GIO-CRITICAL **: 16:02:19.892: GFileInfo created without standard::size
+
+(thunar:15627): GLib-GIO-CRITICAL **: 16:02:19.892: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+Warning: failed to launch javaldx - java may not function correctly
+
+(xfce4-terminal:146277): xfce4-terminal-WARNING **: 17:00:40.569: Failed to connect to session manager: No ha podido conectar con el gestor de sesiones: SESSION_MANAGER environment variable not defined
+
+(thunar:15627): GLib-GIO-CRITICAL **: 17:01:34.966: GFileInfo created without standard::size
+
+(thunar:15627): GLib-GIO-CRITICAL **: 17:01:34.966: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+ThunarThumbnailCache: failed to call Copy(): Se alcanzó el tiempo de expiración
+ThunarThumbnailCache: failed to call Move(): Se alcanzó el tiempo de expiración
+ThunarThumbnailCache: failed to call Copy(): Se alcanzó el tiempo de expiración
+ThunarThumbnailCache: failed to call Copy(): Se alcanzó el tiempo de expiración
+ThunarThumbnailCache: failed to call Copy(): Se alcanzó el tiempo de expiración
