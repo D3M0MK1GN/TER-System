@@ -444,7 +444,6 @@ export const registrosComunicacion = pgTable("registros_comunicacion", {
   fecha: text("fecha"),
   hora: text("hora"),
   time: text("time"),
-  btsCelda: text("bts_celda"),
   btsCeldaA: text("bts_celda_a"),
   btsCeldaB: text("bts_celda_b"),
   direccionA: text("direccion_a"),

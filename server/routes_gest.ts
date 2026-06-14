@@ -865,7 +865,6 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
             fecha: row["Fecha"] || row["FECHA"] || row["fecha"] || "",
             hora: row["Hora"] || row["HORA"] || row["hora"] || "",
             time: row["Time"] || row["TIME"] || row["SEG"] || row["seg"] || row["segundos"] || null,
-            btsCelda: row["BTS-Celda"] || row["bts_celda"] || row["BTS_CELDA"] || "",
             btsCeldaA: row["BTS-Celda A"] || row["bts_celda_a"] || row["BTS_CELDA_A"] || "",
             btsCeldaB: row["BTS-Celda B"] || row["bts_celda_b"] || row["BTS_CELDA_B"] || "",
             direccionA: row["Dirección A"] || row["DIRECCION A"] || row["direccion_a"] || row["Atena"] || row["DIRECCION"] || "",
