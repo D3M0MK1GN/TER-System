@@ -412,6 +412,8 @@ export const personasCasos = pgTable("personas_casos", {
   profesion: text("profesion"),
   correo: text("correo"),
   direccion: text("direccion"),
+  otrosTlf: text("otros_tlf"),
+  rol: text("rol"),
   usuarioId: integer("usuario_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -425,6 +427,8 @@ export const personaTelefonos = pgTable("persona_telefonos", {
   tipo: text("tipo"), // Tipo: móvil, fijo, trabajo, etc.
   iconoTipo: text("icono_tipo"), // Icono asignado para visualización en el grafo
   activo: boolean("activo").default(true),
+  statusLinea: text("status_linea"),
+  fechaActivacion: text("fecha_activacion"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
