@@ -488,10 +488,45 @@ class Exper_Frecuentes:
             datos_finales_lista = datos_finales.reindex(columns=cabeceras_tabla).fillna("").to_dict('records')
             
             print(f"[DEBUG BTS] Primera fila procesada: {datos_finales_lista[0] if datos_finales_lista else 'VACIO'}")
-            
+
+            # --- EXTRACCIÓN DE IMEIs DEL NÚMERO ESTUDIADO ---
+            imeis_utilizados = []
+            try:
+                imei_a_col = str(conf['mapeo'].get('IMEI A', '')).upper()
+                imei_b_col = str(conf['mapeo'].get('IMEI B', '')).upper()
+                if imei_a_col and imei_b_col:
+                    def get_imei_objetivo(row):
+                        if str(row.get('_A_NORM', '')) == numero_objetivo_norm:
+                            return str(row.get(imei_a_col, '')).strip()
+                        else:
+                            return str(row.get(imei_b_col, '')).strip()
+                    datos_imei = datos_interes.copy()
+                    datos_imei['_IMEI_OBJETIVO'] = datos_imei.apply(get_imei_objetivo, axis=1)
+                    valores_invalidos = {'', 'nan', 'NAN', 'None', 'NONE', 'NaN', '-'}
+                    datos_imei = datos_imei[~datos_imei['_IMEI_OBJETIVO'].isin(valores_invalidos)]
+                    if not datos_imei.empty:
+                        imei_counts = (
+                            datos_imei.groupby('_IMEI_OBJETIVO')
+                            .size()
+                            .reset_index(name='cantidad')
+                            .sort_values('cantidad', ascending=False)
+                        )
+                        imeis_utilizados = [
+                            {
+                                'numero': numero_objetivo_str,
+                                'imei': str(row['_IMEI_OBJETIVO']),
+                                'cantidad': int(row['cantidad'])
+                            }
+                            for _, row in imei_counts.iterrows()
+                        ]
+                print(f"[IMEI] IMEIs extraídos para {numero_objetivo_str}: {len(imeis_utilizados)}")
+            except Exception as e_imei:
+                print(f"[IMEI] Error extrayendo IMEIs: {e_imei}")
+
             return {
                 'top_10': top_10_list,
-                'datos_crudos': datos_finales_lista
+                'datos_crudos': datos_finales_lista,
+                'imeis_utilizados': imeis_utilizados
             }
 
         except Exception as e:

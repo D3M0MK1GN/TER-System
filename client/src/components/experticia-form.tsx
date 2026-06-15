@@ -174,7 +174,7 @@ const TablaBTS = memo(function TablaBTS({ isAnalyzing, results, error, selectedR
 
 // ─── Subcomponente: Tabla Contactos Frecuentes ───────────────────────────────
 interface TablaContactosFrecuentesProps {
-  state: { isAnalyzing: boolean; datosCrudos: any[] | null; todosLosContactos: any[] | null; error: string | null };
+  state: { isAnalyzing: boolean; datosCrudos: any[] | null; todosLosContactos: any[] | null; imeisUtilizados: any[] | null; error: string | null };
   limitContactos: number | 'todos';
   onSetLimitContactos: (v: number | 'todos') => void;
   copiedTable: string | null;
@@ -208,6 +208,17 @@ const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state,
     if (state.datosCrudos && state.datosCrudos.length > 0) {
       const ws2 = XLSX.utils.json_to_sheet(state.datosCrudos);
       XLSX.utils.book_append_sheet(wb, ws2, 'Datos de Comunicacion');
+    }
+
+    if (state.imeisUtilizados && state.imeisUtilizados.length > 0) {
+      const wsImei = XLSX.utils.json_to_sheet(
+        state.imeisUtilizados.map((item: any) => ({
+          'NUMERO ESTUDIADO': item.numero,
+          'IMEI': item.imei,
+          'CANTIDAD DE USOS': item.cantidad,
+        }))
+      );
+      XLSX.utils.book_append_sheet(wb, wsImei, 'IMEI');
     }
 
     const nombre = abonadoValue ? `Contactos_Frecuentes_${abonadoValue}.xlsx` : 'Contactos_Frecuentes.xlsx';
@@ -427,7 +438,7 @@ interface SeccionAnalisisObjetivosProps {
   getOperador: () => string;
   setFormValue: (name: keyof FormData, value: any) => void;
   btsAnalysisState: { isAnalyzing: boolean; results: any[] | null; error: string | null };
-  contactosFrecuentesState: { isAnalyzing: boolean; datosCrudos: any[] | null; todosLosContactos: any[] | null; error: string | null };
+  contactosFrecuentesState: { isAnalyzing: boolean; datosCrudos: any[] | null; todosLosContactos: any[] | null; imeisUtilizados: any[] | null; error: string | null };
   selectedRows: Set<number>;
   copiedTable: string | null;
   copiarAlPortapapeles: (tableId: string, filas: any[], columnas: string[]) => void;
@@ -848,11 +859,13 @@ export function ExperticiasForm({
     isAnalyzing: boolean;
     datosCrudos: any[] | null;
     todosLosContactos: any[] | null;
+    imeisUtilizados: any[] | null;
     error: string | null;
   }>({
     isAnalyzing: false,
     datosCrudos: null,
     todosLosContactos: null,
+    imeisUtilizados: null,
     error: null,
   });
 
@@ -930,7 +943,8 @@ export function ExperticiasForm({
         bts?: any[];
         contactos?: {
           datosCrudos: any[];
-          top10: any[];
+          todosLosContactos: any[];
+          imeisUtilizados: any[];
         };
       } | null;
     }>
@@ -1025,6 +1039,7 @@ export function ExperticiasForm({
             isAnalyzing: false,
             datosCrudos: data.datos_crudos,
             todosLosContactos: data.top_10_contactos,
+            imeisUtilizados: data.imeis_utilizados || null,
             error: null,
           });
           if (data.datos_filiatorios && Object.keys(data.datos_filiatorios).length > 0) {
@@ -1050,6 +1065,7 @@ export function ExperticiasForm({
             isAnalyzing: false,
             datosCrudos: null,
             todosLosContactos: null,
+            imeisUtilizados: null,
             error: data.message || "Error en análisis de contactos",
           });
         }
@@ -1059,6 +1075,7 @@ export function ExperticiasForm({
           isAnalyzing: false,
           datosCrudos: null,
           todosLosContactos: null,
+          imeisUtilizados: null,
           error: null,
         });
 
@@ -1099,6 +1116,7 @@ export function ExperticiasForm({
         isAnalyzing: false,
         datosCrudos: null,
         todosLosContactos: null,
+        imeisUtilizados: null,
         error: "Error procesando archivo",
       });
     }
@@ -1200,6 +1218,7 @@ export function ExperticiasForm({
               contactos: {
                 datosCrudos: data.datos_crudos,
                 todosLosContactos: data.top_10_contactos,
+                imeisUtilizados: data.imeis_utilizados || [],
               },
             };
             if (data.datos_filiatorios && Object.keys(data.datos_filiatorios).length > 0) {
@@ -1309,6 +1328,7 @@ export function ExperticiasForm({
             isAnalyzing: false,
             datosCrudos: item.resultados.contactos.datosCrudos,
             todosLosContactos: item.resultados.contactos.todosLosContactos,
+            imeisUtilizados: item.resultados.contactos.imeisUtilizados || null,
             error: null,
           });
         }

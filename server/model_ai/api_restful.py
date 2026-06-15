@@ -91,6 +91,7 @@ class AnalizarContactosFrecuentesResponse(BaseModel):
     datos_crudos: Optional[List[Dict[str, Any]]] = None
     top_10_contactos: Optional[List[Dict[str, Any]]] = None
     datos_filiatorios: Optional[Dict[str, Any]] = None
+    imeis_utilizados: Optional[List[Dict[str, Any]]] = None
     error: Optional[str] = None
     timestamp: str
 
@@ -350,15 +351,17 @@ async def analizar_contactos_frecuentes(request: AnalizarContactosFrecuentesRequ
                 success=True,
                 datos_crudos=[],
                 top_10_contactos=[],
+                imeis_utilizados=[],
                 datos_filiatorios=datos_filiatorios,
                 timestamp=datetime.now().isoformat()
             )
         
-        print(f"[LOG] Análisis completado: {len(resultado.get('datos_crudos', []))} filas crudas, {len(resultado.get('top_10', []))} contactos frecuentes")
+        print(f"[LOG] Análisis completado: {len(resultado.get('datos_crudos', []))} filas crudas, {len(resultado.get('top_10', []))} contactos frecuentes, {len(resultado.get('imeis_utilizados', []))} IMEIs")
         return AnalizarContactosFrecuentesResponse(
             success=True,
             datos_crudos=resultado.get('datos_crudos', []),
             top_10_contactos=resultado.get('top_10', []),
+            imeis_utilizados=resultado.get('imeis_utilizados', []),
             datos_filiatorios=datos_filiatorios,
             timestamp=datetime.now().isoformat()
         )
