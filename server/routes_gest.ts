@@ -390,6 +390,26 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       }
 
       const pythonData = await pythonApiResponse.json();
+
+      // Deduplicar datos_crudos antes de enviar al frontend (doble filtro)
+      if (Array.isArray(pythonData.datos_crudos)) {
+        const vistas = new Set<string>();
+        pythonData.datos_crudos = pythonData.datos_crudos.filter((r: any) => {
+          const clave = [
+            r["ABONADO A"] ?? "",
+            r["ABONADO B"] ?? "",
+            r["Fecha"] ?? "",
+            r["Hora"] ?? "",
+            r["Tipo Transacción"] ?? "",
+            r["BTS-Celda A"] ?? "",
+            r["BTS-Celda B"] ?? "",
+          ].join("|");
+          if (vistas.has(clave)) return false;
+          vistas.add(clave);
+          return true;
+        });
+      }
+
       res.json(pythonData);
 
     } catch (error) {
@@ -880,44 +900,62 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
           });
 
           for (const item of listaAnalisis) {
-            const numero: string = item.numero?.trim() || "";
-            const datosCrudos: any[] = item.resultados?.contactos?.datosCrudos ?? [];
+            try {
+              const numero: string = item.numero?.trim() || "";
+              const datosCrudos: any[] = item.resultados?.contactos?.datosCrudos ?? [];
 
-            if (!numero || datosCrudos.length === 0) continue;
+              if (!numero || datosCrudos.length === 0) continue;
 
-            // Registrar SOLO el número analizado en persona_telefonos.
-            // Los interlocutores (abonadoB) se guardan como texto en la columna
-            // abonado_b de registros_comunicacion; no se catalogan aquí.
-            let telAnalizado = await storage.getPersonaTelefonoByNumero(numero);
-            if (!telAnalizado) {
-              telAnalizado = await storage.createPersonaTelefono({
-                numero,
-                tipo: "móvil",
-                activo: true,
-                personaId: null,
+              // Registrar SOLO el número analizado en persona_telefonos.
+              let telAnalizado = await storage.getPersonaTelefonoByNumero(numero);
+              if (!telAnalizado) {
+                telAnalizado = await storage.createPersonaTelefono({
+                  numero,
+                  tipo: "móvil",
+                  activo: true,
+                  personaId: null,
+                });
+              }
+              const abonadoAId = telAnalizado.id;
+
+              // Mapear cada fila al formato de registros_comunicacion
+              const filasSinFiltrar = datosCrudos
+                .map((row: any) => {
+                  const mapped = mapearFila(row, numero, item.archivoNombre || "");
+                  mapped.experticiaId = experticia.id;
+                  mapped.abonadoAId = abonadoAId;
+                  mapped.abonadoBId = null;
+                  return mapped;
+                })
+                .filter((r: any) => r.abonadoA?.trim());
+
+              // Deduplicar dentro del lote usando los mismos 7 campos del índice único
+              const vistas = new Set<string>();
+              const filasMapeadas = filasSinFiltrar.filter((r: any) => {
+                const clave = [
+                  r.abonadoA ?? "",
+                  r.abonadoB ?? "",
+                  r.fecha ?? "",
+                  r.hora ?? "",
+                  r.tipoTransaccion ?? "",
+                  r.btsCeldaA ?? "",
+                  r.btsCeldaB ?? "",
+                ].join("|");
+                if (vistas.has(clave)) return false;
+                vistas.add(clave);
+                return true;
               });
-            }
-            const abonadoAId = telAnalizado.id;
 
-            // Mapear cada fila al formato de registros_comunicacion
-            const filasMapeadas = datosCrudos
-              .map((row: any) => {
-                const mapped = mapearFila(row, numero, item.archivoNombre || "");
-                mapped.experticiaId = experticia.id;
-                mapped.abonadoAId = abonadoAId;
-                mapped.abonadoBId = null; // interlocutor no se cataloga
-                return mapped;
-              })
-              .filter((r: any) => r.abonadoA?.trim());
-
-            if (filasMapeadas.length > 0) {
-              await storage.createRegistrosComunicacionBulk(filasMapeadas);
+              if (filasMapeadas.length > 0) {
+                await storage.createRegistrosComunicacionBulk(filasMapeadas);
+              }
+            } catch (itemError: any) {
+              // Un número falla pero los demás continúan procesándose
+              console.error(`[CREATE EXPERTICIA] Error procesando número ${item.numero}:`, itemError?.message);
             }
           }
-        } catch (normError: any) {
-          // No abortar la respuesta: la experticia ya fue creada.
-          // El error se registra para diagnóstico.
-          console.error("[CREATE EXPERTICIA] Error normalizando registros de comunicación:", normError?.message);
+        } catch (errorLista: any) {
+          console.error("[CREATE EXPERTICIA] Error en procesamiento bulk:", errorLista);
         }
       }
       // ─────────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -461,6 +461,15 @@ export const registrosComunicacion = pgTable("registros_comunicacion", {
   abonadoAIdx:   index("idx_registros_abonado_a").on(table.abonadoA),
   abonadoBIdx:   index("idx_registros_abonado_b").on(table.abonadoB),
   experticiaIdx: index("idx_registros_experticia").on(table.experticiaId),
+  uniqueCallEventIdx: uniqueIndex("idx_unique_call_event").on(
+    table.abonadoA,
+    table.abonadoB,
+    table.fecha,
+    table.hora,
+    table.tipoTransaccion,
+    table.btsCeldaA,
+    table.btsCeldaB
+  ),
 }));
 
 // Tabla EXPEDIENTES_SUJETOS - Datos del caso asociados a una persona

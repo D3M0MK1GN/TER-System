@@ -1536,7 +1536,20 @@ export class DatabaseStorage implements IStorage {
 
   async createRegistrosComunicacionBulk(registros: InsertRegistroComunicacion[]): Promise<RegistroComunicacion[]> {
     if (registros.length === 0) return [];
-    const newRegistros = await db.insert(registrosComunicacion).values(registros).returning();
+    const newRegistros = await db.insert(registrosComunicacion)
+      .values(registros)
+      .onConflictDoNothing({
+        target: [
+          registrosComunicacion.abonadoA,
+          registrosComunicacion.abonadoB,
+          registrosComunicacion.fecha,
+          registrosComunicacion.hora,
+          registrosComunicacion.tipoTransaccion,
+          registrosComunicacion.btsCeldaA,
+          registrosComunicacion.btsCeldaB
+        ]
+      })
+      .returning();
     return newRegistros;
   }
 
