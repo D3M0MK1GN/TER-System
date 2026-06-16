@@ -391,25 +391,6 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
 
       const pythonData = await pythonApiResponse.json();
 
-      // Deduplicar datos_crudos antes de enviar al frontend (doble filtro)
-      if (Array.isArray(pythonData.datos_crudos)) {
-        const vistas = new Set<string>();
-        pythonData.datos_crudos = pythonData.datos_crudos.filter((r: any) => {
-          const clave = [
-            r["ABONADO A"] ?? "",
-            r["ABONADO B"] ?? "",
-            r["Fecha"] ?? "",
-            r["Hora"] ?? "",
-            r["Tipo Transacción"] ?? "",
-            r["BTS-Celda A"] ?? "",
-            r["BTS-Celda B"] ?? "",
-          ].join("|");
-          if (vistas.has(clave)) return false;
-          vistas.add(clave);
-          return true;
-        });
-      }
-
       res.json(pythonData);
 
     } catch (error) {

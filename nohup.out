@@ -137,3 +137,29 @@ ThunarThumbnailCache: failed to call Copy(): Se alcanzó el tiempo de expiració
 (thunar:22817): GLib-GIO-CRITICAL **: 21:04:36.596: GFileInfo created without standard::size
 
 (thunar:22817): GLib-GIO-CRITICAL **: 21:04:36.649: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:226015): GLib-GIO-CRITICAL **: 15:06:20.403: GFileInfo created without standard::size
+
+(thunar:226015): GLib-GIO-CRITICAL **: 15:06:20.436: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:226015): GLib-GIO-CRITICAL **: 15:10:48.371: GFileInfo created without standard::size
+
+(thunar:226015): GLib-GIO-CRITICAL **: 15:10:48.371: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+Warning: failed to launch javaldx - java may not function correctly
+
+(thunar:226015): GLib-GIO-CRITICAL **: 15:34:26.005: GFileInfo created without standard::size
+
+(thunar:226015): GLib-GIO-CRITICAL **: 15:34:26.005: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+
+(thunar:226015): GLib-GIO-CRITICAL **: 16:00:38.548: GFileInfo created without standard::size
+
+(thunar:226015): GLib-GIO-CRITICAL **: 16:00:38.549: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly
+Warning: failed to launch javaldx - java may not function correctly

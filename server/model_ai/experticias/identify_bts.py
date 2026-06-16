@@ -360,6 +360,21 @@ class Exper_Frecuentes:
             if datos_interes.empty:
                 return {'top_10': [], 'datos_crudos': []}
 
+            # --- DEDUPLICACIÓN ANTES DE CALCULAR FRECUENCIAS ---
+            # Se eliminan filas duplicadas usando las columnas clave de identificación.
+            # Esto garantiza que las frecuencias del TOP 10 sean consistentes con los datos_crudos.
+            cols_dedup = [col_a, col_b, 'FECHA', 'HORA']
+            for col_extra in ['TIPO DE TRANSACCION', 'TIPO TRANSACCIÓN', 'Tipo Transacción']:
+                if col_extra in datos_interes.columns:
+                    cols_dedup.append(col_extra)
+                    break
+            # Solo usar las columnas que existen en el DataFrame
+            cols_dedup_existentes = [c for c in cols_dedup if c in datos_interes.columns]
+            filas_antes = len(datos_interes)
+            datos_interes = datos_interes.drop_duplicates(subset=cols_dedup_existentes)
+            filas_despues = len(datos_interes)
+            print(f"[DEDUP] Filas antes: {filas_antes} | Filas después de deduplicar: {filas_despues} | Eliminadas: {filas_antes - filas_despues}")
+
             # Identificar quién es el "Contacto" (el que no es el objetivo) usando columnas normalizadas
             # Se usa la versión normalizada para evitar duplicados por el 0 inicial
             datos_interes['CONTACTO'] = np.where(
