@@ -184,9 +184,10 @@ interface TablaContactosFrecuentesProps {
   tiposColumnas: string[];
   totales: { visibles: any[]; totalFrecuencia: number; primeraFecha: string; ultimaFecha: string; sumasPorTipo: Record<string, number> } | null;
   abonadoValue: string;
+  numeroSeleccionado?: string;
 }
 
-const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state, limitContactos, onSetLimitContactos, copiedTable, onCopiar, onVerDatosCrudos, onVerContactos, tiposColumnas, totales, abonadoValue }: TablaContactosFrecuentesProps) {
+const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state, limitContactos, onSetLimitContactos, copiedTable, onCopiar, onVerDatosCrudos, onVerContactos, tiposColumnas, totales, abonadoValue, numeroSeleccionado }: TablaContactosFrecuentesProps) {
   if (!state.isAnalyzing && !state.datosCrudos && !state.todosLosContactos && !state.error) return null;
 
   const exportarExcel = () => {
@@ -221,7 +222,77 @@ const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state,
       XLSX.utils.book_append_sheet(wb, wsImei, 'IMEI');
     }
 
-    const nombre = abonadoValue ? `Contactos_Frecuentes_${abonadoValue}.xlsx` : 'Contactos_Frecuentes.xlsx';
+    if (state.datosCrudos && state.datosCrudos.length > 0) {
+      const parseCoordenadas = (coord: string): { lat: number; lon: number } | null => {
+        const parts = coord.split(',').map((s: string) => s.trim());
+        if (parts.length >= 2) {
+          const lat = parseFloat(parts[0]);
+          const lon = parseFloat(parts[1]);
+          if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
+        }
+        return null;
+      };
+
+      const invalidos = new Set(['', '-', 'n/d', 'nan', 'none', 'n/d, n/d', 'nan, nan']);
+
+      const antenaMap = new Map<string, {
+        totalFisica: number;
+        coordenadas: string;
+        celdas: Map<string, { frecuencia: number; direccion: string; orientacion: string }>;
+      }>();
+
+      for (const row of state.datosCrudos) {
+        const coordStr = (row['Coordenadas A'] ?? '').toString().trim();
+        if (invalidos.has(coordStr.toLowerCase())) continue;
+        const parsed = parseCoordenadas(coordStr);
+        if (!parsed) continue;
+        const coordKey = `${parsed.lat},${parsed.lon}`;
+        const btsCelda = (row['BTS-Celda A'] ?? '').toString().trim();
+        const direccion = (row['Dirección A'] ?? '').toString().trim();
+        const orientacion = (row['Orientación A'] ?? '-').toString().trim() || '-';
+
+        if (!antenaMap.has(coordKey)) {
+          antenaMap.set(coordKey, { totalFisica: 0, coordenadas: coordStr, celdas: new Map() });
+        }
+        const antena = antenaMap.get(coordKey)!;
+        antena.totalFisica++;
+        if (btsCelda) {
+          if (!antena.celdas.has(btsCelda)) {
+            antena.celdas.set(btsCelda, { frecuencia: 0, direccion, orientacion });
+          }
+          antena.celdas.get(btsCelda)!.frecuencia++;
+        }
+      }
+
+      if (antenaMap.size > 0) {
+        const antenasSorted = [...antenaMap.entries()].sort((a, b) => b[1].totalFisica - a[1].totalFisica);
+        const filasGeo: Record<string, any>[] = [];
+
+        for (const [, antena] of antenasSorted) {
+          const celdasSorted = [...antena.celdas.entries()].sort((a, b) => b[1].frecuencia - a[1].frecuencia);
+          let primera = true;
+          for (const [btsCelda, celda] of celdasSorted) {
+            filasGeo.push({
+              'Frec. Total Física': primera ? antena.totalFisica : '',
+              'Frec. por Celda': celda.frecuencia,
+              'BTS-Celda': btsCelda,
+              'Dirección': celda.direccion,
+              'Coordenadas (Lat, Lon)': antena.coordenadas,
+              'Orientación': celda.orientacion,
+            });
+            primera = false;
+          }
+        }
+
+        if (filasGeo.length > 0) {
+          const wsGeo = XLSX.utils.json_to_sheet(filasGeo);
+          XLSX.utils.book_append_sheet(wb, wsGeo, 'Georreferenciación');
+        }
+      }
+    }
+
+    const nombreBase = numeroSeleccionado || abonadoValue;
+    const nombre = nombreBase ? `Contactos_Frecuentes_${nombreBase}.xlsx` : 'Contactos_Frecuentes.xlsx';
     XLSX.writeFile(wb, nombre);
   };
   return (
@@ -779,6 +850,7 @@ const SeccionAnalisisObjetivos = memo(function SeccionAnalisisObjetivos({
         tiposColumnas={tiposColumnas}
         totales={totales}
         abonadoValue={abonadoValue}
+        numeroSeleccionado={selectedIndex !== null ? listaAnalisis[selectedIndex]?.numero : undefined}
       />
     </>
   );
