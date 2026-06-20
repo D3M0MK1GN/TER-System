@@ -1,4 +1,4 @@
-arquitectura de software de 3 capas (Three-Tier Architecture) con características modernas:
+arquitectura de software de 3 capas (Arquitectura de tres niveles) con características modernas:
 Arquitectura Principal: Three-Tier
 1. Capa de Presentación (Frontend)
 
@@ -30,12 +30,12 @@ MVC (Model-View-Controller)
     View: Componentes React en client/src
     Controller: Routes de Express en server/routes.ts
 
-Repository Pattern
+Repositorio DB
 
     Interface: IStorage en server/storage.ts
     Implementación: DatabaseStorage class
 
-Layered Architecture
+Arquitectura en capas
 
     Shared Layer: Tipos y esquemas compartidos
     Business Logic: Validaciones y reglas de negocio

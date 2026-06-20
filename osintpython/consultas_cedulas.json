@@ -2380,5 +2380,222 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2026-06-18T10:18:30.727255",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "28609925",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=28609925",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 28609925,
+                "fecha_nac": "2001-06-26",
+                "rif": "V286099250",
+                "primer_apellido": "JIMENEZ",
+                "segundo_apellido": "MENDOZA",
+                "primer_nombre": "RAUL",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2026-06-18T14:18:30.675Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-18T11:17:56.033231",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "9607469",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=9607469",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 9607469,
+                "fecha_nac": "1964-06-25",
+                "rif": "V096074693",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "ESC NAC JUAN GUILLERMO IRIBARREN"
+                },
+                "primer_apellido": "CAMACARO",
+                "segundo_apellido": "PERDOMO",
+                "primer_nombre": "MARITZA",
+                "segundo_nombre": "DEL CARMEN",
+                "request_date": "2026-06-18T15:17:56.642Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-18T12:05:59.273768",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "30019233",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=30019233",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 30019233,
+                "fecha_nac": "2002-04-10",
+                "rif": "V300192331",
+                "primer_apellido": "MONTES",
+                "segundo_apellido": "DIAZ",
+                "primer_nombre": "EDIANNY",
+                "segundo_nombre": "CELESTE",
+                "request_date": "2026-06-18T16:05:59.219Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-06-18T12:06:51.687798",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "32669614",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=32669614",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2026-06-18T12:07:07.076670",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "29654874",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=29654874",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 29654874,
+                "fecha_nac": "2001-03-24",
+                "rif": "V296548746",
+                "primer_apellido": "MENDOZA",
+                "segundo_apellido": "CORRO",
+                "primer_nombre": "ALBERTH",
+                "segundo_nombre": "DAVID",
+                "request_date": "2026-06-18T16:07:07.021Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-06-18T12:07:34.654981",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "29909636",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=29909636",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 29909636,
+                "fecha_nac": "2001-08-16",
+                "rif": "V299096366",
+                "primer_apellido": "SUAREZ",
+                "segundo_apellido": "CAMACARO",
+                "primer_nombre": "ANGELMAR",
+                "segundo_nombre": "MARIANGELA",
+                "request_date": "2026-06-18T16:07:34.612Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-06-18T12:07:57.879486",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "32669614",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=32669614",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        }
+    },
+    {
+        "timestamp": "2026-06-19T11:36:41.602912",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "11587919",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=11587919",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 11587919,
+                "fecha_nac": "1971-01-27",
+                "rif": "V115879193",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "JIMENEZ",
+                    "parroquia": "JUAN B RODRIGUEZ",
+                    "centro_electoral": "ESCUELA BASICA NACIONAL MATEO LISCANO TORRES"
+                },
+                "primer_apellido": "NUÑEZ",
+                "primer_nombre": "EDDIE",
+                "segundo_nombre": "RAMIRO",
+                "request_date": "2026-06-19T15:36:41.588Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-19T11:40:37.616959",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "13636980",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=13636980",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 13636980,
+                "fecha_nac": "1971-05-11",
+                "rif": "V136369802",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "JIMENEZ",
+                    "parroquia": "JUAN B RODRIGUEZ",
+                    "centro_electoral": "ESCUELA BASICA NACIONAL MATEO LISCANO TORRES"
+                },
+                "primer_apellido": "NUÑEZ",
+                "primer_nombre": "ODALYS",
+                "segundo_nombre": "ALTAGRACIA",
+                "request_date": "2026-06-19T15:40:37.569Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-19T11:46:45.057521",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "18655873",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=18655873",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 18655873,
+                "fecha_nac": "1984-11-15",
+                "rif": "V186558738",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "JUAN DE VILLEGAS",
+                    "centro_electoral": "CENTRO EDUCATIVO RECREACION JACINTO LARA"
+                },
+                "primer_apellido": "LINARES",
+                "segundo_apellido": "PALMA",
+                "primer_nombre": "YUSBELI",
+                "segundo_nombre": "JOSEFINA",
+                "request_date": "2026-06-19T15:46:44.981Z"
+            }
+        },
+        "success": true
     }
 ]

@@ -810,7 +810,9 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       console.log('📋 [CREATE EXPERTICIA] Número de dictamen recibido:', numeroSolicitudOriginal);
       console.log('📋 [CREATE EXPERTICIA] Número de dictamen limpio:', numeroSolicitudLimpio);
       console.log('👤 [CREATE EXPERTICIA] Usuario:', req.user?.username, 'Rol:', req.user?.rol);
-      console.log('📦 [CREATE EXPERTICIA] Body completo:', JSON.stringify(req.body, null, 2));
+      const listaResumen = Array.isArray(req.body.listaAnalisis) ? req.body.listaAnalisis : [];
+      const totalFilas = listaResumen.reduce((acc: number, item: any) => acc + (item.resultados?.contactos?.datosCrudos?.length ?? 0), 0);
+      console.log(`📦 [CREATE EXPERTICIA] listaAnalisis: ${listaResumen.length} número(s), ${totalFilas} filas totales`);
 
       // Consulta para verificar duplicados en la tabla de EXPERTICIAS (no solicitudes)
       console.log('🔎 [CREATE EXPERTICIA] Verificando duplicados en tabla experticias...');

@@ -213,7 +213,7 @@ export interface IStorage {
   getRegistrosComunicacionByAbonado(abonado: string): Promise<RegistroComunicacion[]>;
   getRegistrosComunicacionByTelefonoIds(telefonoIds: number[]): Promise<RegistroComunicacion[]>;
   createRegistroComunicacion(registro: InsertRegistroComunicacion): Promise<RegistroComunicacion>;
-  createRegistrosComunicacionBulk(registros: InsertRegistroComunicacion[]): Promise<RegistroComunicacion[]>;
+  createRegistrosComunicacionBulk(registros: InsertRegistroComunicacion[]): Promise<void>;
   updateRegistroComunicacion(registroId: number, registro: Partial<InsertRegistroComunicacion>): Promise<RegistroComunicacion | undefined>;
   deleteRegistroComunicacion(registroId: number): Promise<boolean>;
 }
@@ -1534,10 +1534,12 @@ export class DatabaseStorage implements IStorage {
     return newRegistro;
   }
 
-  async createRegistrosComunicacionBulk(registros: InsertRegistroComunicacion[]): Promise<RegistroComunicacion[]> {
-    if (registros.length === 0) return [];
-    const newRegistros = await db.insert(registrosComunicacion).values(registros).returning();
-    return newRegistros;
+  async createRegistrosComunicacionBulk(registros: InsertRegistroComunicacion[]): Promise<void> {
+    if (registros.length === 0) return;
+    const CHUNK = 500;
+    for (let i = 0; i < registros.length; i += CHUNK) {
+      await db.insert(registrosComunicacion).values(registros.slice(i, i + CHUNK));
+    }
   }
 
   async updateRegistroComunicacion(registroId: number, registro: Partial<InsertRegistroComunicacion>): Promise<RegistroComunicacion | undefined> {

@@ -242,12 +242,27 @@ export default function Trazabilidad() {
       );
     }
 
-    // Filtro por fecha
+    // Filtro por fecha sin zona horaria: convierte todo a "YYYYMMDD" para comparar strings
+    // reg.fecha viene como "DD/MM/YYYY" desde la DB
+    // fechaInicio/fechaFin vienen como "YYYY-MM-DD" del input type="date"
+    const toYYYYMMDD = (ddmmyyyy: string): string => {
+      const p = ddmmyyyy.split('/');
+      if (p.length !== 3 || !p[2]) return '';
+      return `${p[2]}${p[1].padStart(2,'0')}${p[0].padStart(2,'0')}`;
+    };
     if (fechaInicio) {
-      filtrados = filtrados.filter((reg) => reg.fecha >= fechaInicio);
+      const inicioStr = fechaInicio.replace(/-/g, ''); // "2025-12-02" → "20251202"
+      filtrados = filtrados.filter((reg) => {
+        const regStr = toYYYYMMDD(reg.fecha || '');
+        return regStr ? regStr >= inicioStr : false;
+      });
     }
     if (fechaFin) {
-      filtrados = filtrados.filter((reg) => reg.fecha <= fechaFin);
+      const finStr = fechaFin.replace(/-/g, ''); // "2025-12-03" → "20251203"
+      filtrados = filtrados.filter((reg) => {
+        const regStr = toYYYYMMDD(reg.fecha || '');
+        return regStr ? regStr <= finStr : false;
+      });
     }
 
     // Filtro por tipo de evento
@@ -1179,8 +1194,10 @@ export default function Trazabilidad() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="50">50</SelectItem>
-                      <SelectItem value="100">100</SelectItem>
-                      <SelectItem value="500">500</SelectItem>
+                      <SelectItem value="250">250</SelectItem>
+                      <SelectItem value="600">600</SelectItem>
+                      <SelectItem value="1200">1200</SelectItem>
+                      <SelectItem value="999999">Todos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1215,14 +1232,20 @@ export default function Trazabilidad() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="text-xs">Abonado A</TableHead>
-                            <TableHead className="text-xs">Abonado B</TableHead>
+                            <TableHead className="text-xs">ABONADO A</TableHead>
+                            <TableHead className="text-xs">ABONADO B</TableHead>
+                            <TableHead className="text-xs">Tipo Transacción</TableHead>
                             <TableHead className="text-xs">Fecha</TableHead>
                             <TableHead className="text-xs">Hora</TableHead>
-                            <TableHead className="text-xs">Tipo Transacción</TableHead>
                             <TableHead className="text-xs">Time</TableHead>
-                            <TableHead className="text-xs">Dir. A</TableHead>
-                            <TableHead className="text-xs">Coords A</TableHead>
+                            <TableHead className="text-xs">BTS-Celda A</TableHead>
+                            <TableHead className="text-xs">BTS-Celda B</TableHead>
+                            <TableHead className="text-xs">Dirección A</TableHead>
+                            <TableHead className="text-xs">Dirección B</TableHead>
+                            <TableHead className="text-xs">Coordenadas A</TableHead>
+                            <TableHead className="text-xs">Coordenadas B</TableHead>
+                            <TableHead className="text-xs">Orientación A</TableHead>
+                            <TableHead className="text-xs">Orientación B</TableHead>
                             <TableHead className="text-xs">IMEI A</TableHead>
                             <TableHead className="text-xs">IMEI B</TableHead>
                             <TableHead className="text-xs text-center">
@@ -1249,22 +1272,40 @@ export default function Trazabilidad() {
                                 {registro.abonadoB || "N/A"}
                               </TableCell>
                               <TableCell className="text-xs">
+                                {registro.tipoTransaccion || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs">
                                 {registro.fecha || "N/A"}
                               </TableCell>
                               <TableCell className="text-xs">
                                 {registro.hora || "N/A"}
                               </TableCell>
                               <TableCell className="text-xs">
-                                {registro.tipoTransaccion || "N/A"}
-                              </TableCell>
-                              <TableCell className="text-xs">
                                 {registro.time || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs max-w-[120px] truncate">
+                                {registro.btsCeldaA || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs max-w-[120px] truncate">
+                                {registro.btsCeldaB || "N/A"}
                               </TableCell>
                               <TableCell className="text-xs max-w-[150px] truncate">
                                 {registro.direccionA || "N/A"}
                               </TableCell>
+                              <TableCell className="text-xs max-w-[150px] truncate">
+                                {registro.direccionB || "N/A"}
+                              </TableCell>
                               <TableCell className="text-xs">
                                 {registro.coordenadasA || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {registro.coordenadasB || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {registro.orientacionA || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {registro.orientacionB || "N/A"}
                               </TableCell>
                               <TableCell className="font-mono text-xs">
                                 {registro.imeiA || "N/A"}

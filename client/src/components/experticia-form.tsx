@@ -48,6 +48,7 @@ import {
   Download,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { Badge } from "@/components/ui/badge";
 import { insertExperticiasSchema, type Experticia } from "@shared/schema";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -190,11 +191,71 @@ interface TablaContactosFrecuentesProps {
 const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state, limitContactos, onSetLimitContactos, copiedTable, onCopiar, onVerDatosCrudos, onVerContactos, tiposColumnas, totales, abonadoValue, numeroSeleccionado }: TablaContactosFrecuentesProps) {
   if (!state.isAnalyzing && !state.datosCrudos && !state.todosLosContactos && !state.error) return null;
 
-  const exportarExcel = () => {
-    const wb = XLSX.utils.book_new();
+  const exportarExcel = async () => {
+    const wb = new ExcelJS.Workbook();
+
+    const HEADER_FILL: ExcelJS.Fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF0BD1F7' },
+    };
+
+    const THIN_BORDER: Partial<ExcelJS.Borders> = {
+      top:    { style: 'thin', color: { argb: 'FF000000' } },
+      left:   { style: 'thin', color: { argb: 'FF000000' } },
+      bottom: { style: 'thin', color: { argb: 'FF000000' } },
+      right:  { style: 'thin', color: { argb: 'FF000000' } },
+    };
+
+    const numeroEstudiado = (numeroSeleccionado ?? abonadoValue ?? '').toString().trim();
+
+    const styleHeaderRow = (row: ExcelJS.Row) => {
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.fill = HEADER_FILL;
+        cell.font = { bold: true, color: { argb: 'FF000000' } };
+        cell.border = THIN_BORDER;
+        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      });
+      row.height = 20;
+    };
+
+    const styleDataRow = (row: ExcelJS.Row) => {
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.border = THIN_BORDER;
+        const cellVal = (cell.value ?? '').toString().trim();
+        if (numeroEstudiado && cellVal === numeroEstudiado) {
+          cell.font = { color: { argb: 'FFFF0000' }, bold: true };
+        }
+      });
+    };
+
+    const autoFitColumns = (ws: ExcelJS.Worksheet, headers: string[]) => {
+      ws.columns.forEach((col, i) => {
+        if (!col) return;
+        let maxLen = (headers[i] ?? '').length;
+        col.eachCell?.({ includeEmpty: false }, (cell) => {
+          const len = (cell.value ?? '').toString().length;
+          if (len > maxLen) maxLen = len;
+        });
+        col.width = Math.min(maxLen + 4, 45);
+      });
+    };
+
+    const addSheet = (name: string, headers: string[], filas: Record<string, any>[]) => {
+      const ws = wb.addWorksheet(name);
+      ws.addRow(headers);
+      styleHeaderRow(ws.getRow(1));
+      filas.forEach((rowData, i) => {
+        const values = headers.map((h) => rowData[h] ?? '');
+        ws.addRow(values);
+        styleDataRow(ws.getRow(i + 2));
+      });
+      autoFitColumns(ws, headers);
+    };
 
     if (state.todosLosContactos && state.todosLosContactos.length > 0) {
-      const filasContactos = state.todosLosContactos.map((c: any, i: number) => {
+      const headers = ['#', 'INTERLOCUTOR', ...tiposColumnas, 'TOTAL GENERAL', 'PRIMERA FECHA', 'ULTIMA FECHA'];
+      const filas = state.todosLosContactos.map((c: any, i: number) => {
         const fila: Record<string, any> = { '#': i + 1, INTERLOCUTOR: c.numero || c.NUMERO || '' };
         tiposColumnas.forEach((tipo) => { fila[tipo] = c[tipo] ?? 0; });
         fila['TOTAL GENERAL'] = c.frecuencia ?? c.FRECUENCIA ?? 0;
@@ -202,24 +263,27 @@ const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state,
         fila['ULTIMA FECHA'] = c.ultima_fecha ?? c.ULTIMA_FECHA ?? '';
         return fila;
       });
-      const ws1 = XLSX.utils.json_to_sheet(filasContactos);
-      XLSX.utils.book_append_sheet(wb, ws1, 'Contactos Frecuentes');
+      addSheet('Contactos Frecuentes', headers, filas);
     }
 
     if (state.datosCrudos && state.datosCrudos.length > 0) {
-      const ws2 = XLSX.utils.json_to_sheet(state.datosCrudos);
-      XLSX.utils.book_append_sheet(wb, ws2, 'Datos de Comunicacion');
+      const headers = Object.keys(state.datosCrudos[0]);
+      addSheet('Datos de Comunicacion', headers, state.datosCrudos);
     }
 
     if (state.imeisUtilizados && state.imeisUtilizados.length > 0) {
-      const wsImei = XLSX.utils.json_to_sheet(
-        state.imeisUtilizados.map((item: any) => ({
+      const headers = ['NUMERO ESTUDIADO', 'IMEI', 'CANTIDAD DE USOS'];
+      const filas = state.imeisUtilizados
+        .filter((item: any) => {
+          const imeiNum = parseFloat(item.imei);
+          return !isNaN(imeiNum) && imeiNum !== 0;
+        })
+        .map((item: any) => ({
           'NUMERO ESTUDIADO': item.numero,
-          'IMEI': item.imei,
+          'IMEI': Math.round(parseFloat(item.imei)).toString(),
           'CANTIDAD DE USOS': item.cantidad,
-        }))
-      );
-      XLSX.utils.book_append_sheet(wb, wsImei, 'IMEI');
+        }));
+      if (filas.length > 0) addSheet('IMEI', headers, filas);
     }
 
     if (state.datosCrudos && state.datosCrudos.length > 0) {
@@ -228,7 +292,7 @@ const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state,
         if (parts.length >= 2) {
           const lat = parseFloat(parts[0]);
           const lon = parseFloat(parts[1]);
-          if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
+          if (!isNaN(lat) && !isNaN(lon) && !(lat === 0 && lon === 0)) return { lat, lon };
         }
         return null;
       };
@@ -242,15 +306,33 @@ const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state,
       }>();
 
       for (const row of state.datosCrudos) {
-        const coordStr = (row['Coordenadas A'] ?? '').toString().trim();
+        const abonadoA = (row['ABONADO A'] ?? '').toString().trim();
+        const abonadoB = (row['ABONADO B'] ?? '').toString().trim();
+
+        let coordStr = '';
+        let btsCelda = '';
+        let direccion = '';
+        let orientacion = '-';
+
+        if (abonadoA === numeroEstudiado) {
+          coordStr    = (row['Coordenadas A'] ?? '').toString().trim();
+          btsCelda    = (row['BTS-Celda A']   ?? '').toString().trim();
+          direccion   = (row['Dirección A']   ?? '').toString().trim();
+          orientacion = (row['Orientación A'] ?? '-').toString().trim() || '-';
+        } else if (abonadoB === numeroEstudiado) {
+          coordStr    = (row['Coordenadas B'] ?? '').toString().trim();
+          btsCelda    = (row['BTS-Celda B']   ?? '').toString().trim();
+          direccion   = (row['Dirección B']   ?? '').toString().trim();
+          orientacion = (row['Orientación B'] ?? '-').toString().trim() || '-';
+        } else {
+          continue;
+        }
+
         if (invalidos.has(coordStr.toLowerCase())) continue;
         const parsed = parseCoordenadas(coordStr);
         if (!parsed) continue;
-        const coordKey = `${parsed.lat},${parsed.lon}`;
-        const btsCelda = (row['BTS-Celda A'] ?? '').toString().trim();
-        const direccion = (row['Dirección A'] ?? '').toString().trim();
-        const orientacion = (row['Orientación A'] ?? '-').toString().trim() || '-';
 
+        const coordKey = `${parsed.lat},${parsed.lon}`;
         if (!antenaMap.has(coordKey)) {
           antenaMap.set(coordKey, { totalFisica: 0, coordenadas: coordStr, celdas: new Map() });
         }
@@ -265,8 +347,9 @@ const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state,
       }
 
       if (antenaMap.size > 0) {
-        const antenasSorted = [...antenaMap.entries()].sort((a, b) => b[1].totalFisica - a[1].totalFisica);
+        const geoHeaders = ['Frec. Total Física', 'Frec. por Celda', 'BTS-Celda', 'Dirección', 'Coordenadas (Lat, Lon)', 'Orientación'];
         const filasGeo: Record<string, any>[] = [];
+        const antenasSorted = [...antenaMap.entries()].sort((a, b) => b[1].totalFisica - a[1].totalFisica);
 
         for (const [, antena] of antenasSorted) {
           const celdasSorted = [...antena.celdas.entries()].sort((a, b) => b[1].frecuencia - a[1].frecuencia);
@@ -285,15 +368,24 @@ const TablaContactosFrecuentes = memo(function TablaContactosFrecuentes({ state,
         }
 
         if (filasGeo.length > 0) {
-          const wsGeo = XLSX.utils.json_to_sheet(filasGeo);
-          XLSX.utils.book_append_sheet(wb, wsGeo, 'Georreferenciación');
+          addSheet('Georreferenciación', geoHeaders, filasGeo);
         }
       }
     }
 
     const nombreBase = numeroSeleccionado || abonadoValue;
     const nombre = nombreBase ? `Contactos_Frecuentes_${nombreBase}.xlsx` : 'Contactos_Frecuentes.xlsx';
-    XLSX.writeFile(wb, nombre);
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
   return (
     <div className="space-y-4 border-t pt-4">

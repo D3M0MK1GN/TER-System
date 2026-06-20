@@ -163,3 +163,50 @@ Warning: failed to launch javaldx - java may not function correctly
 Warning: failed to launch javaldx - java may not function correctly
 Warning: failed to launch javaldx - java may not function correctly
 Warning: failed to launch javaldx - java may not function correctly
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:13:44.174: GFileInfo created without standard::size
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:13:44.192: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+ThunarThumbnailCache: failed to call Move(): Se alcanzó el tiempo de expiración
+ThunarThumbnailCache: failed to call Move(): Se alcanzó el tiempo de expiración
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:19:37.107: GFileInfo created without standard::size
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:19:37.107: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+ThunarThumbnailCache: failed to call Move(): Se alcanzó el tiempo de expiración
+ThunarThumbnailCache: failed to call Copy(): Se alcanzó el tiempo de expiración
+ThunarThumbnailCache: failed to call Copy(): Se alcanzó el tiempo de expiración
+ThunarThumbnailCache: failed to call Copy(): Se alcanzó el tiempo de expiración
+ThunarThumbnailCache: failed to call Copy(): Se alcanzó el tiempo de expiración
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:27.678: GFileInfo created without standard::size
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:27.678: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:27.897: GFileInfo created without standard::size
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:27.897: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:28.516: GFileInfo created without standard::size
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:28.516: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:32.117: GFileInfo created without standard::size
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:32.117: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:36.729: GFileInfo created without standard::size
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:36.729: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:48.806: GFileInfo created without standard::size
+
+(thunar:12730): GLib-GIO-CRITICAL **: 09:29:48.807: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:51192): GLib-GIO-CRITICAL **: 14:28:12.243: GFileInfo created without standard::size
+
+(thunar:51192): GLib-GIO-CRITICAL **: 14:28:12.243: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
+
+(thunar:51192): GLib-GIO-CRITICAL **: 14:28:25.006: GFileInfo created without standard::size
+
+(thunar:51192): GLib-GIO-CRITICAL **: 14:28:25.006: file ../../../gio/gfileinfo.c: line 1845 (g_file_info_get_size): should not be reached
