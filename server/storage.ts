@@ -169,6 +169,7 @@ export interface IStorage {
   createExperticia(experticia: InsertExperticia): Promise<Experticia>;
   updateExperticia(id: number, experticia: Partial<InsertExperticia>): Promise<Experticia | undefined>;
   deleteExperticia(id: number): Promise<boolean>;
+  getExperticiasStats(): Promise<{ total: number; completadas: number; procesando: number; negativas: number; qr_ausente: number }>;
 
   // Personas Casos - Análisis de Trazabilidad
   getPersonasCasos(filters?: {
@@ -1291,6 +1292,24 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount !== null && result.rowCount > 0;
   }
 
+  async getExperticiasStats(): Promise<{ total: number; completadas: number; procesando: number; negativas: number; qr_ausente: number }> {
+    const rows = await db
+      .select({ estado: experticias.estado, cantidad: count() })
+      .from(experticias)
+      .groupBy(experticias.estado);
+
+    const stats = { total: 0, completadas: 0, procesando: 0, negativas: 0, qr_ausente: 0 };
+    for (const row of rows) {
+      const n = Number(row.cantidad);
+      stats.total += n;
+      if (row.estado === 'completada') stats.completadas = n;
+      else if (row.estado === 'procesando') stats.procesando = n;
+      else if (row.estado === 'negativa') stats.negativas = n;
+      else if (row.estado === 'qr_ausente') stats.qr_ausente = n;
+    }
+    return stats;
+  }
+
   // ============================================
   // ANÁLISIS DE TRAZABILIDAD - Implementaciones
   // ============================================
@@ -1500,16 +1519,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRegistrosComunicacionByAbonado(abonado: string): Promise<RegistroComunicacion[]> {
-    // Buscar tanto en abonadoA como en abonadoB para capturar llamadas entrantes y salientes
+    // La forma correcta: filtrar por abonado_a_id (FK hacia persona_telefonos).
+    // Esta FK solo se asigna al número que fue el sujeto analizado en cada fila,
+    // garantizando exactamente sus registros sin contaminación cruzada.
+    const [telRecord] = await db
+      .select({ id: personaTelefonos.id })
+      .from(personaTelefonos)
+      .where(eq(personaTelefonos.numero, abonado));
+
+    if (!telRecord) return [];
+
     return await db
       .select()
       .from(registrosComunicacion)
-      .where(
-        or(
-          eq(registrosComunicacion.abonadoA, abonado),
-          eq(registrosComunicacion.abonadoB, abonado)
-        )
-      )
+      .where(eq(registrosComunicacion.abonadoAId, telRecord.id))
       .orderBy(desc(registrosComunicacion.fecha));
   }
 

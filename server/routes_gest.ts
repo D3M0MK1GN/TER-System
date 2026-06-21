@@ -785,6 +785,16 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
     }
   });
 
+  // GET /api/experticias/stats - Get aggregated experticias statistics
+  app.get("/api/experticias/stats", authenticateToken, async (req: any, res) => {
+    try {
+      const stats = await storage.getExperticiasStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
+
   // GET /api/experticias/:id - Get single experticia
   app.get("/api/experticias/:id", authenticateToken, async (req: any, res) => {
     try {

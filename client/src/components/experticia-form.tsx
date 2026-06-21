@@ -537,7 +537,7 @@ type AnalisisItem = {
   id: string;
   numero: string;
   archivoNombre: string;
-  archivoData: string;
+  archivoCrudo: File;
   operador: string;
   resultados: {
     bts?: any[];
@@ -1101,7 +1101,7 @@ export function ExperticiasForm({
       id: string;
       numero: string;
       archivoNombre: string;
-      archivoData: string;
+      archivoCrudo: File;
       operador: string;
       resultados: {
         bts?: any[];
@@ -1140,26 +1140,16 @@ export function ExperticiasForm({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = (e.target?.result as string).split(",")[1];
-      const nuevoItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        numero,
-        archivoNombre: file.name,
-        archivoData: base64,
-        operador,
-        resultados: null,
-      };
-      console.log("[MULTI-TARGET] Item agregado a listaAnalisis:", { id: nuevoItem.id, numero: nuevoItem.numero, archivoNombre: nuevoItem.archivoNombre, operador: nuevoItem.operador, base64Length: base64?.length });
-      setListaAnalisis((prev) => [...prev, nuevoItem]);
-      // Si es el primero, lo seleccionamos
-      if (listaAnalisis.length === 0) setSelectedIndex(0);
+    const nuevoItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      numero,
+      archivoNombre: file.name,
+      archivoCrudo: file,
+      operador,
+      resultados: null,
     };
-    reader.onerror = (err) => {
-      console.error("[MULTI-TARGET] Error leyendo archivo con FileReader:", err);
-    };
-    reader.readAsDataURL(file);
+    setListaAnalisis((prev) => [...prev, nuevoItem]);
+    if (listaAnalisis.length === 0) setSelectedIndex(0);
   };
 
   /**
@@ -1286,22 +1276,6 @@ export function ExperticiasForm({
     }
   };
 
-  /**
-   * Convierte base64 a Blob para poder subirlo como archivo
-   */
-  const base64ToBlob = useCallback((base64: string, mimeType: string): Blob => {
-    const byteCharacters = atob(base64);
-    const byteArrays: Uint8Array[] = [];
-    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-      const slice = byteCharacters.slice(offset, offset + 512);
-      const byteNumbers = new Array(slice.length);
-      for (let i = 0; i < slice.length; i++) {
-        byteNumbers[i] = slice.charCodeAt(i);
-      }
-      byteArrays.push(new Uint8Array(byteNumbers));
-    }
-    return new Blob(byteArrays, { type: mimeType });
-  }, []);
 
   /**
    * Procesa todos los análisis en la lista.
@@ -1336,9 +1310,8 @@ export function ExperticiasForm({
 
           // PASO 1: Subir el archivo al servidor para obtener la ruta en disco
           console.log(`[MULTI-TARGET] Paso 1 — Subiendo archivo al servidor: ${item.archivoNombre}`);
-          const blob = base64ToBlob(item.archivoData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
           const formData = new FormData();
-          formData.append("archivo", blob, item.archivoNombre);
+          formData.append("archivo", item.archivoCrudo);
 
           const uploadRes = await fetch("/api/experticias/upload-archivo", {
             method: "POST",
@@ -1425,9 +1398,8 @@ export function ExperticiasForm({
         } else {
           // Lógica para BTS normal — mismo flujo: subir primero, luego analizar
           console.log(`[MULTI-TARGET] Paso 1 BTS — Subiendo archivo: ${item.archivoNombre}`);
-          const blob = base64ToBlob(item.archivoData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
           const formData = new FormData();
-          formData.append("archivo", blob, item.archivoNombre);
+          formData.append("archivo", item.archivoCrudo);
 
           const uploadRes = await fetch("/api/experticias/upload-archivo", {
             method: "POST",

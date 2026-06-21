@@ -170,15 +170,10 @@ export default function Dashboard() {
     refetchInterval: 20000, // Refresh every 20 seconds
   });
 
-  const { data: experticiasData, isLoading: experticiasLoading } = useQuery({
-    queryKey: ["/api/experticias"],
-    queryFn: async () => {
-      return await fetch("/api/experticias?page=1&pageSize=1000", {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-      }).then(res => res.json());
-    },
+  const { data: experticiasStats, isLoading: experticiasLoading } = useQuery<{
+    total: number; completadas: number; procesando: number; negativas: number; qr_ausente: number;
+  }>({
+    queryKey: ["/api/experticias/stats"],
   });
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
@@ -569,12 +564,11 @@ export default function Dashboard() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Experticias</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {(() => {
-                  const experticias = experticiasData?.experticias || [];
-                  const total = experticiasData?.total || 0;
-                  const completadas = experticias.filter((e: any) => e.estado === 'completada').length;
-                  const negativas = experticias.filter((e: any) => e.estado === 'negativa').length;
-                  const procesando = experticias.filter((e: any) => e.estado === 'procesando').length;
-                  const qrAusente = experticias.filter((e: any) => e.estado === 'qr_ausente').length;
+                  const total = experticiasStats?.total || 0;
+                  const completadas = experticiasStats?.completadas || 0;
+                  const negativas = experticiasStats?.negativas || 0;
+                  const procesando = experticiasStats?.procesando || 0;
+                  const qrAusente = experticiasStats?.qr_ausente || 0;
 
                   const experticiasCards = [
                     {
@@ -671,12 +665,11 @@ export default function Dashboard() {
                   <CardContent>
                     <div className="space-y-4">
                       {(() => {
-                        const experticias = experticiasData?.experticias || [];
-                        const total = experticiasData?.total || 0;
-                        const completadas = experticias.filter((e: any) => e.estado === 'completada').length;
-                        const negativas = experticias.filter((e: any) => e.estado === 'negativa').length;
-                        const procesando = experticias.filter((e: any) => e.estado === 'procesando').length;
-                        const qrAusente = experticias.filter((e: any) => e.estado === 'qr_ausente').length;
+                        const total = experticiasStats?.total || 0;
+                        const completadas = experticiasStats?.completadas || 0;
+                        const negativas = experticiasStats?.negativas || 0;
+                        const procesando = experticiasStats?.procesando || 0;
+                        const qrAusente = experticiasStats?.qr_ausente || 0;
 
                         const estadoExperticias = [
                           { label: "Completadas", value: completadas, color: "bg-green-500" },
@@ -718,10 +711,9 @@ export default function Dashboard() {
                 {/* Additional Stats Cards for Experticias */}
                 <div className="grid grid-cols-1 gap-4">
                   {(() => {
-                    const experticias = experticiasData?.experticias || [];
-                    const total = experticiasData?.total || 0;
-                    const completadas = experticias.filter((e: any) => e.estado === 'completada').length;
-                    
+                    const total = experticiasStats?.total || 0;
+                    const completadas = experticiasStats?.completadas || 0;
+
                     const getExperticiasEfficiencyRate = () => {
                       if (total === 0) return 0;
                       return Math.round((completadas / total) * 100);
