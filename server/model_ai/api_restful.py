@@ -450,6 +450,225 @@ async def obtener_estadisticas():
         print(f"[ERROR] Error al obtener estadísticas: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al obtener estadísticas: {str(e)}")
 
+class RegistroItem(BaseModel):
+    abonadoA: Optional[str] = None
+    abonadoB: Optional[str] = None
+    tipoTransaccion: Optional[str] = None
+    fecha: Optional[str] = None
+    hora: Optional[str] = None
+    imeiA: Optional[str] = None
+    imeiB: Optional[str] = None
+    btsCeldaA: Optional[str] = None
+    btsCeldaB: Optional[str] = None
+    direccionA: Optional[str] = None
+    direccionB: Optional[str] = None
+    coordenadasA: Optional[str] = None
+    coordenadasB: Optional[str] = None
+
+class AnalizarRegistrosDBRequest(BaseModel):
+    numero: str
+    registros: List[RegistroItem]
+
+@app.post("/analizar-registros-db")
+async def analizar_registros_db(request: AnalizarRegistrosDBRequest):
+    """
+    Recibe registros de comunicación desde la BD y devuelve:
+    - contactosFrecuentes: ordenados desc por frecuencia
+    - imeis: lista de IMEI únicos
+    - georref: celdas BTS únicas con dirección y coordenadas
+    """
+    try:
+        import pandas as pd
+        import numpy as np
+
+        numero = str(request.numero).strip()
+        registros = [r.dict() for r in request.registros]
+
+        if not registros:
+            return {
+                "contactosFrecuentes": [],
+                "imeis": [],
+                "georref": [],
+                "totalComunicaciones": 0
+            }
+
+        datos = pd.DataFrame(registros)
+
+        def normalizar(n):
+            s = str(n).strip() if n else ""
+            if s.endswith(".0"):
+                s = s[:-2]
+            if s.startswith("58") and len(s) == 12 and s.isdigit():
+                s = s[2:]
+            if s.startswith("0") and len(s) > 1:
+                s = s[1:]
+            return s
+
+        numero_norm = normalizar(numero)
+        datos["_A_NORM"] = datos["abonadoA"].apply(normalizar)
+        datos["_B_NORM"] = datos["abonadoB"].apply(normalizar)
+
+        mask = (datos["_A_NORM"] == numero_norm) | (datos["_B_NORM"] == numero_norm)
+        datos_interes = datos[mask].copy()
+
+        if datos_interes.empty:
+            return {
+                "contactosFrecuentes": [],
+                "imeis": [],
+                "georref": [],
+                "totalComunicaciones": 0
+            }
+
+        # Identificar el "otro" número en cada comunicación
+        datos_interes["CONTACTO"] = np.where(
+            datos_interes["_A_NORM"] == numero_norm,
+            datos_interes["_B_NORM"],
+            datos_interes["_A_NORM"]
+        )
+
+        # Convertir fecha para rangos
+        datos_interes["_FECHA_DT"] = pd.to_datetime(datos_interes["fecha"], dayfirst=True, errors="coerce")
+
+        # ── Estandarizar tipo de transacción ──
+        def estandarizar_tipo(valor):
+            v = str(valor).upper().strip()
+            es_sms = "SMS" in v or "MENSAJE" in v or "MMS" in v
+            es_saliente = any(x in v for x in ("SALIENTE", "OUT", "MOC", "ORIGINAT"))
+            if es_sms:
+                return "SMS SALIENTE" if es_saliente else "SMS ENTRANTE"
+            return "LLAMADA SALIENTE" if es_saliente else "LLAMADA ENTRANTE"
+
+        tipo_col = "tipoTransaccion" if "tipoTransaccion" in datos_interes.columns else None
+        if tipo_col:
+            datos_interes["_TIPO"] = datos_interes[tipo_col].fillna("").apply(estandarizar_tipo)
+        else:
+            datos_interes["_TIPO"] = "LLAMADA ENTRANTE"
+
+        # ── 1. Contactos frecuentes con desglose por tipo ──
+        freq = (
+            datos_interes.groupby("CONTACTO")
+            .agg(
+                frecuencia=("CONTACTO", "size"),
+                primera_fecha=("_FECHA_DT", "min"),
+                ultima_fecha=("_FECHA_DT", "max"),
+            )
+            .reset_index()
+            .sort_values("frecuencia", ascending=False)
+        )
+        freq["primera_fecha"] = freq["primera_fecha"].dt.strftime("%d/%m/%Y").fillna("-")
+        freq["ultima_fecha"] = freq["ultima_fecha"].dt.strftime("%d/%m/%Y").fillna("-")
+        freq = freq[freq["CONTACTO"].str.strip() != ""].copy()
+
+        # Pivot: una columna por tipo de transacción
+        pivot = (
+            datos_interes.groupby(["CONTACTO", "_TIPO"])
+            .size()
+            .unstack(fill_value=0)
+            .reset_index()
+        )
+        freq = freq.merge(pivot, on="CONTACTO", how="left").fillna(0)
+        # Asegurar que los conteos sean enteros
+        tipo_cols_found = [c for c in freq.columns if c not in ("CONTACTO", "frecuencia", "primera_fecha", "ultima_fecha")]
+        for tc in tipo_cols_found:
+            freq[tc] = freq[tc].astype(int)
+
+        contactos = freq.rename(columns={"CONTACTO": "numero"}).to_dict(orient="records")
+
+        # ── 2. IMEIs del número objetivo (solo el lado del objetivo, con conteo) ──
+        imei_counter: dict = {}
+        for _, row in datos_interes.iterrows():
+            a_norm = str(row.get("_A_NORM") or "").strip()
+            raw = str(row.get("imeiA") if a_norm == numero_norm else row.get("imeiB") or "").strip()
+            # Limpiar .0 de floats y convertir a entero string
+            try:
+                imei_int = str(int(float(raw)))
+                if len(imei_int) >= 14 and imei_int not in ("0", "nan"):
+                    imei_counter[imei_int] = imei_counter.get(imei_int, 0) + 1
+            except (ValueError, OverflowError):
+                pass
+        imeis = [
+            {"imei": k, "cantidad": v}
+            for k, v in sorted(imei_counter.items(), key=lambda x: x[1], reverse=True)
+        ]
+
+        # ── 3. Georreferenciación BTS (misma lógica que experticia-form.tsx) ──
+        # Agrupa por posición física (lat,lon) → antenaMap
+        # Dentro de cada antena, registra las celdas BTS con frecuencia individual
+
+        invalidos = {"", "-", "n/d", "nan", "none", "n/d, n/d", "nan, nan"}
+
+        def parse_coordenadas(coord: str):
+            parts = [p.strip() for p in coord.split(",")]
+            if len(parts) >= 2:
+                try:
+                    lat, lon = float(parts[0]), float(parts[1])
+                    if not (lat == 0 and lon == 0):
+                        return lat, lon
+                except ValueError:
+                    pass
+            return None
+
+        antena_map: dict = {}
+
+        for _, row in datos_interes.iterrows():
+            a_norm = str(row.get("_A_NORM") or "").strip()
+            if a_norm == numero_norm:
+                coord_str  = str(row.get("coordenadasA") or "").strip()
+                bts_celda  = str(row.get("btsCeldaA")    or "").strip()
+                direccion  = str(row.get("direccionA")   or "").strip()
+                orientacion = str(row.get("orientacionA") or "-").strip() or "-"
+            else:
+                coord_str  = str(row.get("coordenadasB") or "").strip()
+                bts_celda  = str(row.get("btsCeldaB")    or "").strip()
+                direccion  = str(row.get("direccionB")   or "").strip()
+                orientacion = str(row.get("orientacionB") or "-").strip() or "-"
+
+            if coord_str.lower() in invalidos:
+                continue
+            parsed = parse_coordenadas(coord_str)
+            if not parsed:
+                continue
+
+            coord_key = f"{parsed[0]},{parsed[1]}"
+            if coord_key not in antena_map:
+                antena_map[coord_key] = {"totalFisica": 0, "coordenadas": coord_str, "celdas": {}}
+            antena = antena_map[coord_key]
+            antena["totalFisica"] += 1
+
+            if bts_celda and bts_celda.lower() not in invalidos:
+                if bts_celda not in antena["celdas"]:
+                    antena["celdas"][bts_celda] = {"frecuencia": 0, "direccion": direccion, "orientacion": orientacion}
+                antena["celdas"][bts_celda]["frecuencia"] += 1
+
+        # Serializar como filas planas (igual estructura que Excel de experticia-form.tsx):
+        # Frec. Total Física | Frec. por Celda | BTS-Celda | Dirección | Coordenadas (Lat, Lon) | Orientación
+        georref = []
+        for antena in sorted(antena_map.values(), key=lambda x: x["totalFisica"], reverse=True):
+            celdas_sorted = sorted(antena["celdas"].items(), key=lambda x: x[1]["frecuencia"], reverse=True)
+            primera = True
+            for celda, info in celdas_sorted:
+                georref.append({
+                    "frecTotalFisica": antena["totalFisica"] if primera else "",
+                    "frecPorCelda": info["frecuencia"],
+                    "btsCelda": celda,
+                    "direccion": info["direccion"] or "—",
+                    "coordenadas": antena["coordenadas"],
+                    "orientacion": info["orientacion"],
+                })
+                primera = False
+
+        return {
+            "contactosFrecuentes": contactos,
+            "imeis": imeis,
+            "georref": georref,
+            "totalComunicaciones": len(datos_interes),
+        }
+
+    except Exception as e:
+        print(f"[ERROR] analizar-registros-db: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     print("[LOG] 🚀 Iniciando TER-System OSINT API...")
     print("[LOG] 📍 Servidor corriendo en: http://localhost:8001")

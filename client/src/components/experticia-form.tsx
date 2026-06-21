@@ -1515,6 +1515,9 @@ export function ExperticiasForm({
     rol: "Relacionado",
     fechaActivacion: "",
     otrosTlf: "",
+    profesion: "",
+    delito: "",
+    fiscalia: "",
   });
 
   // Ref to hold the mapped afiliado data for each multi-target number
@@ -1660,6 +1663,9 @@ export function ExperticiasForm({
           rol: "Relacionado",
           fechaActivacion: "",
           otrosTlf: "",
+          profesion: "",
+          delito: "",
+          fiscalia: "",
         });
       }
     }
@@ -1861,6 +1867,9 @@ export function ExperticiasForm({
               fechaActivacion: datosAfiliado.fechaActivacion || null,
               otrosTlf: datosAfiliado.otrosTlf || null,
               rol: datosAfiliado.rol || null,
+              profesion: datosAfiliado.profesion || null,
+              delito: datosAfiliado.delito || null,
+              fiscalia: datosAfiliado.fiscalia || null,
               telefono: numeroAbonado,
               expediente: (data as any).expediente || null,
             }),
@@ -1897,6 +1906,9 @@ export function ExperticiasForm({
             fechaActivacion: afiliadoData.fechaActivacion || null,
             otrosTlf: afiliadoData.otrosTlf || null,
             rol: afiliadoData.rol || null,
+            profesion: afiliadoData.profesion || null,
+            delito: afiliadoData.delito || null,
+            fiscalia: afiliadoData.fiscalia || null,
             telefono: abonadoUnico,
             expediente: (data as any).expediente || null,
           }),
@@ -2496,6 +2508,30 @@ export function ExperticiasForm({
                     placeholder="Dirección del afiliado"
                     value={afiliadoData.direccion}
                     onChange={(e) => setAfiliadoData((p) => ({ ...p, direccion: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Profesión</label>
+                  <Input
+                    placeholder="Profesión del afiliado"
+                    value={afiliadoData.profesion}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, profesion: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Delito</label>
+                  <Input
+                    placeholder="Delito imputado"
+                    value={afiliadoData.delito}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, delito: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Fiscalía</label>
+                  <Input
+                    placeholder="Fiscalía asignada"
+                    value={afiliadoData.fiscalia}
+                    onChange={(e) => setAfiliadoData((p) => ({ ...p, fiscalia: e.target.value }))}
                   />
                 </div>
               </div>

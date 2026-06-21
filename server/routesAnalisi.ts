@@ -733,6 +733,44 @@ export function registerAnalisisRoutes(
     }
   });
 
+  // ── Análisis de traza desde BD → Python ──────────────────────────────────
+
+  app.get("/api/analisis-traza/:numero", authenticateToken, async (req: any, res) => {
+    try {
+      const { numero } = req.params;
+
+      // 1. Obtener registros desde la BD (igual que "Ver Registros")
+      const registros = await storage.getRegistrosComunicacionByAbonado(numero);
+
+      if (!registros || registros.length === 0) {
+        return res.json({
+          contactosFrecuentes: [],
+          imeis: [],
+          georref: [],
+          totalComunicaciones: 0,
+        });
+      }
+
+      // 2. Enviar registros al Python FastAPI para análisis
+      const pythonUrl = "http://localhost:8001/analizar-registros-db";
+      const pythonRes = await fetch(pythonUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ numero, registros }),
+      });
+
+      if (!pythonRes.ok) {
+        const errText = await pythonRes.text();
+        return res.status(500).json({ message: `Error en análisis Python: ${errText}` });
+      }
+
+      const analisis = await pythonRes.json();
+      res.json(analisis);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error al analizar trazabilidad" });
+    }
+  });
+
   // ── Asignar icono a nodo del grafo ────────────────────────────────────────
 
   app.put("/api/asignar-icono", authenticateToken, async (req: any, res) => {

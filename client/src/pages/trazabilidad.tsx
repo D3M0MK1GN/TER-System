@@ -43,7 +43,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { GrafoTrazabilidad } from "@/components/GrafoTrazabilidad";
 import { CargarDatosModal } from "@/components/cargar-datos-modal";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -96,8 +95,6 @@ export default function Trazabilidad() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [registrosPorPagina, setRegistrosPorPagina] = useState(50);
 
-  // Estado para pantalla completa del modal de análisis
-  const [isModalFullscreen, setIsModalFullscreen] = useState(false);
 
   const handleSearch = async () => {
     setIsSearching(true);
@@ -403,14 +400,13 @@ export default function Trazabilidad() {
   };
 
   const handleAnalizarTraza = async (numero: string) => {
-    // Limpiar datos anteriores antes de abrir el modal
     setAnalisisData(null);
     setLoadingModal(true);
     setShowAnalisisModal(true);
 
     try {
       const response = await fetch(
-        `/api/trazabilidad/${encodeURIComponent(numero)}`,
+        `/api/analisis-traza/${encodeURIComponent(numero)}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -420,9 +416,8 @@ export default function Trazabilidad() {
 
       if (response.ok) {
         const data = await response.json();
-        setAnalisisData(data);
+        setAnalisisData({ ...data, numeroAnalizado: numero });
       } else {
-        // En caso de error, cerrar el modal
         setShowAnalisisModal(false);
         toast({
           title: "Error",
@@ -431,8 +426,6 @@ export default function Trazabilidad() {
         });
       }
     } catch (error) {
-      console.error("Error al analizar traza:", error);
-      // En caso de error, cerrar el modal
       setShowAnalisisModal(false);
       toast({
         title: "Error",
@@ -724,6 +717,15 @@ export default function Trazabilidad() {
       });
     }
   };
+
+  // ── Datos del modal de Análisis de Traza (vienen del backend Python) ──
+  const contactosFrecuentes: Record<string, any>[] = analisisData?.contactosFrecuentes ?? [];
+  const imeis: { imei: string; cantidad: number }[] = analisisData?.imeis ?? [];
+  const georref: { frecTotalFisica: number | string; frecPorCelda: number; btsCelda: string; direccion: string; coordenadas: string; orientacion: string }[] = analisisData?.georref ?? [];
+  // Tipos de transacción dinámicos (columnas extra en contactosFrecuentes)
+  const tiposColumnas: string[] = contactosFrecuentes.length > 0
+    ? Object.keys(contactosFrecuentes[0]).filter(k => !["numero","frecuencia","primera_fecha","ultima_fecha"].includes(k))
+    : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1772,95 +1774,150 @@ export default function Trazabilidad() {
 
       {/* Modal: Análisis de Traza */}
       <Dialog open={showAnalisisModal} onOpenChange={setShowAnalisisModal}>
-        <DialogContent
-          className={
-            isModalFullscreen
-              ? "max-w-full max-h-full w-screen h-screen overflow-y-auto m-0 p-6"
-              : "max-w-6xl max-h-[90vh] overflow-y-auto"
-          }
-        >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Análisis Detallado de Trazabilidad - Grafo de Relaciones
+              Análisis de Traza — {analisisData?.numeroAnalizado}
             </DialogTitle>
           </DialogHeader>
+
           {loadingModal ? (
-            <div className="py-8 text-center text-gray-500">Cargando...</div>
-          ) : analisisData && analisisData.nodos && analisisData.aristas ? (
-            <div className="space-y-4">
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm text-green-900">
-                  <strong>Número Analizado:</strong>{" "}
-                  {analisisData.numeroAnalizado}
-                </p>
-                <p className="text-sm text-green-900">
-                  <strong>Total de Comunicaciones:</strong>{" "}
-                  {analisisData.totalComunicaciones}
-                </p>
-                <p className="text-sm text-green-900">
-                  <strong>Nodos en la Red:</strong>{" "}
-                  {analisisData.nodos?.length || 0}
-                </p>
+            <div className="py-12 text-center text-gray-500">Analizando...</div>
+          ) : analisisData ? (
+            <div className="space-y-6">
+              {/* Resumen */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Número Analizado</p>
+                  <p className="text-sm font-semibold text-blue-900">{analisisData.numeroAnalizado}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Total Comunicaciones</p>
+                  <p className="text-sm font-semibold text-blue-900">{analisisData.totalComunicaciones}</p>
+                </div>
               </div>
 
-              {/* Componente de Grafo Interactivo */}
-              <GrafoTrazabilidad
-                nodos={analisisData.nodos}
-                aristas={analisisData.aristas}
-                isFullscreen={isModalFullscreen}
-                onToggleFullscreen={() =>
-                  setIsModalFullscreen(!isModalFullscreen)
-                }
-                onNodeClick={async (nodo) => {
-                  // Expandir nodo externo - llamar al mismo endpoint con ese número
-                  if (nodo.type === "Externo") {
-                    try {
-                      setLoadingModal(true);
-                      const token = localStorage.getItem("token");
-                      const response = await fetch(
-                        `/api/trazabilidad/${nodo.id}`,
-                        {
-                          headers: {
-                            Authorization: `Bearer ${token}`,
-                          },
-                        }
-                      );
-                      if (!response.ok)
-                        throw new Error("Error al expandir nodo");
-                      const newData = await response.json();
+              {/* Sección 1: Contactos Frecuentes */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 px-1">
+                  <Phone className="h-4 w-4 text-blue-600" />
+                  <h3 className="text-sm font-semibold text-blue-700">Contactos Frecuentes</h3>
+                  <span className="ml-auto text-xs text-gray-400">{contactosFrecuentes.length} contactos</span>
+                </div>
+                {contactosFrecuentes.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4 border rounded-lg">Sin contactos registrados</p>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto border rounded-lg border-blue-200">
+                    <Table>
+                      <TableHeader className="bg-blue-50">
+                        <TableRow>
+                          <TableHead className="w-8 py-1 px-2 text-xs">#</TableHead>
+                          <TableHead className="py-1 px-2 text-xs">INTERLOCUTOR</TableHead>
+                          {tiposColumnas.map(t => (
+                            <TableHead key={t} className="py-1 px-2 text-center text-[10px] leading-tight font-bold text-blue-900">{t}</TableHead>
+                          ))}
+                          <TableHead className="py-1 px-2 text-center text-xs font-bold">TOTAL</TableHead>
+                          <TableHead className="py-1 px-2 text-xs">PRIMERA FECHA</TableHead>
+                          <TableHead className="py-1 px-2 text-xs">ÚLTIMA FECHA</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {contactosFrecuentes.map((c, i) => (
+                          <TableRow key={c.numero + i}>
+                            <TableCell className="py-1 px-2 text-xs font-bold">{i + 1}</TableCell>
+                            <TableCell className="py-1 px-2 text-xs font-mono font-bold">{c.numero || "-"}</TableCell>
+                            {tiposColumnas.map(t => (
+                              <TableCell key={t} className="py-1 px-2 text-xs text-center border-l border-gray-100">
+                                {c[t] > 0 ? <span className="font-medium text-gray-700">{c[t]}</span> : ""}
+                              </TableCell>
+                            ))}
+                            <TableCell className="py-1 px-2 text-xs text-center font-bold bg-blue-50/30">{c.frecuencia || 0}</TableCell>
+                            <TableCell className="py-1 px-2 text-xs text-gray-500">{c.primera_fecha || "-"}</TableCell>
+                            <TableCell className="py-1 px-2 text-xs text-gray-500">{c.ultima_fecha || "-"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
 
-                      // Combinar los nodos y aristas nuevas con las existentes
-                      const existingNodeIds = new Set(
-                        analisisData.nodos.map((n: any) => n.id)
-                      );
-                      const newNodos = newData.nodos.filter(
-                        (n: any) => !existingNodeIds.has(n.id)
-                      );
+              {/* Sección 2: IMEI */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 px-1">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <h3 className="text-sm font-semibold text-blue-700">IMEI</h3>
+                  <span className="ml-auto text-xs text-gray-400">{imeis.length} dispositivos</span>
+                </div>
+                {imeis.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4 border rounded-lg">Sin datos de IMEI</p>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto border rounded-lg">
+                    <Table>
+                      <TableHeader className="bg-gray-50">
+                        <TableRow>
+                          <TableHead className="py-1 px-2 text-xs w-8">#</TableHead>
+                          <TableHead className="py-1 px-2 text-xs">NÚMERO ESTUDIADO</TableHead>
+                          <TableHead className="py-1 px-2 text-xs">IMEI</TableHead>
+                          <TableHead className="py-1 px-2 text-xs text-center">CANTIDAD DE USOS</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {imeis.map((item, i) => (
+                          <TableRow key={item.imei}>
+                            <TableCell className="py-1 px-2 text-xs text-gray-400">{i + 1}</TableCell>
+                            <TableCell className="py-1 px-2 text-xs">{analisisData?.numeroAnalizado}</TableCell>
+                            <TableCell className="py-1 px-2 text-xs font-mono">{item.imei}</TableCell>
+                            <TableCell className="py-1 px-2 text-xs text-center font-bold">{item.cantidad}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
 
-                      setAnalisisData({
-                        ...analisisData,
-                        nodos: [...analisisData.nodos, ...newNodos],
-                        aristas: [...analisisData.aristas, ...newData.aristas],
-                      });
-
-                      toast({
-                        title: "Nodo expandido",
-                        description: `Se agregaron ${newNodos.length} nuevos nodos`,
-                      });
-                    } catch (error) {
-                      console.error("Error al expandir nodo:", error);
-                      toast({
-                        title: "Error",
-                        description: "No se pudo expandir el nodo",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setLoadingModal(false);
-                    }
-                  }
-                }}
-              />
+              {/* Sección 3: Georreferenciación — filas planas como Excel de experticia */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 px-1">
+                  <Search className="h-4 w-4 text-blue-600" />
+                  <h3 className="text-sm font-semibold text-blue-700">Georreferenciación</h3>
+                  <span className="ml-auto text-xs text-gray-400">{georref.length} registros BTS</span>
+                </div>
+                {georref.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4 border rounded-lg">Sin datos de georreferenciación</p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto border rounded-lg">
+                    <Table>
+                      <TableHeader className="bg-gray-50">
+                        <TableRow>
+                          <TableHead className="py-1 px-2 text-xs text-center">Frec. Total Física</TableHead>
+                          <TableHead className="py-1 px-2 text-xs text-center">Frec. por Celda</TableHead>
+                          <TableHead className="py-1 px-2 text-xs">BTS-Celda</TableHead>
+                          <TableHead className="py-1 px-2 text-xs">Dirección</TableHead>
+                          <TableHead className="py-1 px-2 text-xs">Coordenadas (Lat, Lon)</TableHead>
+                          <TableHead className="py-1 px-2 text-xs">Orientación</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {georref.map((g, i) => (
+                          <TableRow key={i} className={g.frecTotalFisica !== "" ? "border-t-2 border-gray-300" : ""}>
+                            <TableCell className="py-1 px-2 text-xs text-center font-bold">
+                              {g.frecTotalFisica !== "" ? g.frecTotalFisica : ""}
+                            </TableCell>
+                            <TableCell className="py-1 px-2 text-xs text-center">{g.frecPorCelda}</TableCell>
+                            <TableCell className="py-1 px-2 text-xs font-mono">{g.btsCelda}</TableCell>
+                            <TableCell className="py-1 px-2 text-xs">{g.direccion}</TableCell>
+                            <TableCell className="py-1 px-2 text-xs font-mono">{g.coordenadas}</TableCell>
+                            <TableCell className="py-1 px-2 text-xs">{g.orientacion}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="py-8 text-center text-gray-500">
