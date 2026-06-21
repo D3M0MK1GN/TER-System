@@ -1389,67 +1389,81 @@ export default function Trazabilidad() {
         open={showCoincidenciasModal}
         onOpenChange={setShowCoincidenciasModal}
       >
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <GitMerge className="h-5 w-5" />
-              Coincidencias y Casos Vinculados
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+              <Activity className="h-5 w-5 text-amber-600" />
+              Cruce de Trazabilidad: Coincidencias en Base de Datos
             </DialogTitle>
           </DialogHeader>
+
           {loadingModal ? (
             <div className="py-8 text-center text-gray-500">Cargando...</div>
           ) : coincidenciasData ? (
             <div className="space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-900">
-                  <strong>Número Analizado:</strong>{" "}
-                  {coincidenciasData.numeroAnalizado}
-                </p>
-                <p className="text-sm text-blue-900">
-                  <strong>Total de Contactos:</strong>{" "}
-                  {coincidenciasData.totalContactos}
-                </p>
-                <p className="text-sm text-blue-900">
-                  <strong>Coincidencias Encontradas:</strong>{" "}
-                  {coincidenciasData.coincidenciasEncontradas}
-                </p>
+              {/* Resumen */}
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg flex flex-wrap gap-4 text-sm text-amber-900">
+                <span><strong>Número analizado:</strong> {coincidenciasData.numeroAnalizado}</span>
+                <span><strong>Total contactos únicos:</strong> {coincidenciasData.totalContactos}</span>
+                <span><strong>Coincidencias registradas:</strong> {coincidenciasData.coincidenciasEncontradas}</span>
               </div>
 
-              {coincidenciasData.coincidencias &&
-              coincidenciasData.coincidencias.length > 0 ? (
-                <div className="space-y-3">
-                  {coincidenciasData.coincidencias.map(
-                    (coincidencia: any, idx: number) => (
-                      <Card key={idx}>
-                        <CardContent className="pt-4">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="font-mono text-sm text-gray-600 mb-2">
-                                📞 {coincidencia.numeroContactado}
-                              </p>
-                              <p className="font-semibold text-gray-900">
-                                {coincidencia.persona.nombreCompleto}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Cédula: {coincidencia.persona.cedula}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Expediente: {coincidencia.persona.expediente}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Delito: {coincidencia.persona.delito}
-                              </p>
-                            </div>
-                            <Info className="h-5 w-5 text-blue-500" />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  )}
+              <p className="text-xs text-gray-500">
+                Los siguientes números registran comunicaciones directas con el objetivo analizado y están plenamente identificados en el sistema.
+              </p>
+
+              {coincidenciasData.coincidencias && coincidenciasData.coincidencias.length > 0 ? (
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-gray-50">
+                      <TableRow>
+                        <TableHead className="text-xs font-bold text-gray-700">Teléfono Interlocutor</TableHead>
+                        <TableHead className="text-xs font-bold text-gray-700">Cédula / Identificación</TableHead>
+                        <TableHead className="text-xs font-bold text-gray-700">Nombre Completo</TableHead>
+                        <TableHead className="text-xs font-bold text-gray-700">Expedientes</TableHead>
+                        <TableHead className="text-xs font-bold text-gray-700">Estatus</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {coincidenciasData.coincidencias.map((coincidencia: any, idx: number) => (
+                        <TableRow key={idx} className="hover:bg-gray-50 align-top">
+                          <TableCell className="font-mono text-xs font-bold text-blue-600 whitespace-nowrap">
+                            📞 {coincidencia.numeroContactado}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {coincidencia.persona.cedula || "N/A"}
+                          </TableCell>
+                          <TableCell className="text-xs font-medium uppercase">
+                            {coincidencia.persona.nombreCompleto || "Desconocido"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {coincidencia.persona.expedientes && coincidencia.persona.expedientes.length > 0 ? (
+                              <div className="space-y-1">
+                                {coincidencia.persona.expedientes.map((exp: any, ei: number) => (
+                                  <div key={ei} className="bg-gray-50 rounded px-2 py-1 space-y-0.5">
+                                    <p className="text-gray-700"><span className="font-medium">Exp:</span> {exp.expediente}</p>
+                                    <p className="text-gray-600"><span className="font-medium">Delito:</span> {exp.delito}</p>
+                                    {exp.fiscalia !== "—" && <p className="text-gray-500"><span className="font-medium">Fiscalía:</span> {exp.fiscalia}</p>}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic">Sin expedientes</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Catalogado
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               ) : (
-                <div className="py-8 text-center text-gray-500">
-                  No se encontraron coincidencias con casos registrados
+                <div className="py-8 text-center text-sm text-gray-500 border border-dashed rounded-lg">
+                  No se hallaron números cruzados registrados en la base de datos para este número.
                 </div>
               )}
             </div>

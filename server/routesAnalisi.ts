@@ -7,8 +7,9 @@ import {
   personaTelefonos,
   experticias,
   expedientesSujetos,
+  registrosComunicacion,
 } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, or } from "drizzle-orm";
 import {
   insertPersonaCasoSchema,
   insertExpedienteSujetoSchema,
@@ -30,6 +31,21 @@ const csvUpload = multer({
     }
   },
 });
+
+function normalizarCoordenada(val: string): string {
+  if (!val) return "";
+  return val.split(",").map((part) => {
+    const s = part.trim();
+    const dots = (s.match(/\./g) || []).length;
+    if (dots > 1) {
+      const sign = s.startsWith("-") ? -1 : 1;
+      const digits = s.replace(/[^0-9]/g, "");
+      const num = parseInt(digits, 10) / 1_000_000;
+      return (sign * num).toFixed(6);
+    }
+    return s;
+  }).join(", ");
+}
 
 export function registerAnalisisRoutes(
   app: Express,
@@ -549,18 +565,32 @@ export function registerAnalisisRoutes(
     try {
       const { numero } = req.params;
 
-      const registros = await storage.getRegistrosComunicacionByAbonado(numero);
       const numerosContactados = new Set<string>();
+      // Solo valores que parecen números telefónicos reales (7+ dígitos)
+      const ES_TELEFONO = /^\d{7,}$/;
 
-      registros.forEach((reg) => {
-        if (reg.abonadoA === numero && reg.abonadoB) {
-          numerosContactados.add(reg.abonadoB);
-        } else if (reg.abonadoA !== numero) {
-          numerosContactados.add(reg.abonadoA);
-        }
+      // ── Lado A: todos los registros del sujeto (via FK abonadoAId) ──
+      // Digitel almacena el sujeto en CUALQUIER columna (A o B según entrante/saliente),
+      // por eso se agregan ambos lados descartando el propio número y no-numéricos.
+      const registrosComoA = await storage.getRegistrosComunicacionByAbonado(numero);
+      registrosComoA.forEach((reg) => {
+        const a = (reg.abonadoA || "").trim();
+        const b = (reg.abonadoB || "").trim();
+        if (a !== numero && ES_TELEFONO.test(a)) numerosContactados.add(a);
+        if (b !== numero && ES_TELEFONO.test(b)) numerosContactados.add(b);
       });
 
-      const coincidencias = [];
+      // ── Bidireccional: registros de otros sujetos que contactaron a este número ──
+      const registrosComoB = await db
+        .select()
+        .from(registrosComunicacion)
+        .where(eq(registrosComunicacion.abonadoB, numero));
+      registrosComoB.forEach((reg) => {
+        const a = (reg.abonadoA || "").trim();
+        if (a !== numero && ES_TELEFONO.test(a)) numerosContactados.add(a);
+      });
+
+      const coincidenciasMap = new Map<string, any>();
 
       for (const numContactado of Array.from(numerosContactados)) {
         const telefonos = await db
@@ -569,23 +599,37 @@ export function registerAnalisisRoutes(
           .where(eq(personaTelefonos.numero, numContactado));
 
         for (const tel of telefonos) {
-          if (tel.personaId) {
-            const persona = await storage.getPersonaCasoById(tel.personaId);
-            if (persona) {
-              coincidencias.push({
-                numeroContactado: numContactado,
-                persona: {
-                  id: persona.nro,
-                  cedula: persona.cedula,
-                  nombreCompleto: `${persona.nombre} ${persona.apellido}`,
-                  expediente: (persona as any).expediente,
-                  delito: (persona as any).delito,
-                },
-              });
-            }
+          if (!tel.personaId) continue;
+          const persona = await storage.getPersonaCasoById(tel.personaId);
+          if (!persona) continue;
+
+          // ── Obtener expedientes reales desde expedientesSujetos ──
+          const expedientes = await db
+            .select()
+            .from(expedientesSujetos)
+            .where(eq(expedientesSujetos.personaId, persona.nro));
+
+          const key = `${numContactado}-${persona.nro}`;
+          if (!coincidenciasMap.has(key)) {
+            coincidenciasMap.set(key, {
+              numeroContactado: numContactado,
+              persona: {
+                id: persona.nro,
+                cedula: persona.cedula,
+                nombreCompleto: `${persona.nombre} ${persona.apellido}`,
+                expedientes: expedientes.map((e) => ({
+                  expediente: e.expediente || "—",
+                  delito: e.delito || "—",
+                  fiscalia: e.fiscalia || "—",
+                  nOficio: e.nOficio || "—",
+                })),
+              },
+            });
           }
         }
       }
+
+      const coincidencias = Array.from(coincidenciasMap.values());
 
       res.json({
         numeroAnalizado: numero,
@@ -984,7 +1028,12 @@ export function registerAnalisisRoutes(
       if (!Array.isArray(registros)) {
         return res.status(400).json({ message: "Se esperaba un array de registros" });
       }
-      const validatedData = registros.map((r) => insertRegistroComunicacionSchema.parse(r));
+      const normalizedRegistros = registros.map((r: any) => ({
+        ...r,
+        coordenadasA: normalizarCoordenada(r.coordenadasA || ""),
+        coordenadasB: normalizarCoordenada(r.coordenadasB || ""),
+      }));
+      const validatedData = normalizedRegistros.map((r) => insertRegistroComunicacionSchema.parse(r));
       const newRegistros = await storage.createRegistrosComunicacionBulk(validatedData);
       res.status(201).json({
         message: `${newRegistros.length} registros creados correctamente`,
@@ -1022,8 +1071,8 @@ export function registerAnalisisRoutes(
           btsCeldaB: row["BTS-Celda B"] || row["bts_celda_b"] || row["BTS_CELDA_B"] || "",
           direccionA: row["Dirección A"] || row["DIRECCION A"] || row["direccion_a"] || row["Atena"] || row["DIRECCION"] || "",
           direccionB: row["Dirección B"] || row["DIRECCION B"] || row["direccion_b"] || "",
-          coordenadasA: row["Coordenadas A"] || row["coordenadas_a"] || row["LATITUD CELDAD INICIO A"] || "",
-          coordenadasB: row["Coordenadas B"] || row["coordenadas_b"] || "",
+          coordenadasA: normalizarCoordenada(row["Coordenadas A"] || row["coordenadas_a"] || row["LATITUD CELDAD INICIO A"] || ""),
+          coordenadasB: normalizarCoordenada(row["Coordenadas B"] || row["coordenadas_b"] || ""),
           orientacionA: row["Orientación A"] || row["orientacion_a"] || row["ORIENTACION A"] || "",
           orientacionB: row["Orientación B"] || row["orientacion_b"] || row["ORIENTACION B"] || "",
           imeiA: row["IMEI A"] || row["imei_a"] || row["IMEI ABONADO A"] || row["imei_abonado_a"] || "",

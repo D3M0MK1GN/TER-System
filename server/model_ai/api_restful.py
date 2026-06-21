@@ -601,10 +601,16 @@ async def analizar_registros_db(request: AnalizarRegistrosDBRequest):
             parts = [p.strip() for p in coord.split(",")]
             if len(parts) >= 2:
                 try:
-                    lat, lon = float(parts[0]), float(parts[1])
+                    def to_decimal(s: str) -> float:
+                        if s.count('.') > 1:
+                            sign = -1 if s.startswith('-') else 1
+                            digits = s.replace('-', '').replace('.', '')
+                            return sign * int(digits) / 1_000_000
+                        return float(s)
+                    lat, lon = to_decimal(parts[0]), to_decimal(parts[1])
                     if not (lat == 0 and lon == 0):
                         return lat, lon
-                except ValueError:
+                except (ValueError, ZeroDivisionError):
                     pass
             return None
 
