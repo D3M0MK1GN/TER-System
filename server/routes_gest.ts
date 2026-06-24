@@ -703,6 +703,58 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
           }))
         : [];
 
+      // Construir abonados_lista para la plantilla de Contacto Frecuente
+      // Cada item: { NUM_ORD, NUMERO, DESDE, HASTA, CONTACTOS_TEXTO }
+      const abonados_lista: Array<{
+        NUM_ORD: string;
+        NUMERO: string;
+        DESDE: string;
+        HASTA: string;
+        CONTACTOS_TEXTO: string;
+      }> = [];
+
+      if (tipoExperticia === 'determinar_contacto_frecuente') {
+        const datosAnalisis = Array.isArray(requestData.datosAnalisis)
+          ? requestData.datosAnalisis
+          : [];
+
+        if (datosAnalisis.length > 0) {
+          // Modo multi-target: un objeto por cada número analizado
+          datosAnalisis.forEach((item: any, idx: number) => {
+            const top10: any[] = Array.isArray(item.top_10) ? item.top_10.slice(0, 10) : [];
+            const contactosTexto = top10
+              .map((c: any) => c.numero || c.CONTACTO || c.contacto || '')
+              .filter(Boolean)
+              .join(', ');
+
+            abonados_lista.push({
+              NUM_ORD: String(idx + 1),
+              NUMERO: item.numero || '',
+              DESDE: regFechas.desde || '',
+              HASTA: regFechas.hasta || '',
+              CONTACTOS_TEXTO: contactosTexto,
+            });
+          });
+        } else if (requestData.abonado) {
+          // Modo individual (un solo abonado)
+          const top10: any[] = Array.isArray(requestData.todosLosContactos)
+            ? requestData.todosLosContactos.slice(0, 10)
+            : [];
+          const contactosTexto = top10
+            .map((c: any) => c.numero || c.CONTACTO || c.contacto || '')
+            .filter(Boolean)
+            .join(', ');
+
+          abonados_lista.push({
+            NUM_ORD: '1',
+            NUMERO: requestData.abonado,
+            DESDE: regFechas.desde || '',
+            HASTA: regFechas.hasta || '',
+            CONTACTOS_TEXTO: contactosTexto,
+          });
+        }
+      }
+
       const templateData = {
         FECHA: currentDate,
         UBICA: desp,
@@ -712,6 +764,8 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         COMUNICACION: requestData.numeroComunicacion || '',
         FECHA_R: requestData.fechaComunicacion || '',
         CRED: req.user.credencial || 'No hay credencial',
+        CARGO: (req.user as any).cargo || (req.user as any).rango || '',
+        AP: requestData.ap || '',
         OPER: (requestData.operador || '').toUpperCase(),
         FRR: requestData.respuestaFechaCorreo || '',
         RTIME: requestData.horaRespuestaCorreo || '',
@@ -724,6 +778,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         hasta: regFechas.hasta || '',
         JERC: '',
         tabla: tabla,
+        abonados_lista,
       };
 
       let busArchivo: Buffer;

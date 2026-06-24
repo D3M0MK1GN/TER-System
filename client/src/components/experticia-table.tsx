@@ -143,7 +143,14 @@ export function ExperticiasTable({
       await downloadFile(
         `/api/plantillas-word/experticia/${viewingExperticia.tipoExperticia}/generate`,
         `experticia-${viewingExperticia.numeroDictamen}.docx`,
-        { authorization: `Bearer ${localStorage.getItem("token")}` }
+        {
+          authorization: `Bearer ${localStorage.getItem("token")}`,
+          body: {
+            ...viewingExperticia,
+            experticiaid: viewingExperticia.id,
+            datosAnalisis: viewingExperticia.datosAnalisis,
+          },
+        }
       );
     } catch (error) {
       console.error("Error generando documento:", error);

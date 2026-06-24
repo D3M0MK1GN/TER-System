@@ -95,7 +95,7 @@ export const extractSelectedRows = (
 export const downloadFile = async (
   url: string,
   filename: string,
-  options: { authorization?: string } = {}
+  options: { authorization?: string; body?: any } = {}
 ) => {
   try {
     // Realiza petición POST al servidor
@@ -107,6 +107,9 @@ export const downloadFile = async (
           Authorization: options.authorization,
         }),
       },
+      ...(options.body !== undefined && {
+        body: JSON.stringify(options.body),
+      }),
     });
 
     if (!response.ok) throw new Error("Error descargando archivo");

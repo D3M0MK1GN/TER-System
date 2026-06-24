@@ -27,14 +27,17 @@ const saveDatosSeleccionados = async (id: number, datos: any[]) => {
 };
 
 const generateDocument = async (
-  data: InsertExperticia & { filasSeleccionadas?: any[] },
+  data: InsertExperticia & { filasSeleccionadas?: any[]; datosAnalisis?: any; todosLosContactos?: any },
   experticiaid?: number
 ) => {
   const url = `/api/plantillas-word/experticia/${data.tipoExperticia}/generate`;
   const filename = `experticia-${data.numeroDictamen || "documento"}.docx`;
 
   try {
-    await downloadFile(url, filename, { authorization: `Bearer ${TOKEN()}` });
+    await downloadFile(url, filename, {
+      authorization: `Bearer ${TOKEN()}`,
+      body: { ...data, experticiaid },
+    });
   } catch {
     throw new Error("No se pudo generar el documento");
   }
