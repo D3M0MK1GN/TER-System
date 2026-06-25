@@ -119,6 +119,7 @@ export function ExperticiasManagement() {
       }
     } catch (error) {
       console.error("Error:", error);
+      throw error;
     }
   };
 

@@ -82,7 +82,7 @@ type FormData = z.infer<typeof experticiasFormSchema>;
  */
 interface ExperticiasFormProps {
   experticia?: Experticia | null;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: FormData) => Promise<void> | void;
   onCancel: () => void;
   isLoading?: boolean;
   preloadData?: Partial<FormData> | null;
@@ -1744,7 +1744,7 @@ export function ExperticiasForm({
    * - Extrae y procesa las filas BTS seleccionadas o contactos frecuentes
    * - Envía datos completos al callback onSubmit del padre
    */
-  const handleSubmit = (data: FormData) => {
+  const handleSubmit = async (data: FormData) => {
     if (fileUploadState.isUploading) return;
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
@@ -1817,79 +1817,96 @@ export function ExperticiasForm({
       afiliadosMapRef.current[numeroActual] = afiliadoData;
     }
 
-    // Construir los payloads de personas y teléfonos para enviarlos junto con la experticia.
-    // De esta forma el backend los guarda DENTRO de una única transacción: si la experticia
-    // falla (ej. número de dictamen duplicado), ningún dato queda huérfano en la base de datos.
-    const personasPayload: any[] = [];
-    const telefonosPayload: any[] = [];
+    // Primero crear la experticia. Solo si tiene éxito se guardan los datos
+    // filiatorios y de teléfonos para evitar datos huérfanos en caso de error
+    // (por ejemplo, experticia duplicada).
+    try {
+      await onSubmit(submitData);
+    } catch {
+      isSubmittingRef.current = false;
+      return;
+    }
 
+    // La experticia se creó correctamente — ahora es seguro guardar los datos
+    // asociados (personas-casos y persona-telefonos).
     if (esContactoFrecuente && esMultiTarget) {
-      // MODO MULTI-TARGET
+      // MODO MULTI-TARGET: un POST por cada número con cédula registrada
       Object.entries(afiliadosMapRef.current).forEach(([numeroAbonado, datosAfiliado]) => {
         if (datosAfiliado.cedula?.trim()) {
-          personasPayload.push({
-            cedula: datosAfiliado.cedula.trim(),
-            nombre: datosAfiliado.nombre || null,
-            apellido: datosAfiliado.apellido || null,
-            pseudonimo: datosAfiliado.pseudonimo || null,
-            fechaDeNacimiento: datosAfiliado.fechaDeNacimiento || null,
-            correo: datosAfiliado.correo || null,
-            direccion: datosAfiliado.direccion || null,
-            statusLinea: datosAfiliado.statusLinea || null,
-            fechaActivacion: datosAfiliado.fechaActivacion || null,
-            otrosTlf: datosAfiliado.otrosTlf || null,
-            rol: datosAfiliado.rol || null,
-            profesion: datosAfiliado.profesion || null,
-            delito: datosAfiliado.delito || null,
-            fiscalia: datosAfiliado.fiscalia || null,
-            telefono: numeroAbonado,
-            expediente: (data as any).expediente || null,
-          });
+          fetch(`/api/personas-casos`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({
+              cedula: datosAfiliado.cedula.trim(),
+              nombre: datosAfiliado.nombre || null,
+              apellido: datosAfiliado.apellido || null,
+              pseudonimo: datosAfiliado.pseudonimo || null,
+              fechaDeNacimiento: datosAfiliado.fechaDeNacimiento || null,
+              correo: datosAfiliado.correo || null,
+              direccion: datosAfiliado.direccion || null,
+              statusLinea: datosAfiliado.statusLinea || null,
+              fechaActivacion: datosAfiliado.fechaActivacion || null,
+              otrosTlf: datosAfiliado.otrosTlf || null,
+              rol: datosAfiliado.rol || null,
+              profesion: datosAfiliado.profesion || null,
+              delito: datosAfiliado.delito || null,
+              fiscalia: datosAfiliado.fiscalia || null,
+              telefono: numeroAbonado,
+              expediente: (data as any).expediente || null,
+            }),
+          }).catch((err) => console.error(`Error guardando afiliado ${numeroAbonado}:`, err));
         }
+        // Guardar statusLinea/fechaActivacion en persona_telefonos independientemente de cédula
         if (datosAfiliado.statusLinea || datosAfiliado.fechaActivacion) {
-          telefonosPayload.push({
-            numero: numeroAbonado,
-            statusLinea: datosAfiliado.statusLinea || null,
-            fechaActivacion: datosAfiliado.fechaActivacion || null,
-          });
+          fetch(`/api/persona-telefonos/update-by-numero`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+            body: JSON.stringify({ numero: numeroAbonado, statusLinea: datosAfiliado.statusLinea || null, fechaActivacion: datosAfiliado.fechaActivacion || null }),
+          }).catch(() => {});
         }
       });
     } else {
-      // MODO INDIVIDUAL
+      // MODO INDIVIDUAL: comportamiento original
       const abonadoUnico = (data as any).abonado?.trim();
       if (abonadoUnico && afiliadoData.cedula.trim()) {
-        personasPayload.push({
-          cedula: afiliadoData.cedula.trim(),
-          nombre: afiliadoData.nombre || null,
-          apellido: afiliadoData.apellido || null,
-          pseudonimo: afiliadoData.pseudonimo || null,
-          fechaDeNacimiento: afiliadoData.fechaDeNacimiento || null,
-          correo: afiliadoData.correo || null,
-          direccion: afiliadoData.direccion || null,
-          statusLinea: afiliadoData.statusLinea || null,
-          fechaActivacion: afiliadoData.fechaActivacion || null,
-          otrosTlf: afiliadoData.otrosTlf || null,
-          rol: afiliadoData.rol || null,
-          profesion: afiliadoData.profesion || null,
-          delito: afiliadoData.delito || null,
-          fiscalia: afiliadoData.fiscalia || null,
-          telefono: abonadoUnico,
-          expediente: (data as any).expediente || null,
-        });
+        fetch(`/api/personas-casos`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            cedula: afiliadoData.cedula.trim(),
+            nombre: afiliadoData.nombre || null,
+            apellido: afiliadoData.apellido || null,
+            pseudonimo: afiliadoData.pseudonimo || null,
+            fechaDeNacimiento: afiliadoData.fechaDeNacimiento || null,
+            correo: afiliadoData.correo || null,
+            direccion: afiliadoData.direccion || null,
+            statusLinea: afiliadoData.statusLinea || null,
+            fechaActivacion: afiliadoData.fechaActivacion || null,
+            otrosTlf: afiliadoData.otrosTlf || null,
+            rol: afiliadoData.rol || null,
+            profesion: afiliadoData.profesion || null,
+            delito: afiliadoData.delito || null,
+            fiscalia: afiliadoData.fiscalia || null,
+            telefono: abonadoUnico,
+            expediente: (data as any).expediente || null,
+          }),
+        }).catch(() => {});
       }
+      // Guardar statusLinea/fechaActivacion en persona_telefonos independientemente de cédula
       if (abonadoUnico && (afiliadoData.statusLinea || afiliadoData.fechaActivacion)) {
-        telefonosPayload.push({
-          numero: abonadoUnico,
-          statusLinea: afiliadoData.statusLinea || null,
-          fechaActivacion: afiliadoData.fechaActivacion || null,
-        });
+        fetch(`/api/persona-telefonos/update-by-numero`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+          body: JSON.stringify({ numero: abonadoUnico, statusLinea: afiliadoData.statusLinea || null, fechaActivacion: afiliadoData.fechaActivacion || null }),
+        }).catch(() => {});
       }
     }
-
-    submitData.personas = personasPayload;
-    submitData.telefonos = telefonosPayload;
-
-    onSubmit(submitData);
   };
 
   /**

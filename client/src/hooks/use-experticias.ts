@@ -48,8 +48,8 @@ export function useExperticias(initialPage = 1, pageSize = 10) {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: async (data: InsertExperticia & { personas?: any[]; telefonos?: any[] }) => {
-      return await apiRequest("/api/experticias/completa", {
+    mutationFn: async (data: InsertExperticia) => {
+      return await apiRequest("/api/experticias", {
         method: "POST",
         body: JSON.stringify(data),
       });

@@ -3032,5 +3032,132 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2026-06-25T10:59:55.416697",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "11581055",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=11581055",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 11581055,
+                "fecha_nac": "1968-04-29",
+                "rif": "V115810551",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "JUAN DE VILLEGAS",
+                    "centro_electoral": "UNIDAD ESCUELA NACIONAL CREACION BARRIOS DEL OESTE"
+                },
+                "primer_apellido": "MATHEUS",
+                "primer_nombre": "PEDRO",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2026-06-25T14:59:55.363Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-25T11:41:57.979855",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "26357524",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=26357524",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 26357524,
+                "fecha_nac": "1995-11-05",
+                "rif": "V263575241",
+                "primer_apellido": "CADENAS",
+                "segundo_apellido": "NARVAEZ",
+                "primer_nombre": "WILLIAN",
+                "segundo_nombre": "ALBERTO",
+                "request_date": "2026-06-25T15:41:57.930Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-25T11:44:28.551079",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "24157689",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=24157689",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 24157689,
+                "fecha_nac": "1994-06-14",
+                "rif": "V241576899",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "GIMNASIO DE BOXEO SAN JACINTO II"
+                },
+                "primer_apellido": "MARCHAN",
+                "segundo_apellido": "MENDEZ",
+                "primer_nombre": "GILBERTH",
+                "segundo_nombre": "ANGELO",
+                "request_date": "2026-06-25T15:44:28.502Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-25T11:51:13.808438",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "31099422",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=31099422",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 31099422,
+                "fecha_nac": "0000-00-00",
+                "rif": "V310994223",
+                "primer_apellido": "RANGEL",
+                "segundo_apellido": "MANZANO",
+                "primer_nombre": "DAVID",
+                "segundo_nombre": "ALBERTO",
+                "request_date": "2026-06-25T15:51:13.743Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-06-25T11:53:56.169332",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "22323666",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=1966&token=f82f78de1c215aae3d0c30a4e020b561&nacionalidad=V&cedula=22323666",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 22323666,
+                "fecha_nac": "1989-06-14",
+                "rif": "V223236665",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "UNIDAD EDUCATIVA ANDRES ELOY BLANCO"
+                },
+                "primer_apellido": "MORALES",
+                "segundo_apellido": "ESCOBAR",
+                "primer_nombre": "JORGE",
+                "segundo_nombre": "LUIS",
+                "request_date": "2026-06-25T15:53:56.121Z"
+            }
+        },
+        "success": true
     }
 ]
