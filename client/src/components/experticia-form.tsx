@@ -1817,84 +1817,77 @@ export function ExperticiasForm({
       afiliadosMapRef.current[numeroActual] = afiliadoData;
     }
 
+    // Construir los payloads de personas y teléfonos para enviarlos junto con la experticia.
+    // De esta forma el backend los guarda DENTRO de una única transacción: si la experticia
+    // falla (ej. número de dictamen duplicado), ningún dato queda huérfano en la base de datos.
+    const personasPayload: any[] = [];
+    const telefonosPayload: any[] = [];
+
     if (esContactoFrecuente && esMultiTarget) {
-      // MODO MULTI-TARGET: un POST por cada número con cédula registrada
+      // MODO MULTI-TARGET
       Object.entries(afiliadosMapRef.current).forEach(([numeroAbonado, datosAfiliado]) => {
         if (datosAfiliado.cedula?.trim()) {
-          fetch(`/api/personas-casos`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({
-              cedula: datosAfiliado.cedula.trim(),
-              nombre: datosAfiliado.nombre || null,
-              apellido: datosAfiliado.apellido || null,
-              pseudonimo: datosAfiliado.pseudonimo || null,
-              fechaDeNacimiento: datosAfiliado.fechaDeNacimiento || null,
-              correo: datosAfiliado.correo || null,
-              direccion: datosAfiliado.direccion || null,
-              statusLinea: datosAfiliado.statusLinea || null,
-              fechaActivacion: datosAfiliado.fechaActivacion || null,
-              otrosTlf: datosAfiliado.otrosTlf || null,
-              rol: datosAfiliado.rol || null,
-              profesion: datosAfiliado.profesion || null,
-              delito: datosAfiliado.delito || null,
-              fiscalia: datosAfiliado.fiscalia || null,
-              telefono: numeroAbonado,
-              expediente: (data as any).expediente || null,
-            }),
-          }).catch((err) => console.error(`Error guardando afiliado ${numeroAbonado}:`, err));
+          personasPayload.push({
+            cedula: datosAfiliado.cedula.trim(),
+            nombre: datosAfiliado.nombre || null,
+            apellido: datosAfiliado.apellido || null,
+            pseudonimo: datosAfiliado.pseudonimo || null,
+            fechaDeNacimiento: datosAfiliado.fechaDeNacimiento || null,
+            correo: datosAfiliado.correo || null,
+            direccion: datosAfiliado.direccion || null,
+            statusLinea: datosAfiliado.statusLinea || null,
+            fechaActivacion: datosAfiliado.fechaActivacion || null,
+            otrosTlf: datosAfiliado.otrosTlf || null,
+            rol: datosAfiliado.rol || null,
+            profesion: datosAfiliado.profesion || null,
+            delito: datosAfiliado.delito || null,
+            fiscalia: datosAfiliado.fiscalia || null,
+            telefono: numeroAbonado,
+            expediente: (data as any).expediente || null,
+          });
         }
-        // Guardar statusLinea/fechaActivacion en persona_telefonos independientemente de cédula
         if (datosAfiliado.statusLinea || datosAfiliado.fechaActivacion) {
-          fetch(`/api/persona-telefonos/update-by-numero`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
-            body: JSON.stringify({ numero: numeroAbonado, statusLinea: datosAfiliado.statusLinea || null, fechaActivacion: datosAfiliado.fechaActivacion || null }),
-          }).catch(() => {});
+          telefonosPayload.push({
+            numero: numeroAbonado,
+            statusLinea: datosAfiliado.statusLinea || null,
+            fechaActivacion: datosAfiliado.fechaActivacion || null,
+          });
         }
       });
     } else {
-      // MODO INDIVIDUAL: comportamiento original
+      // MODO INDIVIDUAL
       const abonadoUnico = (data as any).abonado?.trim();
       if (abonadoUnico && afiliadoData.cedula.trim()) {
-        fetch(`/api/personas-casos`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            cedula: afiliadoData.cedula.trim(),
-            nombre: afiliadoData.nombre || null,
-            apellido: afiliadoData.apellido || null,
-            pseudonimo: afiliadoData.pseudonimo || null,
-            fechaDeNacimiento: afiliadoData.fechaDeNacimiento || null,
-            correo: afiliadoData.correo || null,
-            direccion: afiliadoData.direccion || null,
-            statusLinea: afiliadoData.statusLinea || null,
-            fechaActivacion: afiliadoData.fechaActivacion || null,
-            otrosTlf: afiliadoData.otrosTlf || null,
-            rol: afiliadoData.rol || null,
-            profesion: afiliadoData.profesion || null,
-            delito: afiliadoData.delito || null,
-            fiscalia: afiliadoData.fiscalia || null,
-            telefono: abonadoUnico,
-            expediente: (data as any).expediente || null,
-          }),
-        }).catch(() => {});
+        personasPayload.push({
+          cedula: afiliadoData.cedula.trim(),
+          nombre: afiliadoData.nombre || null,
+          apellido: afiliadoData.apellido || null,
+          pseudonimo: afiliadoData.pseudonimo || null,
+          fechaDeNacimiento: afiliadoData.fechaDeNacimiento || null,
+          correo: afiliadoData.correo || null,
+          direccion: afiliadoData.direccion || null,
+          statusLinea: afiliadoData.statusLinea || null,
+          fechaActivacion: afiliadoData.fechaActivacion || null,
+          otrosTlf: afiliadoData.otrosTlf || null,
+          rol: afiliadoData.rol || null,
+          profesion: afiliadoData.profesion || null,
+          delito: afiliadoData.delito || null,
+          fiscalia: afiliadoData.fiscalia || null,
+          telefono: abonadoUnico,
+          expediente: (data as any).expediente || null,
+        });
       }
-      // Guardar statusLinea/fechaActivacion en persona_telefonos independientemente de cédula
       if (abonadoUnico && (afiliadoData.statusLinea || afiliadoData.fechaActivacion)) {
-        fetch(`/api/persona-telefonos/update-by-numero`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
-          body: JSON.stringify({ numero: abonadoUnico, statusLinea: afiliadoData.statusLinea || null, fechaActivacion: afiliadoData.fechaActivacion || null }),
-        }).catch(() => {});
+        telefonosPayload.push({
+          numero: abonadoUnico,
+          statusLinea: afiliadoData.statusLinea || null,
+          fechaActivacion: afiliadoData.fechaActivacion || null,
+        });
       }
     }
+
+    submitData.personas = personasPayload;
+    submitData.telefonos = telefonosPayload;
 
     onSubmit(submitData);
   };
