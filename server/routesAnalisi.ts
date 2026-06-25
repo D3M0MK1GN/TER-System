@@ -989,7 +989,10 @@ export function registerAnalisisRoutes(
   app.get("/api/registros-comunicacion/abonado/:abonado", authenticateToken, async (req: any, res) => {
     try {
       const { abonado } = req.params;
-      const registros = await storage.getRegistrosComunicacionByAbonado(abonado);
+      const expedienteSujetoId = req.query.expedienteSujetoId
+        ? parseInt(req.query.expedienteSujetoId as string)
+        : undefined;
+      const registros = await storage.getRegistrosComunicacionByAbonado(abonado, expedienteSujetoId);
       res.json(registros);
     } catch (error: any) {
       res.status(500).json({ message: "Error al obtener registros de comunicación" });
@@ -1176,11 +1179,16 @@ export function registerAnalisisRoutes(
           numerosTelefonoMap.set(numero, telefono.id);
         }
 
+        const expSujetoId = req.body.expedienteSujetoId
+          ? parseInt(req.body.expedienteSujetoId)
+          : null;
+
         const registrosConIds = registrosParaImportar.map((r) => ({
           ...r,
           abonadoAId: r.abonadoA ? numerosTelefonoMap.get(r.abonadoA.trim()) || null : null,
           abonadoBId: r.abonadoB ? numerosTelefonoMap.get(r.abonadoB.trim()) || null : null,
           time: r.time || null,
+          expedienteSujetoId: expSujetoId,
         }));
 
         const newRegistros = await storage.createRegistrosComunicacionBulk(registrosConIds);
