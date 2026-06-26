@@ -1750,32 +1750,22 @@ export function ExperticiasForm({
     isSubmittingRef.current = true;
 
     let filasSeleccionadas: any[] = [];
-    let datosAnalisis: any = null;
     let datosSeleccionadosTop10: any = null;
 
     const esContactoFrecuente = tipoExperticiaValue === "determinar_contacto_frecuente";
     const esMultiTarget = listaAnalisis.length > 0;
 
     if (esContactoFrecuente && esMultiTarget) {
-      // MODO MULTI-TARGET: construir array JSONB con un objeto por cada número analizado
+      // MODO MULTI-TARGET: guardar el campo abonado con todos los números
       const itemsConResultados = listaAnalisis.filter(
         (item) => item.resultados?.contactos
       );
-
-      datosAnalisis = itemsConResultados.map((item) => ({
-        numero:      item.numero,
-        datos_crudos: item.resultados!.contactos!.datosCrudos  ?? [],
-        top_10:      item.resultados!.contactos!.todosLosContactos ?? [],
-      }));
-
-      // El campo abonado guarda todos los números separados por coma
       (data as any).abonado = itemsConResultados.length > 0
         ? itemsConResultados.map((item) => item.numero).join(", ")
         : (data as any).abonado;
 
     } else if (esContactoFrecuente && contactosFrecuentesState.datosCrudos) {
-      // MODO INDIVIDUAL: mismo comportamiento que antes
-      datosAnalisis = contactosFrecuentesState.datosCrudos;
+      // MODO INDIVIDUAL
       filasSeleccionadas = extractSelectedRows(
         contactosFrecuentesState.datosCrudos,
         selectedRows
@@ -1783,7 +1773,7 @@ export function ExperticiasForm({
       datosSeleccionadosTop10 = filasSeleccionadas;
 
     } else if (btsAnalysisState.results) {
-      // MODO BTS: mismo comportamiento que antes
+      // MODO BTS
       filasSeleccionadas = extractSelectedRows(
         btsAnalysisState.results,
         selectedRows
@@ -1793,7 +1783,6 @@ export function ExperticiasForm({
     const submitData = {
       ...data,
       filasSeleccionadas,
-      datosAnalisis,
       datosSeleccionadosTop10,
       listaAnalisis: listaAnalisis.map((item) => ({
         numero: item.numero,

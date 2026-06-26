@@ -645,8 +645,11 @@ export function registerAnalisisRoutes(
   app.get("/api/trazabilidad/:numero", authenticateToken, async (req: any, res) => {
     try {
       const { numero } = req.params;
+      const expedienteSujetoId = req.query.expedienteSujetoId
+        ? parseInt(req.query.expedienteSujetoId as string)
+        : undefined;
 
-      const registros = await storage.getRegistrosComunicacionByAbonado(numero);
+      const registros = await storage.getRegistrosComunicacionByAbonado(numero, expedienteSujetoId);
 
       const numerosUnicos = new Set<string>();
       numerosUnicos.add(numero);
@@ -782,9 +785,12 @@ export function registerAnalisisRoutes(
   app.get("/api/analisis-traza/:numero", authenticateToken, async (req: any, res) => {
     try {
       const { numero } = req.params;
+      const expedienteSujetoId = req.query.expedienteSujetoId
+        ? parseInt(req.query.expedienteSujetoId as string)
+        : undefined;
 
-      // 1. Obtener registros desde la BD (igual que "Ver Registros")
-      const registros = await storage.getRegistrosComunicacionByAbonado(numero);
+      // 1. Obtener registros desde la BD filtrando por expedienteSujetoId para no mezclar registros de distintos expedientes
+      const registros = await storage.getRegistrosComunicacionByAbonado(numero, expedienteSujetoId);
 
       if (!registros || registros.length === 0) {
         return res.json({

@@ -180,7 +180,7 @@ export default function Trazabilidad() {
     }
   };
 
-  const handleVerRegistros = async (numero: string) => {
+  const handleVerRegistros = async (numero: string, expedienteSujetoId?: number) => {
     // Limpiar datos anteriores y filtros antes de abrir el modal
     setRegistrosData([]);
     setFiltroGlobal("");
@@ -192,8 +192,9 @@ export default function Trazabilidad() {
     setShowRegistrosModal(true);
 
     try {
+      const params = expedienteSujetoId ? `?expedienteSujetoId=${expedienteSujetoId}` : "";
       const response = await fetch(
-        `/api/registros-comunicacion/abonado/${encodeURIComponent(numero)}`,
+        `/api/registros-comunicacion/abonado/${encodeURIComponent(numero)}${params}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -399,14 +400,15 @@ export default function Trazabilidad() {
     }
   };
 
-  const handleAnalizarTraza = async (numero: string) => {
+  const handleAnalizarTraza = async (numero: string, expedienteSujetoId?: number) => {
     setAnalisisData(null);
     setLoadingModal(true);
     setShowAnalisisModal(true);
 
     try {
+      const params = expedienteSujetoId ? `?expedienteSujetoId=${expedienteSujetoId}` : "";
       const response = await fetch(
-        `/api/analisis-traza/${encodeURIComponent(numero)}`,
+        `/api/analisis-traza/${encodeURIComponent(numero)}${params}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -893,7 +895,7 @@ export default function Trazabilidad() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() =>
-                                  handleAnalizarTraza(resultado.numeroAsociado)
+                                  handleAnalizarTraza(resultado.numeroAsociado, resultado.id)
                                 }
                                 title="Analizar Traza"
                               >
@@ -913,7 +915,7 @@ export default function Trazabilidad() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() =>
-                                  handleVerRegistros(resultado.numeroAsociado)
+                                  handleVerRegistros(resultado.numeroAsociado, resultado.id)
                                 }
                                 title="Ver Registros"
                               >
