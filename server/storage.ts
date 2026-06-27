@@ -214,7 +214,6 @@ export interface IStorage {
   getRegistroComunicacionById(registroId: number): Promise<RegistroComunicacion | undefined>;
   getRegistrosComunicacionByAbonado(abonado: string, expedienteSujetoId?: number): Promise<RegistroComunicacion[]>;
   getRegistrosComunicacionByTelefonoIds(telefonoIds: number[]): Promise<RegistroComunicacion[]>;
-  getRegistrosComunicacionByExpId(experticiaId: number): Promise<Array<RegistroComunicacion & { telefonoCaso: string | null }>>;
   createRegistroComunicacion(registro: InsertRegistroComunicacion): Promise<RegistroComunicacion>;
   createRegistrosComunicacionBulk(registros: InsertRegistroComunicacion[]): Promise<void>;
   updateRegistroComunicacion(registroId: number, registro: Partial<InsertRegistroComunicacion>): Promise<RegistroComunicacion | undefined>;
@@ -1531,26 +1530,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRegistrosComunicacionByAbonado(abonado: string, expedienteSujetoId?: number): Promise<RegistroComunicacion[]> {
-    // UNION ALL: cada rama usa su propio índice (idx_registros_abonado_a / idx_registros_abonado_b)
-    // garantizando que el planner nunca haga Seq Scan por ambigüedad del OR.
-    const whereA = expedienteSujetoId
-      ? and(eq(registrosComunicacion.abonadoA, abonado), eq(registrosComunicacion.expedienteSujetoId, expedienteSujetoId))
-      : eq(registrosComunicacion.abonadoA, abonado);
-
-    const whereB = expedienteSujetoId
-      ? and(eq(registrosComunicacion.abonadoB, abonado), eq(registrosComunicacion.expedienteSujetoId, expedienteSujetoId))
-      : eq(registrosComunicacion.abonadoB, abonado);
-
-    const results = await db
+    const conditions: any[] = [eq(registrosComunicacion.abonadoA, abonado)];
+    if (expedienteSujetoId) {
+      conditions.push(eq(registrosComunicacion.expedienteSujetoId, expedienteSujetoId));
+    }
+    return await db
       .select()
       .from(registrosComunicacion)
-      .where(whereA)
-      .unionAll(
-        db.select().from(registrosComunicacion).where(whereB)
-      )
+      .where(and(...conditions))
       .orderBy(desc(registrosComunicacion.fecha));
-
-    return results;
   }
 
   async getRegistrosComunicacionByTelefonoIds(telefonoIds: number[]): Promise<RegistroComunicacion[]> {
@@ -1567,40 +1555,6 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(registrosComunicacion.fecha));
-  }
-
-  async getRegistrosComunicacionByExpId(experticiaId: number): Promise<Array<RegistroComunicacion & { telefonoCaso: string | null }>> {
-    return await db
-      .select({
-        registroId: registrosComunicacion.registroId,
-        abonadoA: registrosComunicacion.abonadoA,
-        abonadoB: registrosComunicacion.abonadoB,
-        tipoTransaccion: registrosComunicacion.tipoTransaccion,
-        fecha: registrosComunicacion.fecha,
-        hora: registrosComunicacion.hora,
-        time: registrosComunicacion.time,
-        btsCeldaA: registrosComunicacion.btsCeldaA,
-        btsCeldaB: registrosComunicacion.btsCeldaB,
-        direccionA: registrosComunicacion.direccionA,
-        direccionB: registrosComunicacion.direccionB,
-        coordenadasA: registrosComunicacion.coordenadasA,
-        coordenadasB: registrosComunicacion.coordenadasB,
-        orientacionA: registrosComunicacion.orientacionA,
-        orientacionB: registrosComunicacion.orientacionB,
-        imeiA: registrosComunicacion.imeiA,
-        imeiB: registrosComunicacion.imeiB,
-        archivo: registrosComunicacion.archivo,
-        peso: registrosComunicacion.peso,
-        abonadoAId: registrosComunicacion.abonadoAId,
-        abonadoBId: registrosComunicacion.abonadoBId,
-        experticiaId: registrosComunicacion.experticiaId,
-        expedienteSujetoId: registrosComunicacion.expedienteSujetoId,
-        createdAt: registrosComunicacion.createdAt,
-        telefonoCaso: expedientesSujetos.telefonoCaso,
-      })
-      .from(registrosComunicacion)
-      .leftJoin(expedientesSujetos, eq(registrosComunicacion.expedienteSujetoId, expedientesSujetos.id))
-      .where(eq(registrosComunicacion.experticiaId, experticiaId));
   }
 
   async createRegistroComunicacion(registro: InsertRegistroComunicacion): Promise<RegistroComunicacion> {

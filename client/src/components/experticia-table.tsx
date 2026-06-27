@@ -148,6 +148,7 @@ export function ExperticiasTable({
           body: {
             ...viewingExperticia,
             experticiaid: viewingExperticia.id,
+            datosAnalisis: viewingExperticia.datosAnalisis,
           },
         }
       );

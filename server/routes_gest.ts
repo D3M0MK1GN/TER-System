@@ -714,42 +714,29 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       }> = [];
 
       if (tipoExperticia === 'determinar_contacto_frecuente') {
-        if (requestData.experticiaid) {
-          // Leer contactos desde registros_comunicacion (fuente de verdad)
-          const registros = await storage.getRegistrosComunicacionByExpId(parseInt(requestData.experticiaid));
+        const datosAnalisis = Array.isArray(requestData.datosAnalisis)
+          ? requestData.datosAnalisis
+          : [];
 
-          // Agrupar por número analizado (telefonoCaso del expediente_sujeto)
-          const grupos = new Map<string, { numero: string; records: typeof registros }>();
-          for (const r of registros) {
-            const numero = r.telefonoCaso || r.abonadoA || '';
-            if (!numero) continue;
-            if (!grupos.has(numero)) grupos.set(numero, { numero, records: [] });
-            grupos.get(numero)!.records.push(r);
-          }
-
-          let idx = 1;
-          for (const { numero, records } of grupos.values()) {
-            const conteo: Record<string, number> = {};
-            for (const r of records) {
-              const contacto = r.abonadoA === numero ? r.abonadoB : r.abonadoA;
-              if (contacto) conteo[contacto] = (conteo[contacto] || 0) + 1;
-            }
-            const top10 = Object.entries(conteo)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 10)
-              .map(([num]) => num)
+        if (datosAnalisis.length > 0) {
+          // Modo multi-target: un objeto por cada número analizado
+          datosAnalisis.forEach((item: any, idx: number) => {
+            const top10: any[] = Array.isArray(item.top_10) ? item.top_10.slice(0, 10) : [];
+            const contactosTexto = top10
+              .map((c: any) => c.numero || c.CONTACTO || c.contacto || '')
+              .filter(Boolean)
               .join(', ');
 
             abonados_lista.push({
-              NUM_ORD: String(idx++),
-              NUMERO: numero,
+              NUM_ORD: String(idx + 1),
+              NUMERO: item.numero || '',
               DESDE: regFechas.desde || '',
               HASTA: regFechas.hasta || '',
-              CONTACTOS_TEXTO: top10,
+              CONTACTOS_TEXTO: contactosTexto,
             });
-          }
+          });
         } else if (requestData.abonado) {
-          // Modo individual sin experticiaid (compatibilidad)
+          // Modo individual (un solo abonado)
           const top10: any[] = Array.isArray(requestData.todosLosContactos)
             ? requestData.todosLosContactos.slice(0, 10)
             : [];
@@ -911,7 +898,7 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
       
       console.log('✅ [CREATE EXPERTICIA] No hay duplicados, continuando con creación...');
 
-      if (req.user.rol !== 'admin' && req.user.rol !== 'supervisor') {
+      if (req.user.rol !== 'admin') {
         return res.status(403).json({ message: "No tienes permisos para crear experticias" });
       }
 
@@ -923,10 +910,8 @@ export function registerDocumentRoutes(app: Express, authenticateToken: any, sto
         });
       }
 
-      // Excluir datosAnalisis del insert — los registros ya se guardan en registros_comunicacion
-      const { datosAnalisis: _ignorado, ...cleanData } = validation.data as any;
       const experticia = await storage.createExperticia({
-        ...cleanData,
+        ...validation.data,
         usuarioId: req.user.id,
       });
 
