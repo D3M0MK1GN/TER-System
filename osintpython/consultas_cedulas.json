@@ -4593,5 +4593,464 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2026-07-21T14:57:05.771998",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "26555846",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=26555846",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-07-21T15:37:35.340755",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "13711465",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=13711465",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 13711465,
+                "fecha_nac": "1976-11-14",
+                "rif": "V137114654",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "UNIDAD EDUCATIVA DOCTOR ALBERTO CARNEVALI"
+                },
+                "primer_apellido": "ALCALA",
+                "segundo_apellido": "PEREZ",
+                "primer_nombre": "ELIO",
+                "segundo_nombre": "MANUEL",
+                "request_date": "2026-07-21T19:37:35.287Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-21T15:38:32.258883",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "1234746",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=1234746",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 1234746,
+                "fecha_nac": "1933-05-06",
+                "rif": "V012347460",
+                "cne": {
+                    "estado": "BARINAS",
+                    "municipio": "BARINAS",
+                    "parroquia": "ROMULO BETANCOURT",
+                    "centro_electoral": "GRUPO ESCOLAR  RAFAEL IGNACIO MENDOZA"
+                },
+                "primer_apellido": "ALVAREZ",
+                "segundo_apellido": "JIMENEZ",
+                "primer_nombre": "RAMON",
+                "segundo_nombre": "BENITO",
+                "request_date": "2026-07-21T19:38:32.206Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-21T15:39:35.959805",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "12934746",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=12934746",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 12934746,
+                "fecha_nac": "1976-12-06",
+                "rif": "V129347461",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "UNIDAD EDUCATIVA ANDRES ELOY BLANCO"
+                },
+                "primer_apellido": "MORILLO",
+                "segundo_apellido": "PIÑA",
+                "primer_nombre": "ELIZABETH",
+                "segundo_nombre": "PASTORA",
+                "request_date": "2026-07-21T19:39:35.903Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-21T15:45:31.719721",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "25935332",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=25935332",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 25935332,
+                "fecha_nac": "1996-03-13",
+                "rif": "V259353323",
+                "primer_apellido": "MORILLO",
+                "segundo_apellido": "ALCALA",
+                "primer_nombre": "CARLA",
+                "segundo_nombre": "VALENTINA DEL VALLE",
+                "request_date": "2026-07-21T19:45:31.667Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-21T15:45:57.584950",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "30490467",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=30490467",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 30490467,
+                "fecha_nac": "0000-00-00",
+                "rif": "V304904670",
+                "primer_apellido": "MORILLO",
+                "segundo_apellido": "ALCALA",
+                "primer_nombre": "FRANCIS",
+                "segundo_nombre": "MILAGROS",
+                "request_date": "2026-07-21T19:45:57.527Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-21T15:46:18.274043",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "20297084",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=20297084",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 20297084,
+                "fecha_nac": "1991-01-27",
+                "rif": "V202970849",
+                "cne": {
+                    "estado": "FALCON",
+                    "municipio": "ZAMORA",
+                    "parroquia": "PUERTO CUMAREBO",
+                    "centro_electoral": "ESCUELA BÁSICA BOLIVARIANA PADRE ROMÁN"
+                },
+                "primer_apellido": "MORILLO",
+                "segundo_apellido": "ALCALA",
+                "primer_nombre": "LUISMAR",
+                "segundo_nombre": "JOSE ANTONIO",
+                "request_date": "2026-07-21T19:46:18.206Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-21T15:46:41.407880",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "3945245",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=3945245",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 3945245,
+                "fecha_nac": "1948-09-18",
+                "rif": "V039452452",
+                "cne": {
+                    "estado": "CARABOBO",
+                    "municipio": "PUERTO CABELLO",
+                    "parroquia": "GOAIGOAZA",
+                    "centro_electoral": "UNIDAD EDUCATIVA ESCUELA NIÑOS ESPECIALES"
+                },
+                "primer_apellido": "MORILLO",
+                "segundo_apellido": "ALCALA",
+                "primer_nombre": "MARIO",
+                "segundo_nombre": "JOSE",
+                "request_date": "2026-07-21T19:46:41.355Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-21T15:47:11.821718",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "20054328",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=20054328",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 20054328,
+                "fecha_nac": "1990-07-07",
+                "rif": "V200543285",
+                "cne": {
+                    "estado": "SUCRE",
+                    "municipio": "RIBERO",
+                    "parroquia": "CARIACO",
+                    "centro_electoral": "ESCUELA BASICA AGUAS CALIENTES"
+                },
+                "primer_apellido": "ALCALA",
+                "segundo_apellido": "MORILLO",
+                "primer_nombre": "DOUSNEILYS",
+                "segundo_nombre": "MARIA",
+                "request_date": "2026-07-21T19:47:11.770Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-21T15:47:37.511191",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "23552496",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=23552496",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 23552496,
+                "fecha_nac": "1991-04-06",
+                "rif": "V235524968",
+                "cne": {
+                    "estado": "BOLIVAR",
+                    "municipio": "HERES",
+                    "parroquia": "CATEDRAL",
+                    "centro_electoral": "LICEO SUCRE"
+                },
+                "primer_apellido": "ALCALA",
+                "segundo_apellido": "MORILLO",
+                "primer_nombre": "JORGE",
+                "segundo_nombre": "LUIS",
+                "request_date": "2026-07-21T19:47:37.452Z"
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-21T16:54:52.296265",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "31025969",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=31025969",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 31025969,
+                "fecha_nac": "0000-00-00",
+                "rif": "V310259698",
+                "primer_apellido": "MEDINA",
+                "segundo_apellido": "GIMENEZ",
+                "primer_nombre": "SALOME",
+                "segundo_nombre": "VERONICA",
+                "request_date": "2026-07-21T20:54:52.246Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-07-21T17:38:50.061685",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "11581055",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=11581055",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 11581055,
+                "fecha_nac": "1968-04-29",
+                "rif": "V115810551",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "JUAN DE VILLEGAS",
+                    "centro_electoral": "UNIDAD ESCUELA NACIONAL CREACION BARRIOS DEL OESTE"
+                },
+                "primer_apellido": "MATHEUS",
+                "primer_nombre": "PEDRO",
+                "segundo_nombre": "ANTONIO",
+                "request_date": "2026-07-21T21:38:50.582Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-07-25T21:01:40.019448",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "12797241",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=12797241",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 12797241,
+                "fecha_nac": "1975-06-02",
+                "rif": "V127972415",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "CATEDRAL",
+                    "centro_electoral": "UNIDAD EDUCATIVA ESTADAL CARMEN FERNANDEZ DE LEONI"
+                },
+                "primer_apellido": "GODOY",
+                "segundo_apellido": "USECHE",
+                "primer_nombre": "DANNY",
+                "segundo_nombre": "FITZGERALD",
+                "request_date": "2026-07-26T01:01:39.936Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-07-25T21:10:55.422058",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "20672255",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=20672255",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 20672255,
+                "fecha_nac": "1992-02-03",
+                "rif": "V206722556",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "PALAVECINO",
+                    "parroquia": "CABUDARE",
+                    "centro_electoral": "INSTITUTO DE EDUCACION ESPECIAL ALICIA PIETRI DE CALDERA"
+                },
+                "primer_apellido": "GIL",
+                "segundo_apellido": "ZAMORA",
+                "primer_nombre": "WILLIAM",
+                "segundo_nombre": "GENARO",
+                "request_date": "2026-07-26T01:10:55.349Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-07-25T21:11:32.850916",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "16139502",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=16139502",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 16139502,
+                "fecha_nac": "1980-12-21",
+                "rif": "V161395028",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "PALAVECINO",
+                    "parroquia": "AGUA VIVA",
+                    "centro_electoral": "SEDE JUNTA PARROQUIAL SECTOR AGUA VIVA"
+                },
+                "primer_apellido": "RODRIGUEZ",
+                "segundo_apellido": "MOGOLLON",
+                "primer_nombre": "MARIELBY",
+                "segundo_nombre": "COROMOTO",
+                "request_date": "2026-07-26T01:11:32.777Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-07-25T21:13:02.245251",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "18654554",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=18654554",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 18654554,
+                "fecha_nac": "1989-01-26",
+                "rif": "V186545547",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "PALAVECINO",
+                    "parroquia": "JOSE G. BASTIDAS",
+                    "centro_electoral": "UNIDAD EDUCATIVA  GENERAL AQUILINO JUAREZ"
+                },
+                "primer_apellido": "COLMENAREZ",
+                "primer_nombre": "MARIA",
+                "segundo_nombre": "DE LOS ANGELES",
+                "request_date": "2026-07-26T01:13:02.148Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-07-25T21:32:27.189837",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "9609455",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=9609455",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 9609455,
+                "fecha_nac": "1968-04-09",
+                "rif": "V096094554",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "INSTITUTO POPULAR MARIA MAZZARELLO"
+                },
+                "primer_apellido": "ANGULO",
+                "segundo_apellido": "MONTILLA",
+                "primer_nombre": "ADOLFO",
+                "segundo_nombre": "DE JESUS",
+                "request_date": "2026-07-26T01:32:27.088Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-07-25T21:57:52.470227",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "15729677",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=15729677",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 15729677,
+                "fecha_nac": "1979-12-29",
+                "rif": "V157296775",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "CATEDRAL",
+                    "centro_electoral": "CENTRO DE EDUCACION INICIAL MARIA PEREIRA DE DAZA"
+                },
+                "primer_apellido": "MARANTE",
+                "segundo_apellido": "GIMENEZ",
+                "primer_nombre": "JUAN",
+                "segundo_nombre": "MIGUEL",
+                "request_date": "2026-07-26T01:57:52.386Z"
+            }
+        },
+        "success": true
     }
 ]
