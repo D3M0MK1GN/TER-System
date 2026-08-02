@@ -812,10 +812,16 @@ export function registerAnalisisRoutes(
         numerosExpediente = [numero];
       }
 
-      // ── 2) Terceros en común: contactos compartidos entre 2+ números del expediente ──
+      // ── 2) Terceros en común + Comunicaciones directas ──
       const tercerosMap = new Map<
         string,
         { numero: string; contactosPorNumero: Map<string, number>; totalRegistros: number }
+      >();
+
+      // Pares de números del expediente que se comunicaron directamente entre sí
+      const directasMap = new Map<
+        string,
+        { numA: string; numB: string; totalRegistros: number; aToB: number; bToA: number }
       >();
 
       for (const numExp of numerosExpediente) {
@@ -823,6 +829,32 @@ export function registerAnalisisRoutes(
         for (const r of registros) {
           const a = (r.abonadoA || "").trim();
           const b = (r.abonadoB || "").trim();
+
+          // — Comunicaciones directas: ambos extremos pertenecen al expediente —
+          if (
+            a && b && a !== b &&
+            numerosExpediente.includes(a) &&
+            numerosExpediente.includes(b)
+          ) {
+            // Clave canónica (menor|mayor) para no duplicar el par
+            const [menor, mayor] = a < b ? [a, b] : [b, a];
+            // Solo contamos cuando numExp === menor para evitar doble-conteo
+            if (numExp === menor) {
+              const clave = `${menor}|${mayor}`;
+              let entry = directasMap.get(clave);
+              if (!entry) {
+                entry = { numA: menor, numB: mayor, totalRegistros: 0, aToB: 0, bToA: 0 };
+                directasMap.set(clave, entry);
+              }
+              entry.totalRegistros += 1;
+              // aToB = registros donde el origen (abonadoA) es el "menor" del par
+              if (a === menor) entry.aToB += 1;
+              else entry.bToA += 1;
+            }
+            continue; // no clasificar este registro como tercero
+          }
+
+          // — Terceros en común: un extremo es numExp y el otro es externo —
           let contacto: string | null = null;
           if (a === numExp && ES_TELEFONO.test(b)) contacto = b;
           else if (b === numExp && ES_TELEFONO.test(a)) contacto = a;
@@ -839,6 +871,10 @@ export function registerAnalisisRoutes(
           entry.totalRegistros += 1;
         }
       }
+
+      const comunicacionesDirectas = Array.from(directasMap.values()).sort(
+        (x, y) => y.totalRegistros - x.totalRegistros
+      );
 
       const terceros: any[] = [];
       for (const entry of Array.from(tercerosMap.values())) {
@@ -925,6 +961,7 @@ export function registerAnalisisRoutes(
         numerosExpediente,
         numerosExpedienteInfo,
         terceros,
+        comunicacionesDirectas,
         imeisCompartidos,
       });
 

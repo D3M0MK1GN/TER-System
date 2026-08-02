@@ -93,7 +93,6 @@ export default function Trazabilidad() {
   const [terceroFiltroConexiones, setTerceroFiltroConexiones] = useState<string>("todos");
   const [terceroPagina, setTerceroPagina] = useState(1);
   const [terceroPorPagina, setTerceroPorPagina] = useState<string>("10");
-  const [modoCruce, setModoCruce] = useState<"terceros" | "directas">("terceros");
   const [analisisData, setAnalisisData] = useState<any>(null);
   const [loadingModal, setLoadingModal] = useState(false);
   const [currentExperticiaId, setCurrentExperticiaId] = useState<number | undefined>(undefined);
@@ -417,7 +416,6 @@ export default function Trazabilidad() {
     setTerceroFiltroConexiones("todos");
     setTerceroPagina(1);
     setTerceroPorPagina("10");
-    setModoCruce("terceros");
     setLoadingModal(true);
     try {
       const query = expedienteStr ? `?expediente=${encodeURIComponent(expedienteStr)}` : "";
@@ -1648,36 +1646,14 @@ export default function Trazabilidad() {
                 <span><strong>IMEIs compartidos:</strong> {coincidenciasData.imeisCompartidos?.length || 0}</span>
               </div>
 
-              {/* Terceros en común / Comunicaciones directas */}
+              {/* Terceros en común */}
               <div className="space-y-2">
-                {/* Encabezado con toggle */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-800">
-                      {modoCruce === "terceros" ? "Terceros en común del expediente" : "Comunicaciones directas entre números del expediente"}
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {modoCruce === "terceros"
-                        ? "Números que se comunicaron con dos o más números del mismo expediente (ordenados de mayor a menor comunicación)."
-                        : "Pares de números del expediente que se comunicaron directamente entre sí."}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-xs font-medium ${modoCruce === "terceros" ? "text-gray-800" : "text-gray-400"}`}>
-                      Terceros en común
-                    </span>
-                    <Switch
-                      checked={modoCruce === "directas"}
-                      onCheckedChange={(checked) => setModoCruce(checked ? "directas" : "terceros")}
-                    />
-                    <span className={`text-xs font-medium ${modoCruce === "directas" ? "text-gray-800" : "text-gray-400"}`}>
-                      Comunicaciones directas
-                    </span>
-                  </div>
-                </div>
+                <h4 className="text-sm font-bold text-gray-800">Terceros en común del expediente</h4>
+                <p className="text-xs text-gray-500">
+                  Números que se comunicaron con dos o más números del mismo expediente (ordenados de mayor a menor comunicación).
+                </p>
 
-                {((modoCruce === "terceros" && coincidenciasData.terceros && coincidenciasData.terceros.length > 0) ||
-                  (modoCruce === "directas" && (coincidenciasData.comunicacionesDirectas || []).length > 0)) && (
+                {coincidenciasData.terceros && coincidenciasData.terceros.length > 0 && (
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <Input
                       data-testid="input-filtro-tercero"
@@ -1732,151 +1708,7 @@ export default function Trazabilidad() {
                   </div>
                 )}
 
-                {modoCruce === "directas" && (() => {
-                  const directas = coincidenciasData.comunicacionesDirectas || [];
-                  if (directas.length === 0) {
-                    return (
-                      <div className="py-6 text-center text-sm text-gray-500 border border-dashed rounded-lg">
-                        No se hallaron comunicaciones directas entre los números de este expediente.
-                      </div>
-                    );
-                  }
-
-                  // Construir vista por número con salientes/entrantes separados
-                  const catalogoExpediente = new Map<string, any>(
-                    (coincidenciasData.numerosExpedienteInfo || []).map((info: any) => [info.numero, info])
-                  );
-                  const porNumero = new Map<string, {
-                    numero: string;
-                    contactos: { numero: string; salientes: number; entrantes: number }[];
-                    totalSalientes: number;
-                    totalEntrantes: number;
-                  }>();
-                  for (const par of directas) {
-                    for (const esSelf of [true, false]) {
-                      const self  = esSelf ? par.numA : par.numB;
-                      const other = esSelf ? par.numB : par.numA;
-                      const sal   = esSelf ? par.aToB : par.bToA;
-                      const ent   = esSelf ? par.bToA : par.aToB;
-                      if (!porNumero.has(self)) {
-                        porNumero.set(self, { numero: self, contactos: [], totalSalientes: 0, totalEntrantes: 0 });
-                      }
-                      const entry = porNumero.get(self)!;
-                      entry.contactos.push({ numero: other, salientes: sal, entrantes: ent });
-                      entry.totalSalientes += sal;
-                      entry.totalEntrantes += ent;
-                    }
-                  }
-
-                  // Aplicar filtros reutilizando los mismos estados de terceros
-                  const filtro = terceroFiltro.trim();
-                  const conexionesFiltro = terceroFiltroConexiones;
-                  let filas = Array.from(porNumero.values())
-                    .filter((f) => (filtro ? f.numero.includes(filtro) : true))
-                    .filter((f) => {
-                      const conexiones = f.contactos.length;
-                      if (conexionesFiltro === "2") return conexiones === 2;
-                      if (conexionesFiltro === "3") return conexiones === 3;
-                      if (conexionesFiltro === "4") return conexiones === 4;
-                      if (conexionesFiltro === "5") return conexiones >= 5;
-                      return true;
-                    })
-                    .sort((a, b) => (b.totalSalientes + b.totalEntrantes) - (a.totalSalientes + a.totalEntrantes));
-
-                  const porPagina = terceroPorPagina === "todos" ? filas.length || 1 : parseInt(terceroPorPagina, 10);
-                  const totalPaginas = Math.max(1, Math.ceil(filas.length / porPagina));
-                  const paginaSegura = Math.min(terceroPagina, totalPaginas);
-                  const inicio = (paginaSegura - 1) * porPagina;
-                  const filasPagina = filas.slice(inicio, inicio + porPagina);
-
-                  if (filas.length === 0) {
-                    return (
-                      <div className="py-6 text-center text-sm text-gray-500 border border-dashed rounded-lg">
-                        Ningún número coincide con los filtros aplicados.
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <>
-                      <div className="border rounded-md overflow-hidden">
-                        <Table>
-                          <TableHeader className="bg-gray-50">
-                            <TableRow>
-                              <TableHead className="text-xs font-bold text-gray-700">Número Expediente</TableHead>
-                              <TableHead className="text-xs font-bold text-gray-700">Cédula</TableHead>
-                              <TableHead className="text-xs font-bold text-gray-700">Nombre Completo</TableHead>
-                              <TableHead className="text-xs font-bold text-gray-700">Comunicó con</TableHead>
-                              <TableHead className="text-xs font-bold text-gray-700">Total registros</TableHead>
-                              <TableHead className="text-xs font-bold text-gray-700">Estatus</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filasPagina.map((fila, idx) => {
-                              const info = catalogoExpediente.get(fila.numero);
-                              return (
-                                <TableRow key={idx} className="hover:bg-gray-50 align-top">
-                                  <TableCell className="font-mono text-xs font-bold text-blue-600 whitespace-nowrap">
-                                    📞 {fila.numero}
-                                  </TableCell>
-                                  <TableCell className="text-xs">{info?.cedula || "N/A"}</TableCell>
-                                  <TableCell className="text-xs font-medium uppercase">
-                                    {info?.nombreCompleto || "Desconocido"}
-                                  </TableCell>
-                                  <TableCell className="text-xs">
-                                    <div className="space-y-1">
-                                      {fila.contactos.map((c, ci) => (
-                                        <div key={ci} className="bg-gray-50 rounded px-2 py-1">
-                                          <span className="font-mono">{c.numero}</span>{" "}
-                                          <span className="text-gray-500">({c.salientes}/{c.entrantes} reg.)</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-xs font-semibold whitespace-nowrap">
-                                    {fila.totalSalientes}/{fila.totalEntrantes}
-                                  </TableCell>
-                                  <TableCell>
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${info?.catalogado ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                                      {info?.catalogado ? "Catalogado" : "No catalogado"}
-                                    </span>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </div>
-
-                      {terceroPorPagina !== "todos" && totalPaginas > 1 && (
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="text-xs text-gray-500">
-                            Mostrando {inicio + 1}–{Math.min(inicio + porPagina, filas.length)} de {filas.length}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm" variant="outline"
-                              onClick={() => setTerceroPagina((prev) => Math.max(1, prev - 1))}
-                              disabled={paginaSegura <= 1}
-                            >
-                              <ChevronLeft className="h-3 w-3" />
-                            </Button>
-                            <span className="text-xs">Página {paginaSegura} de {totalPaginas}</span>
-                            <Button
-                              size="sm" variant="outline"
-                              onClick={() => setTerceroPagina((prev) => Math.min(totalPaginas, prev + 1))}
-                              disabled={paginaSegura >= totalPaginas}
-                            >
-                              <ChevronRight className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-
-                {modoCruce === "terceros" && (() => {
+                {(() => {
                   const todosTerceros = coincidenciasData.terceros || [];
                   const filtro = terceroFiltro.trim();
                   const conexionesFiltro = terceroFiltroConexiones;

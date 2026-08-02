@@ -5052,5 +5052,100 @@
             }
         },
         "success": true
+    },
+    {
+        "timestamp": "2026-07-28T14:49:43.477123",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "20237411",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=20237411",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 20237411,
+                "fecha_nac": "1989-08-26",
+                "rif": "V202374111",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "CENTRO DE EDUCACION INICIAL BOLIVARIANO JACINTO LARA I"
+                },
+                "primer_apellido": "VARGAS",
+                "segundo_apellido": "MAITA",
+                "primer_nombre": "ALFREDO",
+                "segundo_nombre": "ALEJANDRO",
+                "request_date": "2026-07-28T18:49:44.691Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-07-28T14:53:45.034732",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "20237411",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=20237411",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 20237411,
+                "fecha_nac": "1989-08-26",
+                "rif": "V202374111",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "CENTRO DE EDUCACION INICIAL BOLIVARIANO JACINTO LARA I"
+                },
+                "primer_apellido": "VARGAS",
+                "segundo_apellido": "MAITA",
+                "primer_nombre": "ALFREDO",
+                "segundo_nombre": "ALEJANDRO",
+                "request_date": "2026-07-28T18:53:46.242Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-07-29T14:11:10.417980",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "9619846",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=9619846",
+        "resultado_api": {
+            "error": false,
+            "error_str": false,
+            "data": {
+                "nacionalidad": "V",
+                "cedula": 9619846,
+                "fecha_nac": "1967-01-10",
+                "rif": "V096198465",
+                "cne": {
+                    "estado": "LARA",
+                    "municipio": "IRIBARREN",
+                    "parroquia": "UNION",
+                    "centro_electoral": "ESC NAC JUAN GUILLERMO IRIBARREN"
+                },
+                "primer_apellido": "ARRIECHE",
+                "primer_nombre": "MIRIAN",
+                "segundo_nombre": "DEL CARMEN",
+                "request_date": "2026-07-29T18:11:10.333Z"
+            }
+        },
+        "success": true
+    },
+    {
+        "timestamp": "2026-08-01T12:10:52.146398",
+        "nacionalidad_consultada": "V",
+        "cedula_consultada": "26555846",
+        "url_completa": "http://api.cedula.com.ve/api/v1?app_id=9314&token=15f625d3f55b6749c7a54c54b6235c98&nacionalidad=V&cedula=26555846",
+        "resultado_api": {
+            "error": true,
+            "data": false,
+            "error_str": "RECORD_NOT_FOUND"
+        },
+        "success": true
     }
 ]
